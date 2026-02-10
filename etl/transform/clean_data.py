@@ -2,11 +2,10 @@ import pandas as pd
 import glob
 import os
 import re
-import logging
+from src.utils.logger import get_logger
 
 # Configure Logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+logger = get_logger('clean_data')
 
 RAW_DIR = "data/raw"
 CLEAN_DIR = "data/clean"

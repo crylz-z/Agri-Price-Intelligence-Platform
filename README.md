@@ -55,6 +55,3 @@ This project implements a **Serverless Data Pipeline** ("The Robot") that:
 *   **For Consumers**: Identifies the cheapest wet market in NCR for specific goods.
 *   **For Businesses**: Enables data-driven procurement to reduce costs by 15-20%.
 *   **For the Market**: Exposes predatory pricing and encourages fair competition.
-
----
-*Built by [Your Name] as a showcase of modern Data Engineering patterns.*

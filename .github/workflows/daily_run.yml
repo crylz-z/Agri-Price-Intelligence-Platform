@@ -26,16 +26,19 @@ jobs:
         run: |
           pip install requests pandas beautifulsoup4
 
+      - name: Run Discovery Service (Catalog Update)
+        run: python -m etl.extract.fetch_metadata
+
       - name: Run Extraction Robot
-        run: python src/daily_extraction.py
+        run: python -m etl.extract.extract_data
 
       - name: Run Silver Transformation
-        run: python src/transform.py
+        run: python -m etl.transform.clean_data
 
       - name: Commit and Push Data
         run: |
           git config --global user.name "Agri-Price Bot"
           git config --global user.email "bot@users.noreply.github.com"
-          git add data/raw/*.csv data/clean/*.csv
+          git add data/raw/*.csv data/clean/*.csv data/reference/*.csv
           git commit -m "data: Update prices and clean data for $(date +'%Y-%m-%d')" || exit 0
           git push

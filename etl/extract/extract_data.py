@@ -1,37 +1,28 @@
 import sys
 import os
 import time
-import logging
 import requests
 import pandas as pd
-from bs4 import BeautifulSoup
 from datetime import datetime
+from bs4 import BeautifulSoup
 import random
 
-# Add project root to path to allow importing config
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from config.settings import HEADERS_URL, PRICES_URL, REGION_ID, COMMODITIES, USER_AGENTS
+from src.utils.logger import get_logger
 
 # Setup Directory Structure
 os.makedirs('data/raw', exist_ok=True)
 os.makedirs('logs', exist_ok=True)
 
 # Setup Logging
-log_filename = f"logs/extraction_{datetime.now().strftime('%Y%m%d')}.log"
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(log_filename),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
+logger = get_logger('extract_data')
 
 def get_response(url, payload):
     """Helper to fetch data with polite headers."""
-    headers = {'User-Agent': USER_AGENTS[0]} # Lock to known working agent
+    headers = {
+        'User-Agent': USER_AGENTS[0],
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+    }
     try:
         response = requests.post(url, data=payload, headers=headers, timeout=30)
         response.raise_for_status()
@@ -147,9 +138,9 @@ def main():
         
         if records:
             all_records.extend(records)
-            logger.info(f"  > Extracted {len(records)} rows.")
+            logger.info(f"  > Scanned {len(rows)} items. Extracted {len(records)} valid price records.")
         else:
-            logger.warning(f"  > No data found for {com_name}.")
+            logger.warning(f"  > Scanned {len(rows)} items. No valid prices found for {com_name}.")
 
     # 4. Save
     if all_records:
