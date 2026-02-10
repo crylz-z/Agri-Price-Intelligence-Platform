@@ -1,0 +1,718 @@
+extract_dt,region_id,market_name,category,commodity,price
+2026-02-10,130000000,Guadalupe Public Market,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,60.0
+2026-02-10,130000000,New Las Pinas City Public Market,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,54.0
+2026-02-10,130000000,Marikina Public Market,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,58.0
+2026-02-10,130000000,Munoz Market,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,52.0
+2026-02-10,130000000,Mega Q Mart,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,57.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,52.0
+2026-02-10,130000000,Pritil Market,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,55.0
+2026-02-10,130000000,Dagonoy Market,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,50.0
+2026-02-10,130000000,Trabajo Market,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,55.0
+2026-02-10,130000000,Navotas Agora Market,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,54.0
+2026-02-10,130000000,Murphy Market,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,56.0
+2026-02-10,130000000,Navotas Agora Market,Rice,COMMERCIAL (IMPORTED) Regular Milled - 20-40% BRAN STREAK,40.0
+2026-02-10,130000000,New Las Pinas City Public Market,Rice,COMMERCIAL (IMPORTED) Special (Blue tagged) - WHITE RICE,60.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Rice,COMMERCIAL (IMPORTED) Special (Blue tagged) - WHITE RICE,60.0
+2026-02-10,130000000,Guadalupe Public Market,Rice,COMMERCIAL (LOCAL) Premium (Yellow tagged) - 5% BROKEN,52.0
+2026-02-10,130000000,New Las Pinas City Public Market,Rice,COMMERCIAL (LOCAL) Premium (Yellow tagged) - 5% BROKEN,54.0
+2026-02-10,130000000,Marikina Public Market,Rice,COMMERCIAL (LOCAL) Premium (Yellow tagged) - 5% BROKEN,54.0
+2026-02-10,130000000,Pasay City Market,Rice,COMMERCIAL (LOCAL) Premium (Yellow tagged) - 5% BROKEN,55.0
+2026-02-10,130000000,Quinta Market,Rice,COMMERCIAL (LOCAL) Premium (Yellow tagged) - 5% BROKEN,52.0
+2026-02-10,130000000,Mega Q Mart,Rice,COMMERCIAL (LOCAL) Premium (Yellow tagged) - 5% BROKEN,55.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Rice,COMMERCIAL (LOCAL) Premium (Yellow tagged) - 5% BROKEN,50.0
+2026-02-10,130000000,Pritil Market,Rice,COMMERCIAL (LOCAL) Premium (Yellow tagged) - 5% BROKEN,46.0
+2026-02-10,130000000,Dagonoy Market,Rice,COMMERCIAL (LOCAL) Premium (Yellow tagged) - 5% BROKEN,55.0
+2026-02-10,130000000,Trabajo Market,Rice,COMMERCIAL (LOCAL) Premium (Yellow tagged) - 5% BROKEN,60.0
+2026-02-10,130000000,Navotas Agora Market,Rice,COMMERCIAL (LOCAL) Premium (Yellow tagged) - 5% BROKEN,46.0
+2026-02-10,130000000,Murphy Market,Rice,COMMERCIAL (LOCAL) Premium (Yellow tagged) - 5% BROKEN,56.0
+2026-02-10,130000000,Guadalupe Public Market,Rice,COMMERCIAL (LOCAL) Regular Milled - 20-40% BRAN STREAK,50.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Rice,COMMERCIAL (LOCAL) Regular Milled - 20-40% BRAN STREAK,42.0
+2026-02-10,130000000,Pritil Market,Rice,COMMERCIAL (LOCAL) Regular Milled - 20-40% BRAN STREAK,42.0
+2026-02-10,130000000,Navotas Agora Market,Rice,COMMERCIAL (LOCAL) Regular Milled - 20-40% BRAN STREAK,40.0
+2026-02-10,130000000,Kamuning Market,Rice,COMMERCIAL (LOCAL) Regular Milled - 20-40% BRAN STREAK,40.0
+2026-02-10,130000000,Guadalupe Public Market,Rice,COMMERCIAL (LOCAL) Special (Blue tagged) - WHITE RICE,60.0
+2026-02-10,130000000,New Las Pinas City Public Market,Rice,COMMERCIAL (LOCAL) Special (Blue tagged) - WHITE RICE,60.0
+2026-02-10,130000000,Marikina Public Market,Rice,COMMERCIAL (LOCAL) Special (Blue tagged) - WHITE RICE,59.0
+2026-02-10,130000000,Munoz Market,Rice,COMMERCIAL (LOCAL) Special (Blue tagged) - WHITE RICE,60.0
+2026-02-10,130000000,Pasay City Market,Rice,COMMERCIAL (LOCAL) Special (Blue tagged) - WHITE RICE,60.0
+2026-02-10,130000000,Quinta Market,Rice,COMMERCIAL (LOCAL) Special (Blue tagged) - WHITE RICE,60.0
+2026-02-10,130000000,Mega Q Mart,Rice,COMMERCIAL (LOCAL) Special (Blue tagged) - WHITE RICE,58.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Rice,COMMERCIAL (LOCAL) Special (Blue tagged) - WHITE RICE,57.0
+2026-02-10,130000000,Pritil Market,Rice,COMMERCIAL (LOCAL) Special (Blue tagged) - WHITE RICE,58.0
+2026-02-10,130000000,Dagonoy Market,Rice,COMMERCIAL (LOCAL) Special (Blue tagged) - WHITE RICE,60.0
+2026-02-10,130000000,Navotas Agora Market,Rice,COMMERCIAL (LOCAL) Special (Blue tagged) - WHITE RICE,55.0
+2026-02-10,130000000,Murphy Market,Rice,COMMERCIAL (LOCAL) Special (Blue tagged) - WHITE RICE,60.0
+2026-02-10,130000000,Kamuning Market,Rice,COMMERCIAL (LOCAL) Special (Blue tagged) - WHITE RICE,63.0
+2026-02-10,130000000,Guadalupe Public Market,Rice,COMMERCIAL (LOCAL) Well Milled - 1-19% BRAN STREAK,50.0
+2026-02-10,130000000,Mega Q Mart,Rice,COMMERCIAL (LOCAL) Well Milled - 1-19% BRAN STREAK,50.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Rice,COMMERCIAL (LOCAL) Well Milled - 1-19% BRAN STREAK,45.0
+2026-02-10,130000000,Pritil Market,Rice,COMMERCIAL (LOCAL) Well Milled - 1-19% BRAN STREAK,42.0
+2026-02-10,130000000,Dagonoy Market,Rice,COMMERCIAL (LOCAL) Well Milled - 1-19% BRAN STREAK,42.0
+2026-02-10,130000000,Trabajo Market,Rice,COMMERCIAL (LOCAL) Well Milled - 1-19% BRAN STREAK,48.0
+2026-02-10,130000000,Navotas Agora Market,Rice,COMMERCIAL (LOCAL) Well Milled - 1-19% BRAN STREAK,42.0
+2026-02-10,130000000,Kamuning Market,Rice,COMMERCIAL (LOCAL) Well Milled - 1-19% BRAN STREAK,45.0
+2026-02-10,130000000,Kamuning Market,Corn,"Corn (White) - Cob, Glutinous",80.0
+2026-02-10,130000000,Guadalupe Public Market,Corn,"Corn (Yellow) - Cob, Sweet Corn",80.0
+2026-02-10,130000000,Marikina Public Market,Corn,"Corn (Yellow) - Cob, Sweet Corn",70.0
+2026-02-10,130000000,Munoz Market,Corn,"Corn (Yellow) - Cob, Sweet Corn",70.0
+2026-02-10,130000000,Quinta Market,Corn,"Corn (Yellow) - Cob, Sweet Corn",80.0
+2026-02-10,130000000,Mega Q Mart,Corn,"Corn (Yellow) - Cob, Sweet Corn",60.0
+2026-02-10,130000000,Pritil Market,Corn,"Corn (Yellow) - Cob, Sweet Corn",80.0
+2026-02-10,130000000,Maypajo Public Market,Corn,"Corn (Yellow) - Cob, Sweet Corn",80.0
+2026-02-10,130000000,Dagonoy Market,Corn,"Corn (Yellow) - Cob, Sweet Corn",90.0
+2026-02-10,130000000,Navotas Agora Market,Corn,"Corn (Yellow) - Cob, Sweet Corn",90.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Corn,"Corn (Yellow) - Cob, Sweet Corn",100.0
+2026-02-10,130000000,Kamuning Market,Corn,"Corn (Yellow) - Cob, Sweet Corn",80.0
+2026-02-10,130000000,Guadalupe Public Market,Legumes,Mungbean - KG,120.0
+2026-02-10,130000000,Marikina Public Market,Legumes,Mungbean - KG,130.0
+2026-02-10,130000000,Munoz Market,Legumes,Mungbean - KG,140.0
+2026-02-10,130000000,Pasay City Market,Legumes,Mungbean - KG,100.0
+2026-02-10,130000000,Quinta Market,Legumes,Mungbean - KG,130.0
+2026-02-10,130000000,Mega Q Mart,Legumes,Mungbean - KG,120.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Legumes,Mungbean - KG,120.0
+2026-02-10,130000000,Pritil Market,Legumes,Mungbean - KG,120.0
+2026-02-10,130000000,Maypajo Public Market,Legumes,Mungbean - KG,140.0
+2026-02-10,130000000,Trabajo Market,Legumes,Mungbean - KG,140.0
+2026-02-10,130000000,Navotas Agora Market,Legumes,Mungbean - KG,120.0
+2026-02-10,130000000,Murphy Market,Legumes,Mungbean - KG,140.0
+2026-02-10,130000000,Guadalupe Public Market,Fish,Alumahan - MEDIUM (4-6PCS/KG),400.0
+2026-02-10,130000000,Guadalupe Public Market,Fish,Bangus (Medium) - MEDIUM (3-4PCS/KG),240.0
+2026-02-10,130000000,Marikina Public Market,Fish,Bangus (Medium) - MEDIUM (3-4PCS/KG),260.0
+2026-02-10,130000000,Munoz Market,Fish,Bangus (Medium) - MEDIUM (3-4PCS/KG),240.0
+2026-02-10,130000000,Pasay City Market,Fish,Bangus (Medium) - MEDIUM (3-4PCS/KG),200.0
+2026-02-10,130000000,Quinta Market,Fish,Bangus (Medium) - MEDIUM (3-4PCS/KG),260.0
+2026-02-10,130000000,Mega Q Mart,Fish,Bangus (Medium) - MEDIUM (3-4PCS/KG),200.0
+2026-02-10,130000000,Maypajo Public Market,Fish,Bangus (Medium) - MEDIUM (3-4PCS/KG),250.0
+2026-02-10,130000000,Trabajo Market,Fish,Bangus (Medium) - MEDIUM (3-4PCS/KG),240.0
+2026-02-10,130000000,Navotas Agora Market,Fish,Bangus (Medium) - MEDIUM (3-4PCS/KG),260.0
+2026-02-10,130000000,Murphy Market,Fish,Bangus (Medium) - MEDIUM (3-4PCS/KG),240.0
+2026-02-10,130000000,Farmers Market,Fish,Bangus (Medium) - MEDIUM (3-4PCS/KG),170.0
+2026-02-10,130000000,Pasay City Market,Fish,"Galunggong(Imported) - MALE, MEDIUM (12-14PCS/KG)",300.0
+2026-02-10,130000000,Marikina Public Market,Fish,"Galunggong(Local) - MALE, MEDIUM(12-14PCS/KG)",340.0
+2026-02-10,130000000,Trabajo Market,Fish,"Galunggong(Local) - MALE, MEDIUM(12-14PCS/KG)",350.0
+2026-02-10,130000000,Guadalupe Public Market,Fish,Tilapia - MEDIUM (5-6PCS/KG),160.0
+2026-02-10,130000000,New Las Pinas City Public Market,Fish,Tilapia - MEDIUM (5-6PCS/KG),170.0
+2026-02-10,130000000,Marikina Public Market,Fish,Tilapia - MEDIUM (5-6PCS/KG),150.0
+2026-02-10,130000000,Munoz Market,Fish,Tilapia - MEDIUM (5-6PCS/KG),140.0
+2026-02-10,130000000,Pasay City Market,Fish,Tilapia - MEDIUM (5-6PCS/KG),140.0
+2026-02-10,130000000,Quinta Market,Fish,Tilapia - MEDIUM (5-6PCS/KG),170.0
+2026-02-10,130000000,Mega Q Mart,Fish,Tilapia - MEDIUM (5-6PCS/KG),140.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Fish,Tilapia - MEDIUM (5-6PCS/KG),160.0
+2026-02-10,130000000,Maypajo Public Market,Fish,Tilapia - MEDIUM (5-6PCS/KG),150.0
+2026-02-10,130000000,Dagonoy Market,Fish,Tilapia - MEDIUM (5-6PCS/KG),160.0
+2026-02-10,130000000,Navotas Agora Market,Fish,Tilapia - MEDIUM (5-6PCS/KG),140.0
+2026-02-10,130000000,Murphy Market,Fish,Tilapia - MEDIUM (5-6PCS/KG),160.0
+2026-02-10,130000000,Kamuning Market,Fish,Tilapia - MEDIUM (5-6PCS/KG),160.0
+2026-02-10,130000000,Farmers Market,Fish,Tilapia - MEDIUM (5-6PCS/KG),130.0
+2026-02-10,130000000,Munoz Market,Fish,Squid (Pusit Bisaya) - Medium,480.0
+2026-02-10,130000000,Pasay City Market,Fish,Squid (Pusit Bisaya) - Medium,550.0
+2026-02-10,130000000,Guadalupe Public Market,Fish,Yellow-Fin Tuna (Tambakol),320.0
+2026-02-10,130000000,Munoz Market,Fish,Yellow-Fin Tuna (Tambakol),320.0
+2026-02-10,130000000,Pasay City Market,Fish,Yellow-Fin Tuna (Tambakol),260.0
+2026-02-10,130000000,Mega Q Mart,Fish,Yellow-Fin Tuna (Tambakol),320.0
+2026-02-10,130000000,Guadalupe Public Market,Fish,Bangus (Large) - LARGE (KG),280.0
+2026-02-10,130000000,New Las Pinas City Public Market,Fish,Bangus (Large) - LARGE (KG),240.0
+2026-02-10,130000000,Marikina Public Market,Fish,Bangus (Large) - LARGE (KG),290.0
+2026-02-10,130000000,Munoz Market,Fish,Bangus (Large) - LARGE (KG),260.0
+2026-02-10,130000000,Pasay City Market,Fish,Bangus (Large) - LARGE (KG),240.0
+2026-02-10,130000000,Quinta Market,Fish,Bangus (Large) - LARGE (KG),280.0
+2026-02-10,130000000,Mega Q Mart,Fish,Bangus (Large) - LARGE (KG),220.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Fish,Bangus (Large) - LARGE (KG),240.0
+2026-02-10,130000000,Dagonoy Market,Fish,Bangus (Large) - LARGE (KG),280.0
+2026-02-10,130000000,Trabajo Market,Fish,Bangus (Large) - LARGE (KG),260.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Fish,Bangus (Large) - LARGE (KG),270.0
+2026-02-10,130000000,Kamuning Market,Fish,Bangus (Large) - LARGE (KG),280.0
+2026-02-10,130000000,Farmers Market,Fish,Bangus (Large) - LARGE (KG),250.0
+2026-02-10,130000000,Guadalupe Public Market,Fruits,Calamansi - KG,120.0
+2026-02-10,130000000,New Las Pinas City Public Market,Fruits,Calamansi - KG,150.0
+2026-02-10,130000000,Marikina Public Market,Fruits,Calamansi - KG,130.0
+2026-02-10,130000000,Munoz Market,Fruits,Calamansi - KG,140.0
+2026-02-10,130000000,Pasay City Market,Fruits,Calamansi - KG,110.0
+2026-02-10,130000000,Quinta Market,Fruits,Calamansi - KG,140.0
+2026-02-10,130000000,Mega Q Mart,Fruits,Calamansi - KG,120.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Fruits,Calamansi - KG,110.0
+2026-02-10,130000000,Pritil Market,Fruits,Calamansi - KG,130.0
+2026-02-10,130000000,Dagonoy Market,Fruits,Calamansi - KG,140.0
+2026-02-10,130000000,Trabajo Market,Fruits,Calamansi - KG,150.0
+2026-02-10,130000000,Navotas Agora Market,Fruits,Calamansi - KG,120.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Fruits,Calamansi - KG,150.0
+2026-02-10,130000000,Murphy Market,Fruits,Calamansi - KG,150.0
+2026-02-10,130000000,Kamuning Market,Fruits,Calamansi - KG,160.0
+2026-02-10,130000000,Guadalupe Public Market,Fruits,Banana (Lakatan) - 8-10PCS/KG,120.0
+2026-02-10,130000000,New Las Pinas City Public Market,Fruits,Banana (Lakatan) - 8-10PCS/KG,90.0
+2026-02-10,130000000,Marikina Public Market,Fruits,Banana (Lakatan) - 8-10PCS/KG,120.0
+2026-02-10,130000000,Pasay City Market,Fruits,Banana (Lakatan) - 8-10PCS/KG,80.0
+2026-02-10,130000000,Mega Q Mart,Fruits,Banana (Lakatan) - 8-10PCS/KG,85.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Fruits,Banana (Lakatan) - 8-10PCS/KG,90.0
+2026-02-10,130000000,Navotas Agora Market,Fruits,Banana (Lakatan) - 8-10PCS/KG,100.0
+2026-02-10,130000000,Murphy Market,Fruits,Banana (Lakatan) - 8-10PCS/KG,100.0
+2026-02-10,130000000,Kamuning Market,Fruits,Banana (Lakatan) - 8-10PCS/KG,100.0
+2026-02-10,130000000,Farmers Market,Fruits,Banana (Lakatan) - 8-10PCS/KG,120.0
+2026-02-10,130000000,Guadalupe Public Market,Fruits,Banana (Latundan) - 10-12PCS/KG,80.0
+2026-02-10,130000000,New Las Pinas City Public Market,Fruits,Banana (Latundan) - 10-12PCS/KG,70.0
+2026-02-10,130000000,Marikina Public Market,Fruits,Banana (Latundan) - 10-12PCS/KG,80.0
+2026-02-10,130000000,Mega Q Mart,Fruits,Banana (Latundan) - 10-12PCS/KG,55.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Fruits,Banana (Latundan) - 10-12PCS/KG,70.0
+2026-02-10,130000000,Navotas Agora Market,Fruits,Banana (Latundan) - 10-12PCS/KG,90.0
+2026-02-10,130000000,Murphy Market,Fruits,Banana (Latundan) - 10-12PCS/KG,80.0
+2026-02-10,130000000,Kamuning Market,Fruits,Banana (Latundan) - 10-12PCS/KG,80.0
+2026-02-10,130000000,Farmers Market,Fruits,Banana (Latundan) - 10-12PCS/KG,90.0
+2026-02-10,130000000,Guadalupe Public Market,Fruits,"Mango (Carabao) - RIPE, 3-4PCS/KG",220.0
+2026-02-10,130000000,New Las Pinas City Public Market,Fruits,"Mango (Carabao) - RIPE, 3-4PCS/KG",180.0
+2026-02-10,130000000,Marikina Public Market,Fruits,"Mango (Carabao) - RIPE, 3-4PCS/KG",200.0
+2026-02-10,130000000,Pasay City Market,Fruits,"Mango (Carabao) - RIPE, 3-4PCS/KG",180.0
+2026-02-10,130000000,Mega Q Mart,Fruits,"Mango (Carabao) - RIPE, 3-4PCS/KG",180.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Fruits,"Mango (Carabao) - RIPE, 3-4PCS/KG",150.0
+2026-02-10,130000000,Pritil Market,Fruits,"Mango (Carabao) - RIPE, 3-4PCS/KG",160.0
+2026-02-10,130000000,Navotas Agora Market,Fruits,"Mango (Carabao) - RIPE, 3-4PCS/KG",160.0
+2026-02-10,130000000,Murphy Market,Fruits,"Mango (Carabao) - RIPE, 3-4PCS/KG",250.0
+2026-02-10,130000000,Kamuning Market,Fruits,"Mango (Carabao) - RIPE, 3-4PCS/KG",250.0
+2026-02-10,130000000,Farmers Market,Fruits,"Mango (Carabao) - RIPE, 3-4PCS/KG",280.0
+2026-02-10,130000000,New Las Pinas City Public Market,Fruits,"Papaya - SOLO, RIPE, 2-3PCS",80.0
+2026-02-10,130000000,Marikina Public Market,Fruits,"Papaya - SOLO, RIPE, 2-3PCS",70.0
+2026-02-10,130000000,Mega Q Mart,Fruits,"Papaya - SOLO, RIPE, 2-3PCS",80.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Fruits,"Papaya - SOLO, RIPE, 2-3PCS",65.0
+2026-02-10,130000000,Guadalupe Public Market,Fruits,Melon,120.0
+2026-02-10,130000000,New Las Pinas City Public Market,Fruits,Melon,90.0
+2026-02-10,130000000,Marikina Public Market,Fruits,Melon,120.0
+2026-02-10,130000000,Mega Q Mart,Fruits,Melon,85.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Fruits,Melon,80.0
+2026-02-10,130000000,Murphy Market,Fruits,Melon,100.0
+2026-02-10,130000000,Kamuning Market,Fruits,Melon,100.0
+2026-02-10,130000000,Farmers Market,Fruits,Melon,120.0
+2026-02-10,130000000,Guadalupe Public Market,Fruits,Avocado,400.0
+2026-02-10,130000000,Marikina Public Market,Fruits,Avocado,350.0
+2026-02-10,130000000,Mega Q Mart,Fruits,Avocado,200.0
+2026-02-10,130000000,Murphy Market,Fruits,Avocado,400.0
+2026-02-10,130000000,Guadalupe Public Market,Fruits,Pomelo - KG,200.0
+2026-02-10,130000000,New Las Pinas City Public Market,Fruits,Pomelo - KG,150.0
+2026-02-10,130000000,Marikina Public Market,Fruits,Pomelo - KG,320.0
+2026-02-10,130000000,Mega Q Mart,Fruits,Pomelo - KG,180.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Fruits,Pomelo - KG,140.0
+2026-02-10,130000000,Kamuning Market,Fruits,Pomelo - KG,250.0
+2026-02-10,130000000,Farmers Market,Fruits,Pomelo - KG,250.0
+2026-02-10,130000000,Guadalupe Public Market,Fruits,Watermelon - KG,100.0
+2026-02-10,130000000,New Las Pinas City Public Market,Fruits,Watermelon - KG,65.0
+2026-02-10,130000000,Marikina Public Market,Fruits,Watermelon - KG,80.0
+2026-02-10,130000000,Mega Q Mart,Fruits,Watermelon - KG,80.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Fruits,Watermelon - KG,65.0
+2026-02-10,130000000,Murphy Market,Fruits,Watermelon - KG,70.0
+2026-02-10,130000000,Kamuning Market,Fruits,Watermelon - KG,90.0
+2026-02-10,130000000,Farmers Market,Fruits,Watermelon - KG,80.0
+2026-02-10,130000000,Guadalupe Public Market,Fruits,Banana (Saba) - KG,60.0
+2026-02-10,130000000,Munoz Market,Fruits,Banana (Saba) - KG,50.0
+2026-02-10,130000000,Quinta Market,Fruits,Banana (Saba) - KG,60.0
+2026-02-10,130000000,Mega Q Mart,Fruits,Banana (Saba) - KG,55.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Fruits,Banana (Saba) - KG,40.0
+2026-02-10,130000000,Pritil Market,Fruits,Banana (Saba) - KG,60.0
+2026-02-10,130000000,Maypajo Public Market,Fruits,Banana (Saba) - KG,50.0
+2026-02-10,130000000,Navotas Agora Market,Fruits,Banana (Saba) - KG,60.0
+2026-02-10,130000000,Murphy Market,Fruits,Banana (Saba) - KG,60.0
+2026-02-10,130000000,Kamuning Market,Fruits,Banana (Saba) - KG,60.0
+2026-02-10,130000000,Farmers Market,Fruits,Banana (Saba) - KG,80.0
+2026-02-10,130000000,Trabajo Market,Highland Vegetables,Cabbage (Scorpio) - 750GM-1KG/HEAD,90.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Highland Vegetables,Cabbage (Scorpio) - 750GM-1KG/HEAD,90.0
+2026-02-10,130000000,Guadalupe Public Market,Highland Vegetables,Carrots - 8-10PCS/KG,80.0
+2026-02-10,130000000,New Las Pinas City Public Market,Highland Vegetables,Carrots - 8-10PCS/KG,95.0
+2026-02-10,130000000,Marikina Public Market,Highland Vegetables,Carrots - 8-10PCS/KG,120.0
+2026-02-10,130000000,Munoz Market,Highland Vegetables,Carrots - 8-10PCS/KG,100.0
+2026-02-10,130000000,Mega Q Mart,Highland Vegetables,Carrots - 8-10PCS/KG,100.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Highland Vegetables,Carrots - 8-10PCS/KG,80.0
+2026-02-10,130000000,Pritil Market,Highland Vegetables,Carrots - 8-10PCS/KG,100.0
+2026-02-10,130000000,Maypajo Public Market,Highland Vegetables,Carrots - 8-10PCS/KG,90.0
+2026-02-10,130000000,Dagonoy Market,Highland Vegetables,Carrots - 8-10PCS/KG,100.0
+2026-02-10,130000000,Trabajo Market,Highland Vegetables,Carrots - 8-10PCS/KG,90.0
+2026-02-10,130000000,Navotas Agora Market,Highland Vegetables,Carrots - 8-10PCS/KG,100.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Highland Vegetables,Carrots - 8-10PCS/KG,120.0
+2026-02-10,130000000,Murphy Market,Highland Vegetables,Carrots - 8-10PCS/KG,100.0
+2026-02-10,130000000,Kamuning Market,Highland Vegetables,Carrots - 8-10PCS/KG,100.0
+2026-02-10,130000000,Guadalupe Public Market,Highland Vegetables,Habichuelas (Baguio Bean) - KG,80.0
+2026-02-10,130000000,New Las Pinas City Public Market,Highland Vegetables,Habichuelas (Baguio Bean) - KG,90.0
+2026-02-10,130000000,Marikina Public Market,Highland Vegetables,Habichuelas (Baguio Bean) - KG,100.0
+2026-02-10,130000000,Munoz Market,Highland Vegetables,Habichuelas (Baguio Bean) - KG,80.0
+2026-02-10,130000000,Pasay City Market,Highland Vegetables,Habichuelas (Baguio Bean) - KG,80.0
+2026-02-10,130000000,Quinta Market,Highland Vegetables,Habichuelas (Baguio Bean) - KG,100.0
+2026-02-10,130000000,Mega Q Mart,Highland Vegetables,Habichuelas (Baguio Bean) - KG,80.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Highland Vegetables,Habichuelas (Baguio Bean) - KG,70.0
+2026-02-10,130000000,Pritil Market,Highland Vegetables,Habichuelas (Baguio Bean) - KG,120.0
+2026-02-10,130000000,Maypajo Public Market,Highland Vegetables,Habichuelas (Baguio Bean) - KG,100.0
+2026-02-10,130000000,Dagonoy Market,Highland Vegetables,Habichuelas (Baguio Bean) - KG,90.0
+2026-02-10,130000000,Trabajo Market,Highland Vegetables,Habichuelas (Baguio Bean) - KG,100.0
+2026-02-10,130000000,Navotas Agora Market,Highland Vegetables,Habichuelas (Baguio Bean) - KG,120.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Highland Vegetables,Habichuelas (Baguio Bean) - KG,120.0
+2026-02-10,130000000,Murphy Market,Highland Vegetables,Habichuelas (Baguio Bean) - KG,120.0
+2026-02-10,130000000,Kamuning Market,Highland Vegetables,Habichuelas (Baguio Bean) - KG,100.0
+2026-02-10,130000000,Guadalupe Public Market,Highland Vegetables,White Potato - 10-12PCS/KG,100.0
+2026-02-10,130000000,New Las Pinas City Public Market,Highland Vegetables,White Potato - 10-12PCS/KG,120.0
+2026-02-10,130000000,Marikina Public Market,Highland Vegetables,White Potato - 10-12PCS/KG,140.0
+2026-02-10,130000000,Munoz Market,Highland Vegetables,White Potato - 10-12PCS/KG,100.0
+2026-02-10,130000000,Pasay City Market,Highland Vegetables,White Potato - 10-12PCS/KG,120.0
+2026-02-10,130000000,Quinta Market,Highland Vegetables,White Potato - 10-12PCS/KG,140.0
+2026-02-10,130000000,Mega Q Mart,Highland Vegetables,White Potato - 10-12PCS/KG,120.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Highland Vegetables,White Potato - 10-12PCS/KG,110.0
+2026-02-10,130000000,Pritil Market,Highland Vegetables,White Potato - 10-12PCS/KG,140.0
+2026-02-10,130000000,Maypajo Public Market,Highland Vegetables,White Potato - 10-12PCS/KG,120.0
+2026-02-10,130000000,Trabajo Market,Highland Vegetables,White Potato - 10-12PCS/KG,140.0
+2026-02-10,130000000,Navotas Agora Market,Highland Vegetables,White Potato - 10-12PCS/KG,140.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Highland Vegetables,White Potato - 10-12PCS/KG,130.0
+2026-02-10,130000000,Murphy Market,Highland Vegetables,White Potato - 10-12PCS/KG,120.0
+2026-02-10,130000000,Kamuning Market,Highland Vegetables,White Potato - 10-12PCS/KG,140.0
+2026-02-10,130000000,Guadalupe Public Market,Highland Vegetables,Pechay (Baguio) - KG,80.0
+2026-02-10,130000000,New Las Pinas City Public Market,Highland Vegetables,Pechay (Baguio) - KG,100.0
+2026-02-10,130000000,Marikina Public Market,Highland Vegetables,Pechay (Baguio) - KG,70.0
+2026-02-10,130000000,Munoz Market,Highland Vegetables,Pechay (Baguio) - KG,80.0
+2026-02-10,130000000,Quinta Market,Highland Vegetables,Pechay (Baguio) - KG,100.0
+2026-02-10,130000000,Mega Q Mart,Highland Vegetables,Pechay (Baguio) - KG,80.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Highland Vegetables,Pechay (Baguio) - KG,70.0
+2026-02-10,130000000,Pritil Market,Highland Vegetables,Pechay (Baguio) - KG,100.0
+2026-02-10,130000000,Maypajo Public Market,Highland Vegetables,Pechay (Baguio) - KG,80.0
+2026-02-10,130000000,Dagonoy Market,Highland Vegetables,Pechay (Baguio) - KG,90.0
+2026-02-10,130000000,Trabajo Market,Highland Vegetables,Pechay (Baguio) - KG,100.0
+2026-02-10,130000000,Navotas Agora Market,Highland Vegetables,Pechay (Baguio) - KG,100.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Highland Vegetables,Pechay (Baguio) - KG,100.0
+2026-02-10,130000000,Murphy Market,Highland Vegetables,Pechay (Baguio) - KG,90.0
+2026-02-10,130000000,Kamuning Market,Highland Vegetables,Pechay (Baguio) - KG,80.0
+2026-02-10,130000000,Guadalupe Public Market,Highland Vegetables,Chayote - KG,50.0
+2026-02-10,130000000,New Las Pinas City Public Market,Highland Vegetables,Chayote - KG,70.0
+2026-02-10,130000000,Marikina Public Market,Highland Vegetables,Chayote - KG,60.0
+2026-02-10,130000000,Munoz Market,Highland Vegetables,Chayote - KG,50.0
+2026-02-10,130000000,Pasay City Market,Highland Vegetables,Chayote - KG,40.0
+2026-02-10,130000000,Quinta Market,Highland Vegetables,Chayote - KG,70.0
+2026-02-10,130000000,Mega Q Mart,Highland Vegetables,Chayote - KG,50.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Highland Vegetables,Chayote - KG,60.0
+2026-02-10,130000000,Pritil Market,Highland Vegetables,Chayote - KG,60.0
+2026-02-10,130000000,Maypajo Public Market,Highland Vegetables,Chayote - KG,60.0
+2026-02-10,130000000,Dagonoy Market,Highland Vegetables,Chayote - KG,70.0
+2026-02-10,130000000,Trabajo Market,Highland Vegetables,Chayote - KG,60.0
+2026-02-10,130000000,Navotas Agora Market,Highland Vegetables,Chayote - KG,60.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Highland Vegetables,Chayote - KG,70.0
+2026-02-10,130000000,Murphy Market,Highland Vegetables,Chayote - KG,70.0
+2026-02-10,130000000,Kamuning Market,Highland Vegetables,Chayote - KG,60.0
+2026-02-10,130000000,Pritil Market,Highland Vegetables,Broccoli - MEDIUM (8-10CM DIAMETER/BUNCH HD),200.0
+2026-02-10,130000000,Guadalupe Public Market,Highland Vegetables,Cauliflower - MEDIUM (8-10CM DIAMETER/BUNCH HD),100.0
+2026-02-10,130000000,New Las Pinas City Public Market,Highland Vegetables,Cauliflower - MEDIUM (8-10CM DIAMETER/BUNCH HD),150.0
+2026-02-10,130000000,Marikina Public Market,Highland Vegetables,Cauliflower - MEDIUM (8-10CM DIAMETER/BUNCH HD),100.0
+2026-02-10,130000000,Munoz Market,Highland Vegetables,Cauliflower - MEDIUM (8-10CM DIAMETER/BUNCH HD),120.0
+2026-02-10,130000000,Pasay City Market,Highland Vegetables,Cauliflower - MEDIUM (8-10CM DIAMETER/BUNCH HD),80.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Highland Vegetables,Cauliflower - MEDIUM (8-10CM DIAMETER/BUNCH HD),120.0
+2026-02-10,130000000,Pritil Market,Highland Vegetables,Cauliflower - MEDIUM (8-10CM DIAMETER/BUNCH HD),100.0
+2026-02-10,130000000,Dagonoy Market,Highland Vegetables,Cauliflower - MEDIUM (8-10CM DIAMETER/BUNCH HD),140.0
+2026-02-10,130000000,Trabajo Market,Highland Vegetables,Cauliflower - MEDIUM (8-10CM DIAMETER/BUNCH HD),100.0
+2026-02-10,130000000,Navotas Agora Market,Highland Vegetables,Cauliflower - MEDIUM (8-10CM DIAMETER/BUNCH HD),100.0
+2026-02-10,130000000,Kamuning Market,Highland Vegetables,Cauliflower - MEDIUM (8-10CM DIAMETER/BUNCH HD),140.0
+2026-02-10,130000000,Guadalupe Public Market,Highland Vegetables,Bell Pepper (Green) - MEDIUM (151-250GM/PC),200.0
+2026-02-10,130000000,New Las Pinas City Public Market,Highland Vegetables,Bell Pepper (Green) - MEDIUM (151-250GM/PC),240.0
+2026-02-10,130000000,Marikina Public Market,Highland Vegetables,Bell Pepper (Green) - MEDIUM (151-250GM/PC),220.0
+2026-02-10,130000000,Munoz Market,Highland Vegetables,Bell Pepper (Green) - MEDIUM (151-250GM/PC),300.0
+2026-02-10,130000000,Pasay City Market,Highland Vegetables,Bell Pepper (Green) - MEDIUM (151-250GM/PC),180.0
+2026-02-10,130000000,Mega Q Mart,Highland Vegetables,Bell Pepper (Green) - MEDIUM (151-250GM/PC),250.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Highland Vegetables,Bell Pepper (Green) - MEDIUM (151-250GM/PC),250.0
+2026-02-10,130000000,Kamuning Market,Highland Vegetables,Bell Pepper (Green) - MEDIUM (151-250GM/PC),280.0
+2026-02-10,130000000,Guadalupe Public Market,Highland Vegetables,Bell Pepper (Red) - MEDIUM (151-250GM/PC),250.0
+2026-02-10,130000000,New Las Pinas City Public Market,Highland Vegetables,Bell Pepper (Red) - MEDIUM (151-250GM/PC),270.0
+2026-02-10,130000000,Marikina Public Market,Highland Vegetables,Bell Pepper (Red) - MEDIUM (151-250GM/PC),220.0
+2026-02-10,130000000,Munoz Market,Highland Vegetables,Bell Pepper (Red) - MEDIUM (151-250GM/PC),250.0
+2026-02-10,130000000,Pasay City Market,Highland Vegetables,Bell Pepper (Red) - MEDIUM (151-250GM/PC),180.0
+2026-02-10,130000000,Quinta Market,Highland Vegetables,Bell Pepper (Red) - MEDIUM (151-250GM/PC),250.0
+2026-02-10,130000000,Mega Q Mart,Highland Vegetables,Bell Pepper (Red) - MEDIUM (151-250GM/PC),250.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Highland Vegetables,Bell Pepper (Red) - MEDIUM (151-250GM/PC),220.0
+2026-02-10,130000000,Pritil Market,Highland Vegetables,Bell Pepper (Red) - MEDIUM (151-250GM/PC),250.0
+2026-02-10,130000000,Maypajo Public Market,Highland Vegetables,Bell Pepper (Red) - MEDIUM (151-250GM/PC),250.0
+2026-02-10,130000000,Trabajo Market,Highland Vegetables,Bell Pepper (Red) - MEDIUM (151-250GM/PC),180.0
+2026-02-10,130000000,Navotas Agora Market,Highland Vegetables,Bell Pepper (Red) - MEDIUM (151-250GM/PC),250.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Highland Vegetables,Bell Pepper (Red) - MEDIUM (151-250GM/PC),250.0
+2026-02-10,130000000,Murphy Market,Highland Vegetables,Bell Pepper (Red) - MEDIUM (151-250GM/PC),300.0
+2026-02-10,130000000,Kamuning Market,Highland Vegetables,Bell Pepper (Red) - MEDIUM (151-250GM/PC),280.0
+2026-02-10,130000000,Guadalupe Public Market,Highland Vegetables,Celery - MEDIUM (501-800 G),140.0
+2026-02-10,130000000,Marikina Public Market,Highland Vegetables,Celery - MEDIUM (501-800 G),120.0
+2026-02-10,130000000,Munoz Market,Highland Vegetables,Celery - MEDIUM (501-800 G),200.0
+2026-02-10,130000000,Pasay City Market,Highland Vegetables,Celery - MEDIUM (501-800 G),100.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Highland Vegetables,Celery - MEDIUM (501-800 G),180.0
+2026-02-10,130000000,Pritil Market,Highland Vegetables,Celery - MEDIUM (501-800 G),200.0
+2026-02-10,130000000,Dagonoy Market,Highland Vegetables,Celery - MEDIUM (501-800 G),250.0
+2026-02-10,130000000,Kamuning Market,Highland Vegetables,Celery - MEDIUM (501-800 G),180.0
+2026-02-10,130000000,Marikina Public Market,Highland Vegetables,Cabbage (Rare Ball) - 510GM-1KG/HEAD,100.0
+2026-02-10,130000000,Munoz Market,Highland Vegetables,Cabbage (Rare Ball) - 510GM-1KG/HEAD,80.0
+2026-02-10,130000000,Dagonoy Market,Highland Vegetables,Cabbage (Rare Ball) - 510GM-1KG/HEAD,90.0
+2026-02-10,130000000,Quinta Market,Highland Vegetables,Cabbage (Wonder Ball) - 510GM-1KG/HEAD,100.0
+2026-02-10,130000000,Mega Q Mart,Highland Vegetables,Cabbage (Wonder Ball) - 510GM-1KG/HEAD,80.0
+2026-02-10,130000000,Pritil Market,Highland Vegetables,Cabbage (Wonder Ball) - 510GM-1KG/HEAD,90.0
+2026-02-10,130000000,Maypajo Public Market,Highland Vegetables,Cabbage (Wonder Ball) - 510GM-1KG/HEAD,90.0
+2026-02-10,130000000,Navotas Agora Market,Highland Vegetables,Cabbage (Wonder Ball) - 510GM-1KG/HEAD,90.0
+2026-02-10,130000000,Murphy Market,Highland Vegetables,Cabbage (Wonder Ball) - 510GM-1KG/HEAD,90.0
+2026-02-10,130000000,Guadalupe Public Market,Highland Vegetables,Lettuce (Green Ice),200.0
+2026-02-10,130000000,New Las Pinas City Public Market,Highland Vegetables,Lettuce (Green Ice),220.0
+2026-02-10,130000000,Marikina Public Market,Highland Vegetables,Lettuce (Green Ice),200.0
+2026-02-10,130000000,Munoz Market,Highland Vegetables,Lettuce (Green Ice),200.0
+2026-02-10,130000000,Pasay City Market,Highland Vegetables,Lettuce (Green Ice),120.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Highland Vegetables,Lettuce (Green Ice),200.0
+2026-02-10,130000000,Pritil Market,Highland Vegetables,Lettuce (Green Ice),200.0
+2026-02-10,130000000,Dagonoy Market,Highland Vegetables,Lettuce (Green Ice),200.0
+2026-02-10,130000000,Navotas Agora Market,Highland Vegetables,Lettuce (Green Ice),250.0
+2026-02-10,130000000,Guadalupe Public Market,Highland Vegetables,Lettuce (Iceberg) - MEDIUM(301-450CM DIAMETER/BUNCH HD),250.0
+2026-02-10,130000000,Guadalupe Public Market,Highland Vegetables,Lettuce (Romaine),300.0
+2026-02-10,130000000,Marikina Public Market,Highland Vegetables,Lettuce (Romaine),250.0
+2026-02-10,130000000,Pasay City Market,Highland Vegetables,Lettuce (Romaine),200.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Highland Vegetables,Lettuce (Romaine),250.0
+2026-02-10,130000000,Guadalupe Public Market,Lowland Vegetables,Ampalaya - 4-5 PCS/KG,180.0
+2026-02-10,130000000,New Las Pinas City Public Market,Lowland Vegetables,Ampalaya - 4-5 PCS/KG,160.0
+2026-02-10,130000000,Marikina Public Market,Lowland Vegetables,Ampalaya - 4-5 PCS/KG,160.0
+2026-02-10,130000000,Munoz Market,Lowland Vegetables,Ampalaya - 4-5 PCS/KG,150.0
+2026-02-10,130000000,Pasay City Market,Lowland Vegetables,Ampalaya - 4-5 PCS/KG,140.0
+2026-02-10,130000000,Quinta Market,Lowland Vegetables,Ampalaya - 4-5 PCS/KG,160.0
+2026-02-10,130000000,Mega Q Mart,Lowland Vegetables,Ampalaya - 4-5 PCS/KG,150.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Lowland Vegetables,Ampalaya - 4-5 PCS/KG,150.0
+2026-02-10,130000000,Pritil Market,Lowland Vegetables,Ampalaya - 4-5 PCS/KG,190.0
+2026-02-10,130000000,Maypajo Public Market,Lowland Vegetables,Ampalaya - 4-5 PCS/KG,180.0
+2026-02-10,130000000,Dagonoy Market,Lowland Vegetables,Ampalaya - 4-5 PCS/KG,160.0
+2026-02-10,130000000,Trabajo Market,Lowland Vegetables,Ampalaya - 4-5 PCS/KG,160.0
+2026-02-10,130000000,Navotas Agora Market,Lowland Vegetables,Ampalaya - 4-5 PCS/KG,200.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Lowland Vegetables,Ampalaya - 4-5 PCS/KG,180.0
+2026-02-10,130000000,Murphy Market,Lowland Vegetables,Ampalaya - 4-5 PCS/KG,180.0
+2026-02-10,130000000,Kamuning Market,Lowland Vegetables,Ampalaya - 4-5 PCS/KG,180.0
+2026-02-10,130000000,Guadalupe Public Market,Lowland Vegetables,Squash - SUPREMA VARIETY,50.0
+2026-02-10,130000000,New Las Pinas City Public Market,Lowland Vegetables,Squash - SUPREMA VARIETY,70.0
+2026-02-10,130000000,Marikina Public Market,Lowland Vegetables,Squash - SUPREMA VARIETY,60.0
+2026-02-10,130000000,Munoz Market,Lowland Vegetables,Squash - SUPREMA VARIETY,50.0
+2026-02-10,130000000,Pasay City Market,Lowland Vegetables,Squash - SUPREMA VARIETY,60.0
+2026-02-10,130000000,Quinta Market,Lowland Vegetables,Squash - SUPREMA VARIETY,80.0
+2026-02-10,130000000,Mega Q Mart,Lowland Vegetables,Squash - SUPREMA VARIETY,50.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Lowland Vegetables,Squash - SUPREMA VARIETY,60.0
+2026-02-10,130000000,Pritil Market,Lowland Vegetables,Squash - SUPREMA VARIETY,60.0
+2026-02-10,130000000,Maypajo Public Market,Lowland Vegetables,Squash - SUPREMA VARIETY,60.0
+2026-02-10,130000000,Trabajo Market,Lowland Vegetables,Squash - SUPREMA VARIETY,50.0
+2026-02-10,130000000,Navotas Agora Market,Lowland Vegetables,Squash - SUPREMA VARIETY,50.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Lowland Vegetables,Squash - SUPREMA VARIETY,70.0
+2026-02-10,130000000,Murphy Market,Lowland Vegetables,Squash - SUPREMA VARIETY,70.0
+2026-02-10,130000000,Kamuning Market,Lowland Vegetables,Squash - SUPREMA VARIETY,80.0
+2026-02-10,130000000,Guadalupe Public Market,Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,60.0
+2026-02-10,130000000,New Las Pinas City Public Market,Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,90.0
+2026-02-10,130000000,Marikina Public Market,Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,60.0
+2026-02-10,130000000,Munoz Market,Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,80.0
+2026-02-10,130000000,Pasay City Market,Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,70.0
+2026-02-10,130000000,Quinta Market,Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,80.0
+2026-02-10,130000000,Mega Q Mart,Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,80.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,70.0
+2026-02-10,130000000,Pritil Market,Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,80.0
+2026-02-10,130000000,Maypajo Public Market,Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,80.0
+2026-02-10,130000000,Dagonoy Market,Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,70.0
+2026-02-10,130000000,Trabajo Market,Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,80.0
+2026-02-10,130000000,Navotas Agora Market,Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,80.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,80.0
+2026-02-10,130000000,Murphy Market,Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,100.0
+2026-02-10,130000000,Kamuning Market,Lowland Vegetables,Pechay (Native) - 3-4 SMALL BUNDLES/KG,90.0
+2026-02-10,130000000,Guadalupe Public Market,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,120.0
+2026-02-10,130000000,New Las Pinas City Public Market,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,150.0
+2026-02-10,130000000,Marikina Public Market,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,150.0
+2026-02-10,130000000,Munoz Market,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,100.0
+2026-02-10,130000000,Pasay City Market,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,130.0
+2026-02-10,130000000,Quinta Market,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,140.0
+2026-02-10,130000000,Mega Q Mart,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,140.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,140.0
+2026-02-10,130000000,Pritil Market,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,120.0
+2026-02-10,130000000,Maypajo Public Market,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,150.0
+2026-02-10,130000000,Dagonoy Market,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,150.0
+2026-02-10,130000000,Trabajo Market,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,150.0
+2026-02-10,130000000,Navotas Agora Market,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,120.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,160.0
+2026-02-10,130000000,Murphy Market,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,140.0
+2026-02-10,130000000,Kamuning Market,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,150.0
+2026-02-10,130000000,Guadalupe Public Market,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,80.0
+2026-02-10,130000000,New Las Pinas City Public Market,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,90.0
+2026-02-10,130000000,Marikina Public Market,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,100.0
+2026-02-10,130000000,Munoz Market,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,60.0
+2026-02-10,130000000,Pasay City Market,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,90.0
+2026-02-10,130000000,Quinta Market,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,120.0
+2026-02-10,130000000,Mega Q Mart,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,100.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,90.0
+2026-02-10,130000000,Pritil Market,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,90.0
+2026-02-10,130000000,Maypajo Public Market,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,90.0
+2026-02-10,130000000,Dagonoy Market,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,90.0
+2026-02-10,130000000,Trabajo Market,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,100.0
+2026-02-10,130000000,Navotas Agora Market,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,100.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,120.0
+2026-02-10,130000000,Murphy Market,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,100.0
+2026-02-10,130000000,Kamuning Market,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,100.0
+2026-02-10,130000000,Guadalupe Public Market,Lowland Vegetables,Tomato - 15-18 PCS/KG,80.0
+2026-02-10,130000000,New Las Pinas City Public Market,Lowland Vegetables,Tomato - 15-18 PCS/KG,50.0
+2026-02-10,130000000,Marikina Public Market,Lowland Vegetables,Tomato - 15-18 PCS/KG,80.0
+2026-02-10,130000000,Munoz Market,Lowland Vegetables,Tomato - 15-18 PCS/KG,60.0
+2026-02-10,130000000,Quinta Market,Lowland Vegetables,Tomato - 15-18 PCS/KG,80.0
+2026-02-10,130000000,Mega Q Mart,Lowland Vegetables,Tomato - 15-18 PCS/KG,80.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Lowland Vegetables,Tomato - 15-18 PCS/KG,50.0
+2026-02-10,130000000,Pritil Market,Lowland Vegetables,Tomato - 15-18 PCS/KG,70.0
+2026-02-10,130000000,Maypajo Public Market,Lowland Vegetables,Tomato - 15-18 PCS/KG,80.0
+2026-02-10,130000000,Dagonoy Market,Lowland Vegetables,Tomato - 15-18 PCS/KG,80.0
+2026-02-10,130000000,Trabajo Market,Lowland Vegetables,Tomato - 15-18 PCS/KG,100.0
+2026-02-10,130000000,Navotas Agora Market,Lowland Vegetables,Tomato - 15-18 PCS/KG,70.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Lowland Vegetables,Tomato - 15-18 PCS/KG,90.0
+2026-02-10,130000000,Murphy Market,Lowland Vegetables,Tomato - 15-18 PCS/KG,80.0
+2026-02-10,130000000,Kamuning Market,Lowland Vegetables,Tomato - 15-18 PCS/KG,80.0
+2026-02-10,130000000,Marikina Public Market,Meat and Poultry,Beef Brisket - MEAT WITH BONES,390.0
+2026-02-10,130000000,Munoz Market,Meat and Poultry,Beef Brisket - MEAT WITH BONES,420.0
+2026-02-10,130000000,Pasay City Market,Meat and Poultry,Beef Brisket - MEAT WITH BONES,390.0
+2026-02-10,130000000,Dagonoy Market,Meat and Poultry,Beef Brisket - MEAT WITH BONES,450.0
+2026-02-10,130000000,Trabajo Market,Meat and Poultry,Beef Brisket - MEAT WITH BONES,460.0
+2026-02-10,130000000,Murphy Market,Meat and Poultry,Beef Brisket - MEAT WITH BONES,420.0
+2026-02-10,130000000,Guadalupe Public Market,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,520.0
+2026-02-10,130000000,Marikina Public Market,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,450.0
+2026-02-10,130000000,Munoz Market,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,520.0
+2026-02-10,130000000,Pasay City Market,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,430.0
+2026-02-10,130000000,Trabajo Market,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,520.0
+2026-02-10,130000000,Murphy Market,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,500.0
+2026-02-10,130000000,Guadalupe Public Market,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
+2026-02-10,130000000,New Las Pinas City Public Market,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.5
+2026-02-10,130000000,Munoz Market,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
+2026-02-10,130000000,Quinta Market,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.5
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.3
+2026-02-10,130000000,Pritil Market,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.5
+2026-02-10,130000000,Maypajo Public Market,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
+2026-02-10,130000000,Dagonoy Market,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
+2026-02-10,130000000,Trabajo Market,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
+2026-02-10,130000000,Navotas Agora Market,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
+2026-02-10,130000000,Murphy Market,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
+2026-02-10,130000000,Kamuning Market,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.5
+2026-02-10,130000000,Guadalupe Public Market,Meat and Poultry,Pork Ham (Kasim),370.0
+2026-02-10,130000000,New Las Pinas City Public Market,Meat and Poultry,Pork Ham (Kasim),305.0
+2026-02-10,130000000,Marikina Public Market,Meat and Poultry,Pork Ham (Kasim),320.0
+2026-02-10,130000000,Munoz Market,Meat and Poultry,Pork Ham (Kasim),340.0
+2026-02-10,130000000,Pasay City Market,Meat and Poultry,Pork Ham (Kasim),330.0
+2026-02-10,130000000,Mega Q Mart,Meat and Poultry,Pork Ham (Kasim),330.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Meat and Poultry,Pork Ham (Kasim),340.0
+2026-02-10,130000000,Pritil Market,Meat and Poultry,Pork Ham (Kasim),340.0
+2026-02-10,130000000,Maypajo Public Market,Meat and Poultry,Pork Ham (Kasim),350.0
+2026-02-10,130000000,Dagonoy Market,Meat and Poultry,Pork Ham (Kasim),320.0
+2026-02-10,130000000,Trabajo Market,Meat and Poultry,Pork Ham (Kasim),360.0
+2026-02-10,130000000,Navotas Agora Market,Meat and Poultry,Pork Ham (Kasim),330.0
+2026-02-10,130000000,Murphy Market,Meat and Poultry,Pork Ham (Kasim),320.0
+2026-02-10,130000000,Kamuning Market,Meat and Poultry,Pork Ham (Kasim),350.0
+2026-02-10,130000000,Guadalupe Public Market,Meat and Poultry,Pork Belly (Liempo),430.0
+2026-02-10,130000000,New Las Pinas City Public Market,Meat and Poultry,Pork Belly (Liempo),350.0
+2026-02-10,130000000,Marikina Public Market,Meat and Poultry,Pork Belly (Liempo),370.0
+2026-02-10,130000000,Munoz Market,Meat and Poultry,Pork Belly (Liempo),380.0
+2026-02-10,130000000,Pasay City Market,Meat and Poultry,Pork Belly (Liempo),370.0
+2026-02-10,130000000,Quinta Market,Meat and Poultry,Pork Belly (Liempo),400.0
+2026-02-10,130000000,Mega Q Mart,Meat and Poultry,Pork Belly (Liempo),400.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Meat and Poultry,Pork Belly (Liempo),370.0
+2026-02-10,130000000,Pritil Market,Meat and Poultry,Pork Belly (Liempo),400.0
+2026-02-10,130000000,Maypajo Public Market,Meat and Poultry,Pork Belly (Liempo),380.0
+2026-02-10,130000000,Dagonoy Market,Meat and Poultry,Pork Belly (Liempo),360.0
+2026-02-10,130000000,Trabajo Market,Meat and Poultry,Pork Belly (Liempo),430.0
+2026-02-10,130000000,Navotas Agora Market,Meat and Poultry,Pork Belly (Liempo),360.0
+2026-02-10,130000000,Murphy Market,Meat and Poultry,Pork Belly (Liempo),370.0
+2026-02-10,130000000,Kamuning Market,Meat and Poultry,Pork Belly (Liempo),450.0
+2026-02-10,130000000,Guadalupe Public Market,Meat and Poultry,Whole Chicken - FULLY DRESSED,220.0
+2026-02-10,130000000,New Las Pinas City Public Market,Meat and Poultry,Whole Chicken - FULLY DRESSED,190.0
+2026-02-10,130000000,Marikina Public Market,Meat and Poultry,Whole Chicken - FULLY DRESSED,220.0
+2026-02-10,130000000,Munoz Market,Meat and Poultry,Whole Chicken - FULLY DRESSED,240.0
+2026-02-10,130000000,Quinta Market,Meat and Poultry,Whole Chicken - FULLY DRESSED,210.0
+2026-02-10,130000000,Mega Q Mart,Meat and Poultry,Whole Chicken - FULLY DRESSED,190.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Meat and Poultry,Whole Chicken - FULLY DRESSED,190.0
+2026-02-10,130000000,Pritil Market,Meat and Poultry,Whole Chicken - FULLY DRESSED,200.0
+2026-02-10,130000000,Maypajo Public Market,Meat and Poultry,Whole Chicken - FULLY DRESSED,200.0
+2026-02-10,130000000,Dagonoy Market,Meat and Poultry,Whole Chicken - FULLY DRESSED,200.0
+2026-02-10,130000000,Trabajo Market,Meat and Poultry,Whole Chicken - FULLY DRESSED,230.0
+2026-02-10,130000000,Navotas Agora Market,Meat and Poultry,Whole Chicken - FULLY DRESSED,190.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Meat and Poultry,Whole Chicken - FULLY DRESSED,190.0
+2026-02-10,130000000,Murphy Market,Meat and Poultry,Whole Chicken - FULLY DRESSED,220.0
+2026-02-10,130000000,Kamuning Market,Meat and Poultry,Whole Chicken - FULLY DRESSED,230.0
+2026-02-10,130000000,Guadalupe Public Market,Meat and Poultry,Frozen Kasim - KASIM,270.0
+2026-02-10,130000000,Marikina Public Market,Meat and Poultry,Frozen Kasim - KASIM,240.0
+2026-02-10,130000000,Pasay City Market,Meat and Poultry,Frozen Kasim - KASIM,250.0
+2026-02-10,130000000,Mega Q Mart,Meat and Poultry,Frozen Kasim - KASIM,260.0
+2026-02-10,130000000,Marikina Public Market,Meat and Poultry,Frozen Liempo - LIEMPO,290.0
+2026-02-10,130000000,Mega Q Mart,Meat and Poultry,Frozen Liempo - LIEMPO,340.0
+2026-02-10,130000000,Dagonoy Market,Meat and Poultry,"Chicken Egg (White, Pewee) - 41-45 grams/pc",6.0
+2026-02-10,130000000,Guadalupe Public Market,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.5
+2026-02-10,130000000,Quinta Market,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.5
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.5
+2026-02-10,130000000,Pritil Market,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.3
+2026-02-10,130000000,Navotas Agora Market,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.0
+2026-02-10,130000000,Guadalupe Public Market,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.75
+2026-02-10,130000000,New Las Pinas City Public Market,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",8.0
+2026-02-10,130000000,Munoz Market,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.0
+2026-02-10,130000000,Pasay City Market,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",8.0
+2026-02-10,130000000,Quinta Market,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",8.0
+2026-02-10,130000000,Mega Q Mart,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",8.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",8.0
+2026-02-10,130000000,Pritil Market,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",8.0
+2026-02-10,130000000,Dagonoy Market,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",8.0
+2026-02-10,130000000,Trabajo Market,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.0
+2026-02-10,130000000,Navotas Agora Market,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
+2026-02-10,130000000,Grace Marketplace (Pateros),Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.0
+2026-02-10,130000000,Murphy Market,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.0
+2026-02-10,130000000,Kamuning Market,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",8.0
+2026-02-10,130000000,Guadalupe Public Market,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
+2026-02-10,130000000,New Las Pinas City Public Market,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",9.0
+2026-02-10,130000000,Pasay City Market,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",9.0
+2026-02-10,130000000,Quinta Market,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.75
+2026-02-10,130000000,Mega Q Mart,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",9.5
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.8
+2026-02-10,130000000,Pritil Market,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",9.0
+2026-02-10,130000000,Maypajo Public Market,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",9.0
+2026-02-10,130000000,Trabajo Market,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
+2026-02-10,130000000,Navotas Agora Market,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.0
+2026-02-10,130000000,Murphy Market,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
+2026-02-10,130000000,Kamuning Market,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",9.0
+2026-02-10,130000000,Guadalupe Public Market,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.0
+2026-02-10,130000000,New Las Pinas City Public Market,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.5
+2026-02-10,130000000,Pasay City Market,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.5
+2026-02-10,130000000,Quinta Market,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.0
+2026-02-10,130000000,Mega Q Mart,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",10.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.2
+2026-02-10,130000000,Pritil Market,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",10.0
+2026-02-10,130000000,Navotas Agora Market,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",8.5
+2026-02-10,130000000,Murphy Market,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.0
+2026-02-10,130000000,Kamuning Market,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",10.0
+2026-02-10,130000000,Guadalupe Public Market,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
+2026-02-10,130000000,New Las Pinas City Public Market,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
+2026-02-10,130000000,Pasay City Market,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
+2026-02-10,130000000,Quinta Market,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
+2026-02-10,130000000,Pritil Market,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
+2026-02-10,130000000,Navotas Agora Market,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",9.0
+2026-02-10,130000000,Murphy Market,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
+2026-02-10,130000000,Guadalupe Public Market,Meat and Poultry,"Chicken Egg (Brown, Medium) - Medium",12.0
+2026-02-10,130000000,Munoz Market,Meat and Poultry,"Chicken Egg (Brown, Medium) - Medium",10.0
+2026-02-10,130000000,Guadalupe Public Market,Spices,Garlic(Imported) - KG,140.0
+2026-02-10,130000000,New Las Pinas City Public Market,Spices,Garlic(Imported) - KG,145.0
+2026-02-10,130000000,Marikina Public Market,Spices,Garlic(Imported) - KG,180.0
+2026-02-10,130000000,Munoz Market,Spices,Garlic(Imported) - KG,150.0
+2026-02-10,130000000,Pasay City Market,Spices,Garlic(Imported) - KG,130.0
+2026-02-10,130000000,Quinta Market,Spices,Garlic(Imported) - KG,160.0
+2026-02-10,130000000,Mega Q Mart,Spices,Garlic(Imported) - KG,140.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Spices,Garlic(Imported) - KG,150.0
+2026-02-10,130000000,Pritil Market,Spices,Garlic(Imported) - KG,160.0
+2026-02-10,130000000,Maypajo Public Market,Spices,Garlic(Imported) - KG,160.0
+2026-02-10,130000000,Dagonoy Market,Spices,Garlic(Imported) - KG,150.0
+2026-02-10,130000000,Trabajo Market,Spices,Garlic(Imported) - KG,140.0
+2026-02-10,130000000,Navotas Agora Market,Spices,Garlic(Imported) - KG,160.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Spices,Garlic(Imported) - KG,170.0
+2026-02-10,130000000,Murphy Market,Spices,Garlic(Imported) - KG,170.0
+2026-02-10,130000000,Kamuning Market,Spices,Garlic(Imported) - KG,160.0
+2026-02-10,130000000,Guadalupe Public Market,Spices,"Ginger - FAIRLY WELL-MATURED, MEDIUM (150-300 GM)",150.0
+2026-02-10,130000000,New Las Pinas City Public Market,Spices,"Ginger - FAIRLY WELL-MATURED, MEDIUM (150-300 GM)",170.0
+2026-02-10,130000000,Marikina Public Market,Spices,"Ginger - FAIRLY WELL-MATURED, MEDIUM (150-300 GM)",170.0
+2026-02-10,130000000,Munoz Market,Spices,"Ginger - FAIRLY WELL-MATURED, MEDIUM (150-300 GM)",120.0
+2026-02-10,130000000,Pasay City Market,Spices,"Ginger - FAIRLY WELL-MATURED, MEDIUM (150-300 GM)",140.0
+2026-02-10,130000000,Quinta Market,Spices,"Ginger - FAIRLY WELL-MATURED, MEDIUM (150-300 GM)",160.0
+2026-02-10,130000000,Mega Q Mart,Spices,"Ginger - FAIRLY WELL-MATURED, MEDIUM (150-300 GM)",160.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Spices,"Ginger - FAIRLY WELL-MATURED, MEDIUM (150-300 GM)",150.0
+2026-02-10,130000000,Dagonoy Market,Spices,"Ginger - FAIRLY WELL-MATURED, MEDIUM (150-300 GM)",200.0
+2026-02-10,130000000,Trabajo Market,Spices,"Ginger - FAIRLY WELL-MATURED, MEDIUM (150-300 GM)",120.0
+2026-02-10,130000000,Navotas Agora Market,Spices,"Ginger - FAIRLY WELL-MATURED, MEDIUM (150-300 GM)",160.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Spices,"Ginger - FAIRLY WELL-MATURED, MEDIUM (150-300 GM)",180.0
+2026-02-10,130000000,Murphy Market,Spices,"Ginger - FAIRLY WELL-MATURED, MEDIUM (150-300 GM)",150.0
+2026-02-10,130000000,Kamuning Market,Spices,"Ginger - FAIRLY WELL-MATURED, MEDIUM (150-300 GM)",160.0
+2026-02-10,130000000,New Las Pinas City Public Market,Spices,Red Onion - 13-15 PCS/KG,150.0
+2026-02-10,130000000,Marikina Public Market,Spices,Red Onion - 13-15 PCS/KG,140.0
+2026-02-10,130000000,Munoz Market,Spices,Red Onion - 13-15 PCS/KG,120.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Spices,Red Onion - 13-15 PCS/KG,140.0
+2026-02-10,130000000,Pritil Market,Spices,Red Onion - 13-15 PCS/KG,150.0
+2026-02-10,130000000,Dagonoy Market,Spices,Red Onion - 13-15 PCS/KG,130.0
+2026-02-10,130000000,Navotas Agora Market,Spices,Red Onion - 13-15 PCS/KG,140.0
+2026-02-10,130000000,Guadalupe Public Market,Spices,Red Onion (Imported) - KG,120.0
+2026-02-10,130000000,New Las Pinas City Public Market,Spices,Red Onion (Imported) - KG,140.0
+2026-02-10,130000000,Munoz Market,Spices,Red Onion (Imported) - KG,100.0
+2026-02-10,130000000,Pasay City Market,Spices,Red Onion (Imported) - KG,100.0
+2026-02-10,130000000,Quinta Market,Spices,Red Onion (Imported) - KG,140.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Spices,Red Onion (Imported) - KG,120.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Spices,Red Onion (Imported) - KG,200.0
+2026-02-10,130000000,Murphy Market,Spices,Red Onion (Imported) - KG,150.0
+2026-02-10,130000000,Kamuning Market,Spices,Red Onion (Imported) - KG,120.0
+2026-02-10,130000000,Munoz Market,Spices,White Onion - KG,100.0
+2026-02-10,130000000,Pritil Market,Spices,White Onion - KG,140.0
+2026-02-10,130000000,Navotas Agora Market,Spices,White Onion - KG,120.0
+2026-02-10,130000000,Guadalupe Public Market,Spices,White Onion (Imported) - KG,100.0
+2026-02-10,130000000,Marikina Public Market,Spices,White Onion (Imported) - KG,120.0
+2026-02-10,130000000,Munoz Market,Spices,White Onion (Imported) - KG,100.0
+2026-02-10,130000000,Quinta Market,Spices,White Onion (Imported) - KG,120.0
+2026-02-10,130000000,Maypajo Public Market,Spices,White Onion (Imported) - KG,120.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Spices,White Onion (Imported) - KG,180.0
+2026-02-10,130000000,Murphy Market,Spices,White Onion (Imported) - KG,150.0
+2026-02-10,130000000,Guadalupe Public Market,Spices,Chili (Red) - KG,200.0
+2026-02-10,130000000,New Las Pinas City Public Market,Spices,Chili (Red) - KG,350.0
+2026-02-10,130000000,Marikina Public Market,Spices,Chili (Red) - KG,250.0
+2026-02-10,130000000,Munoz Market,Spices,Chili (Red) - KG,300.0
+2026-02-10,130000000,Pasay City Market,Spices,Chili (Red) - KG,150.0
+2026-02-10,130000000,Quinta Market,Spices,Chili (Red) - KG,250.0
+2026-02-10,130000000,Mega Q Mart,Spices,Chili (Red) - KG,250.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Spices,Chili (Red) - KG,300.0
+2026-02-10,130000000,Pritil Market,Spices,Chili (Red) - KG,250.0
+2026-02-10,130000000,Dagonoy Market,Spices,Chili (Red) - KG,300.0
+2026-02-10,130000000,Murphy Market,Spices,Chili (Red) - KG,250.0
+2026-02-10,130000000,Kamuning Market,Spices,Chili (Red) - KG,200.0
+2026-02-10,130000000,Guadalupe Public Market,Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,85.0
+2026-02-10,130000000,New Las Pinas City Public Market,Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,100.0
+2026-02-10,130000000,Marikina Public Market,Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,90.0
+2026-02-10,130000000,Munoz Market,Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,85.0
+2026-02-10,130000000,Pasay City Market,Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,100.0
+2026-02-10,130000000,Quinta Market,Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,100.0
+2026-02-10,130000000,Mega Q Mart,Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,85.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,100.0
+2026-02-10,130000000,Pritil Market,Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,90.0
+2026-02-10,130000000,Maypajo Public Market,Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,85.0
+2026-02-10,130000000,Dagonoy Market,Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,90.0
+2026-02-10,130000000,Trabajo Market,Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,90.0
+2026-02-10,130000000,Navotas Agora Market,Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,85.0
+2026-02-10,130000000,Grace Marketplace (Pateros),Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,100.0
+2026-02-10,130000000,Murphy Market,Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,70.0
+2026-02-10,130000000,Kamuning Market,Other Commodities,Cooking Oil Palm 1L - 1 LITER/BOTTLE,80.0
+2026-02-10,130000000,Guadalupe Public Market,Other Commodities,Cooking Oil Palm 350ML - 350 ML/BOTTLE,35.0
+2026-02-10,130000000,New Las Pinas City Public Market,Other Commodities,Cooking Oil Palm 350ML - 350 ML/BOTTLE,37.0
+2026-02-10,130000000,Marikina Public Market,Other Commodities,Cooking Oil Palm 350ML - 350 ML/BOTTLE,35.0
+2026-02-10,130000000,Munoz Market,Other Commodities,Cooking Oil Palm 350ML - 350 ML/BOTTLE,40.0
+2026-02-10,130000000,Quinta Market,Other Commodities,Cooking Oil Palm 350ML - 350 ML/BOTTLE,40.0
+2026-02-10,130000000,Mega Q Mart,Other Commodities,Cooking Oil Palm 350ML - 350 ML/BOTTLE,35.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Other Commodities,Cooking Oil Palm 350ML - 350 ML/BOTTLE,35.0
+2026-02-10,130000000,Pritil Market,Other Commodities,Cooking Oil Palm 350ML - 350 ML/BOTTLE,35.0
+2026-02-10,130000000,Dagonoy Market,Other Commodities,Cooking Oil Palm 350ML - 350 ML/BOTTLE,35.0
+2026-02-10,130000000,Trabajo Market,Other Commodities,Cooking Oil Palm 350ML - 350 ML/BOTTLE,40.0
+2026-02-10,130000000,Murphy Market,Other Commodities,Cooking Oil Palm 350ML - 350 ML/BOTTLE,35.0
+2026-02-10,130000000,Kamuning Market,Other Commodities,Cooking Oil Palm 350ML - 350 ML/BOTTLE,35.0
+2026-02-10,130000000,Guadalupe Public Market,Other Commodities,Sugar (Brown) - KG,75.0
+2026-02-10,130000000,New Las Pinas City Public Market,Other Commodities,Sugar (Brown) - KG,72.0
+2026-02-10,130000000,Marikina Public Market,Other Commodities,Sugar (Brown) - KG,75.0
+2026-02-10,130000000,Munoz Market,Other Commodities,Sugar (Brown) - KG,85.0
+2026-02-10,130000000,Pasay City Market,Other Commodities,Sugar (Brown) - KG,80.0
+2026-02-10,130000000,Quinta Market,Other Commodities,Sugar (Brown) - KG,75.0
+2026-02-10,130000000,Mega Q Mart,Other Commodities,Sugar (Brown) - KG,75.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Other Commodities,Sugar (Brown) - KG,72.0
+2026-02-10,130000000,Maypajo Public Market,Other Commodities,Sugar (Brown) - KG,78.0
+2026-02-10,130000000,Dagonoy Market,Other Commodities,Sugar (Brown) - KG,70.0
+2026-02-10,130000000,Trabajo Market,Other Commodities,Sugar (Brown) - KG,70.0
+2026-02-10,130000000,Navotas Agora Market,Other Commodities,Sugar (Brown) - KG,68.0
+2026-02-10,130000000,Murphy Market,Other Commodities,Sugar (Brown) - KG,75.0
+2026-02-10,130000000,Kamuning Market,Other Commodities,Sugar (Brown) - KG,76.0
+2026-02-10,130000000,Guadalupe Public Market,Other Commodities,Sugar (Washed) - KG,75.0
+2026-02-10,130000000,New Las Pinas City Public Market,Other Commodities,Sugar (Washed) - KG,76.0
+2026-02-10,130000000,Marikina Public Market,Other Commodities,Sugar (Washed) - KG,75.0
+2026-02-10,130000000,Munoz Market,Other Commodities,Sugar (Washed) - KG,90.0
+2026-02-10,130000000,Quinta Market,Other Commodities,Sugar (Washed) - KG,80.0
+2026-02-10,130000000,Mega Q Mart,Other Commodities,Sugar (Washed) - KG,75.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Other Commodities,Sugar (Washed) - KG,74.0
+2026-02-10,130000000,Pritil Market,Other Commodities,Sugar (Washed) - KG,75.0
+2026-02-10,130000000,Maypajo Public Market,Other Commodities,Sugar (Washed) - KG,80.0
+2026-02-10,130000000,Dagonoy Market,Other Commodities,Sugar (Washed) - KG,70.0
+2026-02-10,130000000,Trabajo Market,Other Commodities,Sugar (Washed) - KG,75.0
+2026-02-10,130000000,Navotas Agora Market,Other Commodities,Sugar (Washed) - KG,70.0
+2026-02-10,130000000,Murphy Market,Other Commodities,Sugar (Washed) - KG,80.0
+2026-02-10,130000000,Guadalupe Public Market,Other Commodities,Sugar (Refined) - KG,80.0
+2026-02-10,130000000,New Las Pinas City Public Market,Other Commodities,Sugar (Refined) - KG,80.0
+2026-02-10,130000000,Marikina Public Market,Other Commodities,Sugar (Refined) - KG,82.0
+2026-02-10,130000000,Munoz Market,Other Commodities,Sugar (Refined) - KG,100.0
+2026-02-10,130000000,Pasay City Market,Other Commodities,Sugar (Refined) - KG,90.0
+2026-02-10,130000000,Quinta Market,Other Commodities,Sugar (Refined) - KG,85.0
+2026-02-10,130000000,Mega Q Mart,Other Commodities,Sugar (Refined) - KG,80.0
+2026-02-10,130000000,Pamilihang Lungsod Ng Muntinlupa,Other Commodities,Sugar (Refined) - KG,76.0
+2026-02-10,130000000,Pritil Market,Other Commodities,Sugar (Refined) - KG,85.0
+2026-02-10,130000000,Dagonoy Market,Other Commodities,Sugar (Refined) - KG,80.0
+2026-02-10,130000000,Trabajo Market,Other Commodities,Sugar (Refined) - KG,80.0
+2026-02-10,130000000,Navotas Agora Market,Other Commodities,Sugar (Refined) - KG,75.0
+2026-02-10,130000000,Kamuning Market,Other Commodities,Sugar (Refined) - KG,85.0
+2026-02-10,130000000,Marikina Public Market,Other Commodities,Cooking Oil (Coconut) 350ML - 350 ML/BOTTLE,50.0
+2026-02-10,130000000,Murphy Market,Other Commodities,Cooking Oil (Coconut) 350ML - 350 ML/BOTTLE,58.0
+2026-02-10,130000000,Pritil Market,Other Commodities,Cooking Oil (Coconut) 1L - 1 LITER/BOTTLE,160.0
+2026-02-10,130000000,Maypajo Public Market,Other Commodities,Cooking Oil (Coconut) 1L - 1 LITER/BOTTLE,160.0
+2026-02-10,130000000,Navotas Agora Market,Other Commodities,Cooking Oil (Coconut) 1L - 1 LITER/BOTTLE,170.0
