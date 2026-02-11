@@ -58,12 +58,31 @@ URL_HEADER = f"{BASE_URL}/tbl_price_get_comm_header.php"
 # Step 3: Get Prices (Data)
 URL_PRICE = f"{BASE_URL}/tbl_price_get_comm_price.php"
 
-# 4. Request Settings
+# 4. Request Settings & Session Pooling (The VIP Line)
 HEADERS = {
     'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
     'Content-Type': "application/x-www-form-urlencoded; charset=UTF-8",
     'X-Requested-With': 'XMLHttpRequest'
 }
+
+# Session Factory
+session = requests.Session()
+session.headers.update(HEADERS)
+
+# Mount Adapter for faster retries (Socket Level)
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+retry_strategy = Retry(
+    total=2,                # Maximum number of retries
+    backoff_factor=1,       # Wait 1s, 2s, 4s...
+    status_forcelist=[500, 502, 503, 504], # Retry on these errors
+    allowed_methods=["POST"] # Retry on POST requests
+)
+adapter = HTTPAdapter(max_retries=retry_strategy)
+session.mount("http://", adapter)
+session.mount("https://", adapter)
+
 
 # 5. Output Conf
 DATA_DIR = "data/raw"
@@ -77,22 +96,20 @@ logger = logging.getLogger(__name__)
 # CORE LOGIC
 # ==========================================
 
-def fetch_with_retry(url, payload, description, max_retries=3):
+def fetch_with_retry(url, payload, description):
     """
-    Pillar 3: Resilient Fetcher with Exponential Backoff.
+    Pillar 3: Resilient Fetcher with Session Pooling & Aggressive Timeouts.
     """
-    for attempt in range(1, max_retries + 1):
-        try:
-            response = requests.post(url, data=payload, headers=HEADERS, timeout=30)
-            response.raise_for_status()
-            return response.text
-        except requests.RequestException as e:
-            wait_time = 5 * (2 ** (attempt - 1)) # 5, 10, 20
-            logger.warning(f"  > Failed to fetch {description} (Attempt {attempt}/{max_retries}). Error: {e}. Retrying in {wait_time}s...")
-            time.sleep(wait_time)
-    
-    logger.error(f"  > CRITICAL: Failed to fetch {description} after {max_retries} attempts.")
-    return None
+    try:
+        # Timeout=10s (The "Impatient Customer" Strategy)
+        response = session.post(url, data=payload, timeout=10)
+        response.raise_for_status()
+        return response.text
+    except Exception as e:
+        # We don't need a loop retry here because HTTPAdapter handles it.
+        # If we get here, it means we failed after retries or timed out.
+        logger.warning(f"  > FAILED: {description}. Error: {e}")
+        return None
 
 def parse_header_markets(html_headers):
     """
