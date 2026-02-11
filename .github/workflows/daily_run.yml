@@ -49,7 +49,7 @@ jobs:
         
         # Add all new data files (Raw CSVs and Clean Parquet)
         git add data/
-        git add audit_log.txt
+        if [ -f audit_log.txt ]; then git add audit_log.txt; fi
         
         # Commit if there are changes
         git commit -m "Auto-update: $(date +'%Y-%m-%d') Data Refresh" || echo "No changes to commit"
