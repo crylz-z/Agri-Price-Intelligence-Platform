@@ -1,2 +1,3 @@
 PASS: 2026-02-11 | Rows: 3,314 | Regions: 17 | Source: market_prices_2026-02-11.parquet
 PASS: 2026-02-11 | Rows: 3,314 | Regions: 17 | Source: market_prices_2026-02-11.parquet
+PASS: 2026-02-11 | Rows: 3,314 | Regions: 17 | Source: market_prices_2026-02-11.parquet
