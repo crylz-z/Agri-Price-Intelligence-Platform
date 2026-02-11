@@ -240,16 +240,29 @@ def idempotent_upsert(new_data):
                 logger.error(f"    -> Failed to write {filename}: {e}")
 
 
-def main():
-    logger.info("🚀 Starting Extraction Engine V2 (Matrix Strategy)...")
-    logger.info(f"   Target: {len(REGION_MAP)} Regions x {len(CATEGORY_MAP)} Categories")
+import concurrent.futures
+
+# ... (Imports remain the same) ...
+
+# ==========================================
+# CORE LOGIC
+# ==========================================
+
+# ... (fetch_with_retry, parse_header_markets, parse_price_rows, idempotent_upsert remain the same) ...
+
+def process_region_wrapper(args):
+    """
+    Wrapper for Parallel execution.
+    Args: (region_id, region_name)
+    Returns: (region_name, status, row_count, duration_seconds)
+    """
+    region_id, region_name = args
+    start_time = time.time()
+    region_records = 0
     
-    total_records = 0
+    logger.info(f"🚀 START: {region_name} ({region_id})...")
     
-    # MATRIX LOOP (Pillar 2)
-    for region_id, region_name in REGION_MAP.items():
-        logger.info(f"🌍 Processing Region: {region_name} ({region_id})...")
-        
+    try:
         region_buffer = []
         
         for cat_id, cat_name in CATEGORY_MAP.items():
@@ -257,30 +270,15 @@ def main():
             payload_base = {'region': region_id, 'commodity': cat_id}
             date_text = fetch_with_retry(URL_DATE, payload_base, f"Date for {cat_name}")
             
-            # Step 2: Get Headers (Markets)
+            # Step 2: Get Headers
             headers_html = fetch_with_retry(URL_HEADER, payload_base, f"Headers for {cat_name}")
             if not headers_html: continue
             
             markets = parse_header_markets(headers_html)
-            if not markets:
-                # logger.warning(f"  > No markets found for {cat_name}. Skipping.")
-                continue
+            if not markets: continue
                 
             # Step 3: Get Prices
             payload_price = payload_base.copy()
-            payload_price['count'] = str(len(markets) + 2) # +2 for Commodity/Spec columns? Or just markets?
-            # Browser inspection: count param usually matches number of TD columns in price table?
-            # Actually, `count` usually tells the backend how many *market columns* to render? Or expected?
-            # Let's try passing len(markets) as base, but debugging showed `+ constant` sometimes needed.
-            # Safest is to extract count from number of TH in headers_html?
-            # Re-parsing headers to count columns carefully.
-            # HTML: <th>Comm</th> <th>Spec</th> <td>Mkt1</td> <td>Mkt2</td>
-            # So Count = Total Columns?
-            # User's legacy code used '31'.
-            # Browser agent said: "The crawler must count the number of market columns... to provide the count parameter".
-            # Let's assume count = Length of Markets.
-            # But just in case, let's pass a larger number? No, that might break it.
-            # We will use len(markets).
             payload_price['count'] = str(len(markets))
             
             prices_html = fetch_with_retry(URL_PRICE, payload_price, f"Prices for {cat_name}")
@@ -290,20 +288,62 @@ def main():
             rows = parse_price_rows(prices_html, markets, region_id, cat_name, date_text)
             if rows:
                 region_buffer.extend(rows)
-            # logger.info(f"  > {cat_name}: Found {len(rows)} records.")
             
-            # Polite wait
-            time.sleep(0.5) 
+            # Helper Sleep (per category, inside thread)
+            time.sleep(0.5)
 
-        # End of Region: Flush to Disk (Idempotent Write)
+        # Flush to Disk
         if region_buffer:
             idempotent_upsert(region_buffer)
-            total_records += len(region_buffer)
-        else:
-            logger.warning(f"⚠️ No data found for region {region_name}")
+            region_records = len(region_buffer)
+            
+        duration = time.time() - start_time
+        logger.info(f"✅ DONE: {region_name} | {region_records} rows | {duration:.2f}s")
+        return (region_name, "OK", region_records, duration)
 
+    except Exception as e:
+        duration = time.time() - start_time
+        logger.error(f"❌ FAIL: {region_name} | Error: {e}")
+        return (region_name, f"FAIL ({e})", 0, duration)
+
+
+def main():
+    logger.info("🚀 Starting Extraction Engine V2.1 (The Conveyor Belt)...")
+    logger.info(f"   Target: {len(REGION_MAP)} Regions | Parallel Workers: 5")
+    
+    pipeline_start = time.time()
+    results = []
+    
+    # PARALLEL EXECUTION (Pillar 6)
+    # We use max_workers=5 to balance speed and load.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        # Prepare arguments as tuples
+        region_args = [(rid, rname) for rid, rname in REGION_MAP.items()]
+        
+        # Launch map
+        # executor.map returns results in order
+        future_results = executor.map(process_region_wrapper, region_args)
+        
+        for res in future_results:
+            results.append(res)
+            
+    pipeline_end = time.time()
+    total_duration = pipeline_end - pipeline_start
+    total_rows = sum(r[2] for r in results)
+    
+    # PERFORMANCE REPORT
+    logger.info("\n" + "="*50)
+    logger.info(f"📊 PERFORMANCE REPORT (Total: {total_duration:.2f}s)")
     logger.info("="*50)
-    logger.info(f"✅ EXTRACTION COMPLETE. Total Records: {total_records}")
+    logger.info(f"{'REGION':<30} | {'STATUS':<10} | {'ROWS':<5} | {'DURATION'}")
+    logger.info("-" * 65)
+    
+    for rname, status, rows, dur in results:
+        dur_str = f"{dur:.2f}s"
+        logger.info(f"{rname:<30} | {status:<10} | {rows:<5} | {dur_str}")
+        
+    logger.info("-" * 65)
+    logger.info(f"TOTAL ROWS EXTRACTED: {total_rows}")
     logger.info("="*50)
 
     # TRIGGER SILVER LAYER (The Chain Reaction)
