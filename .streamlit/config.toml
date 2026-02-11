@@ -1,7 +1,7 @@
 [theme]
-base="dark"
-primaryColor="#00ff41" # Matrix Green (Tech feel)
-backgroundColor="#0e1117"
-secondaryBackgroundColor="#262730"
-textColor="#fafafa"
+base="light"
+primaryColor="#0078d4" # Enterprise Blue
+backgroundColor="#ffffff"
+secondaryBackgroundColor="#f0f2f6"
+textColor="#0e1117" # Nearly Black
 font="sans serif"

@@ -1,44 +1,60 @@
-name: Daily Price Extraction
+name: Daily Price Extraction (Triple Tap)
 
 on:
   schedule:
-    # Run at 6:00 AM, 12:00 PM, and 6:00 PM PHT (UTC+8)
-    # UTC times: 22:00 (prev day), 04:00, 10:00
-    - cron: '0 22,4,10 * * *'
-  workflow_dispatch: # Allow manual trigger
+    # Run 3 times a day (UTC times map to PH times: GMT+8)
+    # 02:00 UTC = 10:00 AM PH (Run 1: Early Bird)
+    # 06:00 UTC = 02:00 PM PH (Run 2: Lunch Update)
+    # 10:00 UTC = 06:00 PM PH (Run 3: Final Close)
+    - cron: '0 2 * * *'
+    - cron: '0 6 * * *'
+    - cron: '0 10 * * *'
+  
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
-  scrape_and_commit:
+  extract-and-transform:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Needed to push data back
+      contents: write  # Critical for committing data back
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+    # 1. Checkout Code
+    - name: Checkout Repository
+      uses: actions/checkout@v3
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
+    # 2. Setup Python
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
 
-      - name: Install Dependencies
-        run: |
-          pip install requests pandas beautifulsoup4
+    # 3. Install Dependencies
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-      - name: Run Discovery Service (Catalog Update)
-        run: python -m etl.extract.fetch_metadata
+    # 4. Run Pipeline (Extract -> Transform -> Audit)
+    - name: Run Extraction Engine
+      run: |
+        python src/etl/extract/extract_data.py
 
-      - name: Run Extraction Robot
-        run: python -m etl.extract.extract_data
-
-      - name: Run Silver Transformation
-        run: python -m etl.transform.clean_data
-
-      - name: Commit and Push Data
-        run: |
-          git config --global user.name "Agri-Price Bot"
-          git config --global user.email "bot@users.noreply.github.com"
-          git add data/raw/*.csv data/clean/*.csv data/reference/*.csv
-          git commit -m "data: Update prices and clean data for $(date +'%Y-%m-%d')" || exit 0
-          git push
+    # 5. Commit and Push Data
+    - name: Commit and Push Changes
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Add all new data files (Raw CSVs and Clean Parquet)
+        git add data/
+        git add audit_log.txt
+        
+        # Commit if there are changes
+        git commit -m "Auto-update: $(date +'%Y-%m-%d') Data Refresh" || echo "No changes to commit"
+        
+        # Push to main branch
+        git push origin main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

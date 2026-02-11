@@ -3,55 +3,50 @@
 > **"A Time Machine for Food Prices"**
 > An automated data pipeline that captures, validates, and archives daily agricultural price data from the Department of Agriculture, enabling real-time inflation monitoring and arbitrage detection.
 
-![Python](https://img.shields.io/badge/Python-3.9-blue) ![GitHub Actions](https://img.shields.io/badge/Automation-GitHub_Actions-green) ![Data](https://img.shields.io/badge/Data-Parquet%2FCSV-orange)
+![Python](https://img.shields.io/badge/Python-3.9-blue) ![Architecture](https://img.shields.io/badge/Architecture-Matrix_Strategy-purple) ![Data](https://img.shields.io/badge/Data-Parquet-orange)
 
 ## 🚀 The Problem
 The government price monitoring website is ephemeral. Data is updated daily, and historical data is deleted. This creates "Information Asymmetry" where market variances (e.g., ₱50 Corn vs ₱80 Corn) are hidden from consumers and businesses.
 
-## 🛠️ The Solution
-This project implements a **Serverless Data Pipeline** ("The Robot") that:
-1.  **Extracts**: Scrapes granular price data for 10+ commodities (Rice, Meat, Fish, Veggies) from the DA API.
-2.  **Validates**: Applies a "Hybrid Validation" logic to ensure data accuracy (rejects >15% variance).
-3.  **Loads**: Archives clean, structured data (CSV/Parquet) for historical analysis.
-4.  **Automates**: Runs bit-perfectly every day at 6:00 AM, 12:00 PM, and 6:00 PM via **GitHub Actions** (Git Scraping pattern).
+## 🛠️ The Solution: "The Robot"
+We built a robust extraction engine that uses a **Matrix Strategy** to capture granular data across 17 Regions and 10 Commodity Categories.
+
+### Core Architecture
+1.  **Extract (The Matrix)**: Iterates through every Region-Category pair to force the API to yield data.
+2.  **Route (Content-Based)**: Inspects the *actual date* inside the data payload to handle the "Midnight Bug" (where API returns yesterday's data during transition).
+3.  **Transform (Silver Layer)**: Standardizes data and saves it as optimized **Parquet** files (Snappy compression).
+4.  **Audit (The Bouncer)**: Automatically checks volume (>500 rows) and reach (>10 regions) before signing off.
 
 ## 📂 Project Structure
 ```bash
-├── config/             # The "Recipe Book"
-│   └── settings.py     # Centralized configuration (URLs, Commodity IDs)
+├── config/             # Configuration maps
 ├── data/               # The "Pantry"
-│   └── raw/            # Daily price snapshots (Commited automatically)
-├── logs/               # The "Security Camera"
-│   └── extraction.log  # Execution history (GitIgnored)
-├── src/                # The "Chefs"
-│   └── daily_extraction.py # Master ETL script
-├── tests/              # The "Health Inspector"
-│   └── health_check.py # Data integrity verifier
-└── .github/workflows/  # The "Alarm Clock"
-    └── daily_run.yml   # Multi-pass scheduling logic
+│   ├── raw/            # Daily CSV snapshots (Bronze)
+│   ├── clean/          # Optimized Parquet files (Silver)
+│   └── reference/      # GeoJSON and SRP data
+├── src/                # Source Code
+│   ├── etl/            # Extraction & Transformation
+│   │   ├── extract/    # extract_data.py (The Engine)
+│   │   └── transform/  # clean_data.py (The Cleaner)
+│   ├── dashboard/      # Streamlit App
+│   │   └── app.py      # The "Bulletin Board"
+│   └── validation/     # Quality Control
+│       └── simple_audit.py # "The Bouncer"
+└── audit_log.txt       # Daily Pass/Fail records
 ```
 
 ## 💻 Tech Stack
-*   **Ingestion**: Python (`requests`, `BeautifulSoup`, `pandas`)
-*   **Orchestration**: GitHub Actions (Cron Schedule)
-*   **Storage**: Git Repository (Zero-Cost Data Lake)
-*   **Quality**: Custom Validation Logic
+*   **Ingestion**: Python (`requests`, `BeautifulSoup`)
+*   **Storage**: Parquet (PyArrow)
+*   **Visualization**: Streamlit, Plotly, Folium
+*   **Automation**: GitHub Actions (Planned)
 
-## 🏃 How to Run Locally
-1.  **Clone the Repo**:
+## 🏃 How to Run
+1.  **Run the Pipeline** (Extract -> Transform -> Audit):
     ```bash
-    git clone https://github.com/crylz-z/Agri-Price-Intelligence-Platform.git
+    python src/etl/extract/extract_data.py
     ```
-2.  **Install Dependencies**:
+2.  **Launch Dashboard**:
     ```bash
-    pip install -r requirements.txt
+    streamlit run src/dashboard/app.py
     ```
-3.  **Run the Robot**:
-    ```bash
-    python src/daily_extraction.py
-    ```
-
-## 📈 Impact
-*   **For Consumers**: Identifies the cheapest wet market in NCR for specific goods.
-*   **For Businesses**: Enables data-driven procurement to reduce costs by 15-20%.
-*   **For the Market**: Exposes predatory pricing and encourages fair competition.

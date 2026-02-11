@@ -1,0 +1,8 @@
+requests
+pandas
+beautifulsoup4
+streamlit
+plotly
+folium
+streamlit-folium
+pyarrow

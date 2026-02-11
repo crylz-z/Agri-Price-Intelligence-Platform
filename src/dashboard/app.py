@@ -2,129 +2,293 @@ import streamlit as st
 import pandas as pd
 import glob
 import os
+import folium
+from streamlit_folium import st_folium
 import plotly.express as px
-from datetime import datetime
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
 
-# --- CONFIGURATION ---
-st.set_page_config(
-    page_title="Agri-Price Intelligence Platform",
-    page_icon="🌾",
-    layout="wide"
-)
+# ==========================================
+# CONFIGURATION & CONSTANTS
+# ==========================================
+st.set_page_config(layout="wide", page_title="Market Bulletin | Agri-Price Intelligence", page_icon="📋")
+CLEAN_DATA_DIR = "data/clean"
+REF_DATA_DIR = "data/reference"
 
-# --- LOADER ---
-@st.cache_data
-def load_data():
-    # Find all CSVs in data/raw
-    files = glob.glob('data/raw/*.csv')
-    if not files:
-        return pd.DataFrame()
-    
-    # Load all and concat (robustness)
-    dfs = []
-    for f in files:
+# PROFESSIONAL STYLE
+st.markdown("""
+<style>
+    .metric-card {
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #e0e0e0;
+        background-color: #ffffff;
+    }
+    h1, h2, h3 { font-family: 'Segoe UI', sans-serif; }
+    .stDataFrame { border: 1px solid #f0f0f0; }
+</style>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# DATA ENGINE
+# ==========================================
+
+@st.cache_data(ttl=600)
+def load_parquet_file(date_str):
+    """Loads a specific Parquet file for a given date."""
+    filepath = os.path.join(CLEAN_DATA_DIR, f"market_prices_{date_str}.parquet")
+    if os.path.exists(filepath):
         try:
-            df = pd.read_csv(f)
-            # Ensure date column is datetime
-            if 'extract_dt' not in df.columns:
-                 # Fallback: extract from filename
-                 date_str = os.path.basename(f).replace('ncr_prices_', '').replace('.csv', '')
-                 df['extract_dt'] = date_str
-            dfs.append(df)
-        except Exception as e:
-            st.error(f"Error loading {f}: {e}")
-            
-    if not dfs:
-        return pd.DataFrame()
-        
-    final_df = pd.concat(dfs, ignore_index=True)
-    final_df['extract_dt'] = pd.to_datetime(final_df['extract_dt'])
-    
-    # Clean Price Column (force numeric)
-    final_df['price'] = pd.to_numeric(final_df['price'], errors='coerce')
-    final_df = final_df.dropna(subset=['price'])
-    
-    return final_df
+            return pd.read_parquet(filepath)
+        except Exception:
+            return None
+    return None
 
-# --- MAIN APP ---
+@st.cache_data
+def load_reference_data():
+    """Loads SRP and Lat/Lon data safely."""
+    # 1. GEO DATA
+    geo_path = os.path.join(REF_DATA_DIR, "markets_geo.csv")
+    if os.path.exists(geo_path):
+        geo_df = pd.read_csv(geo_path)
+    else:
+        geo_df = pd.DataFrame(columns=['market_name', 'lat', 'lon'])
+
+    # 2. SRP DATA
+    srp_path = os.path.join(REF_DATA_DIR, "official_srp.csv")
+    if os.path.exists(srp_path):
+        srp_df = pd.read_csv(srp_path)
+        if 'official_srp' in srp_df.columns:
+            srp_df.rename(columns={'official_srp': 'srp'}, inplace=True)
+    else:
+        srp_df = pd.DataFrame(columns=['commodity', 'srp'])
+    
+    return geo_df, srp_df
+
+def get_available_dates():
+    """Scans for available parquet files."""
+    files = glob.glob(os.path.join(CLEAN_DATA_DIR, "market_prices_*.parquet"))
+    dates = []
+    for f in files:
+        basename = os.path.basename(f)
+        try:
+            date_str = basename.replace("market_prices_", "").replace(".parquet", "")
+            dates.append(date_str)
+        except:
+            continue
+    return sorted(dates, reverse=True)
+
+# ==========================================
+# MAIN APPLICATION
+# ==========================================
+
 def main():
-    st.title("🌾 Agri-Price Intelligence Platform")
-    st.markdown("Monitor daily agricultural prices in NCR wet markets.")
-
-    df = load_data()
+    st.title("📋 Official Market Bulletin")
     
-    if df.empty:
-        st.warning("No data found in `data/raw/`. Run the scraper first!")
+    # ---------------------------
+    # SIDEBAR: HIERARCHY
+    # ---------------------------
+    st.sidebar.header("Configuration")
+    
+    # LEVEL 1: DATE (Global)
+    available_dates = get_available_dates()
+    if not available_dates:
+        st.error("System Offline: No data available.")
+        return
+    selected_date = st.sidebar.selectbox("Date", available_dates)
+    
+    # LOAD DATA
+    df = load_parquet_file(selected_date)
+    if df is None or df.empty:
+        st.error(f"Data Corrupted for {selected_date}")
         return
 
-    # --- SIDEBAR FILTERS ---
-    st.sidebar.header("🔍 Filters")
+    # LEVEL 2: REGION (Global)
+    valid_regions = sorted(df['region_name'].dropna().unique())
+    selected_region = st.sidebar.selectbox("Region", valid_regions)
     
-    # Date Filter
-    available_dates = df['extract_dt'].dt.date.unique()
-    selected_date = st.sidebar.selectbox("Select Date", sorted(available_dates, reverse=True))
+    # FILTER STEP 1
+    region_df = df[df['region_name'] == selected_region].copy()
     
-    # Filter by Date
-    daily_df = df[df['extract_dt'].dt.date == selected_date]
+    # LEVEL 3: CATEGORY (Primary Filter)
+    valid_categories = sorted(region_df['category'].dropna().unique())
+    selected_category = st.sidebar.selectbox("Category", valid_categories)
     
-    # Category Filter
-    categories = sorted(daily_df['category'].unique())
-    selected_category = st.sidebar.selectbox("Category", categories)
+    # FILTER STEP 2
+    category_df = region_df[region_df['category'] == selected_category].copy()
     
-    # Commodity Filter
-    cat_df = daily_df[daily_df['category'] == selected_category]
-    commodities = sorted(cat_df['commodity'].unique())
-    selected_commodity = st.sidebar.selectbox("Commodity", commodities)
+    # LEVEL 4: COMMODITY (Secondary Filter for Drill-Down)
+    valid_commodities = sorted(category_df['commodity'].dropna().unique())
+    selected_commodity = st.sidebar.selectbox("Deep Dive Commodity", valid_commodities, index=0)
     
-    # Final Filtered Data
-    item_df = cat_df[cat_df['commodity'] == selected_commodity]
+    # FILTER STEP 3
+    commodity_df = category_df[category_df['commodity'] == selected_commodity].copy()
     
-    # --- METRICS ---
-    st.markdown("### 📊 Market Snapshot")
-    col1, col2, col3, col4 = st.columns(4)
+    # LOAD REFERENCE
+    geo_df, srp_df = load_reference_data()
+
+    # ==========================================
+    # ZONE A: EXECUTIVE BRIEF (Category Level)
+    # ==========================================
+    st.subheader(f"Executive Brief: {selected_category} in {selected_region}")
     
-    min_price = item_df['price'].min()
-    max_price = item_df['price'].max()
-    avg_price = item_df['price'].mean()
-    spread = max_price - min_price
+    # Category Stats
+    avg_price = category_df['price'].mean()
+    min_price = category_df['price'].min()
+    max_price = category_df['price'].max()
+    volatility = ((max_price - min_price) / avg_price) * 100 if avg_price > 0 else 0
     
-    col1.metric("Lowest Price", f"₱{min_price:,.2f}")
-    col2.metric("Highest Price", f"₱{max_price:,.2f}")
-    col3.metric("Average Price", f"₱{avg_price:,.2f}")
-    col4.metric("Arbitrage Spread", f"₱{spread:,.2f}", help="Difference between highest and lowest price")
+    # Status Banner
+    if volatility > 20:
+        st.warning(f"⚠️ **High Volatility Detected**: Prices in this category vary by {volatility:.0f}%. Check for outliers.")
+    elif volatility < 10:
+        st.success(f"✅ **Stable Market**: Price variance is low ({volatility:.0f}%) across commodities.")
+    else:
+        st.info(f"ℹ️ **Moderate Activity**: Standard price fluctuations observed.")
+        
+    # KPI Cards
+    k1, k2, k3 = st.columns(3)
+    k1.metric("Markets Reporting", category_df['market_name'].nunique())
+    k2.metric("Category Avg Price", f"₱{avg_price:,.2f}")
+    k3.metric("Commodities Tracked", category_df['commodity'].nunique())
     
     st.markdown("---")
+
+    # ==========================================
+    # ZONE B: OFFICIAL PRICE BULLETIN (The Hero)
+    # ==========================================
+    st.subheader("📢 Official Price Bulletin")
     
-    # --- VISUALIZATION ---
-    col_chart, col_table = st.columns([2, 1])
+    # Aggregate Live Data by Commodity
+    bulletin_df = category_df.groupby('commodity')['price'].mean().reset_index()
+    bulletin_df.rename(columns={'price': 'Live Avg'}, inplace=True)
     
+    # Merge with SRP (Left Join to keep all live commodities)
+    # Ensure join on commodity name
+    bulletin_df = bulletin_df.merge(srp_df, on='commodity', how='left')
+    
+    # Logic
+    def get_status(row):
+        live = row['Live Avg']
+        srp = row['srp']
+        if pd.isna(srp): return "N/A"
+        if live > (srp * 1.10): return "High 🔺"
+        if live < (srp * 0.90): return "Low 📉"
+        return "Fair ✅"
+
+    bulletin_df['Status'] = bulletin_df.apply(get_status, axis=1)
+    bulletin_df['Diff'] = bulletin_df['Live Avg'] - bulletin_df['srp']
+    
+    # Formatting Helpers
+    def format_currency(val):
+        return f"₱{val:,.2f}" if pd.notnull(val) else "—"
+    
+    def format_diff(val):
+        if pd.isna(val): return "—"
+        return f"{val:+.2f}"
+
+    # Display Table
+    st.dataframe(
+        bulletin_df.style.apply(
+            lambda x: ["background-color: #ffe6e6" if "High" in v else "" for v in x], subset=['Status']
+        ).format({
+            'Live Avg': format_currency,
+            'srp': format_currency,
+            'Diff': format_diff
+        }),
+        column_order=['commodity', 'srp', 'Live Avg', 'Diff', 'Status'],
+        column_config={
+            'commodity': 'Commodity',
+            'srp': 'Prevailing Price (SRP)',
+            'Live Avg': 'Current Avg Price',
+            'Diff': 'Variance'
+        },
+        use_container_width=True,
+        hide_index=True
+    )
+
+    # ==========================================
+    # DRILL DOWN SECTION
+    # ==========================================
+    st.markdown("---")
+    st.header(f"🔍 Deep Dive: {selected_commodity}")
+    
+    if commodity_df.empty:
+        st.warning(f"No live data for **{selected_commodity}** today.")
+        return
+
+    col_map, col_chart = st.columns([1, 1])
+
+    # ==========================================
+    # ZONE C: GEOSPATIAL MAP
+    # ==========================================
+    with col_map:
+        st.subheader("📍 Market Location")
+        
+        # Merge Geo
+        map_df = commodity_df.merge(geo_df, on='market_name', how='inner')
+        
+        if not map_df.empty:
+            avg_comm_price = commodity_df['price'].mean()
+            center_lat = map_df['lat'].mean()
+            center_lon = map_df['lon'].mean()
+            
+            m = folium.Map(location=[center_lat, center_lon], zoom_start=11)
+            
+            for _, row in map_df.iterrows():
+                price = row['price']
+                color = 'green' if price <= avg_comm_price else 'red'
+                folium.CircleMarker(
+                    location=[row['lat'], row['lon']],
+                    radius=8,
+                    color=color,
+                    fill=True,
+                    fill_color=color,
+                    tooltip=f"{row['market_name']}: ₱{price:,.2f}"
+                ).add_to(m)
+            
+            st_folium(m, height=400, use_container_width=True)
+            st.caption("Green: Below Regional Avg | Red: Above Regional Avg")
+        else:
+            st.info("Geographic data not available for these markets.")
+
+    # ==========================================
+    # ZONE D: ANALYTICS
+    # ==========================================
     with col_chart:
-        st.subheader(f"🏷️ Price Distribution: {selected_commodity}")
+        st.subheader("📊 Price Fairness")
         
-        # Sort by price for better visualization
-        sorted_df = item_df.sort_values('price')
-        
-        # Color logic: Green (Cheap) -> Red (Expensive)
-        fig = px.bar(
-            sorted_df, 
-            x='price', 
-            y='market_name',
-            orientation='h',
-            title=f"Prices by Market ({selected_commodity})",
-            labels={'market_name': 'Market', 'price': 'Price (PHP)'},
-            color='price',
-            color_continuous_scale='RdYlGn_r', # Red-Yellow-Green (Reverse)
-            height=600
-        )
-        st.plotly_chart(fig, use_container_width=True)
-        
-    with col_table:
-        st.subheader("📋 Raw Data")
-        st.dataframe(
-            item_df[['market_name', 'price']].sort_values('price'),
-            hide_index=True,
-            use_container_width=True
-        )
+        # Z-Score
+        if commodity_df['price'].std() > 0:
+            commodity_df['z_score'] = (commodity_df['price'] - commodity_df['price'].mean()) / commodity_df['price'].std()
+            commodity_df['color'] = commodity_df['z_score'].apply(lambda x: '#e74c3c' if x > 0 else '#2ecc71')
+            
+            fig = px.bar(
+                commodity_df,
+                y='market_name',
+                x='z_score',
+                orientation='h',
+                title="Fairness Meter (Z-Score)",
+                text=commodity_df['price'].apply(lambda x: f"₱{x:.0f}")
+            )
+            fig.update_traces(marker_color=commodity_df['color'])
+            fig.add_vline(x=0, line_dash="dash", line_color="black")
+            st.plotly_chart(fig, use_container_width=True)
+            st.caption("How to read: Bars to the RIGHT are expensive markets.")
+        else:
+            st.info("Price is uniform across all markets (No Variance).")
+            
+    # Box Plot Row
+    st.subheader("📈 Price Distribution")
+    fig_box = px.box(
+        commodity_df, 
+        x='price', 
+        points="all", 
+        height=200,
+        title=f"Price Range for {selected_commodity}"
+    )
+    st.plotly_chart(fig_box, use_container_width=True)
+    st.caption("How to read: Dots outside the box are outliers (potential price gouging).")
 
 if __name__ == "__main__":
     main()
