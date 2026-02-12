@@ -1,9 +1,4 @@
 extract_dt,region_id,market_name,category,commodity,price
-2026-02-12,70000000,DAO PUBLIC MARKET,Corn,"Corn (Yellow) - Cob, Sweet Corn",100.0
-2026-02-12,70000000,DAO PUBLIC MARKET,Corn,"Corn Grits (White, Food Grade) - KG",52.0
-2026-02-12,70000000,DAO PUBLIC MARKET,Corn,"Corn Cracked (Yellow, Feed Grade) - KG",45.0
-2026-02-12,70000000,DAO PUBLIC MARKET,Corn,Corn Grits (Feed Grade) - KG,43.0
-2026-02-12,70000000,DAO PUBLIC MARKET,Legumes,Mungbean - KG,120.0
 2026-02-12,70000000,DAO PUBLIC MARKET,Fish,Tilapia - MEDIUM (5-6PCS/KG),200.0
 2026-02-12,70000000,DAO PUBLIC MARKET,Fish,Squid (Pusit Bisaya) - Medium,240.0
 2026-02-12,70000000,DAO PUBLIC MARKET,Fish,Yellow-Fin Tuna (Tambakol),350.0
@@ -22,6 +17,11 @@ extract_dt,region_id,market_name,category,commodity,price
 2026-02-12,70000000,DAO PUBLIC MARKET,Lowland Vegetables,Sitao - 3-4 SMALL BUNDLES/KG,120.0
 2026-02-12,70000000,DAO PUBLIC MARKET,Lowland Vegetables,Eggplant - 3-4 SMALL BUNDLES/KG,100.0
 2026-02-12,70000000,DAO PUBLIC MARKET,Lowland Vegetables,Tomato - 15-18 PCS/KG,100.0
+2026-02-12,70000000,DAO PUBLIC MARKET,Corn,"Corn (Yellow) - Cob, Sweet Corn",100.0
+2026-02-12,70000000,DAO PUBLIC MARKET,Corn,"Corn Grits (White, Food Grade) - KG",52.0
+2026-02-12,70000000,DAO PUBLIC MARKET,Corn,"Corn Cracked (Yellow, Feed Grade) - KG",45.0
+2026-02-12,70000000,DAO PUBLIC MARKET,Corn,Corn Grits (Feed Grade) - KG,43.0
+2026-02-12,70000000,DAO PUBLIC MARKET,Legumes,Mungbean - KG,120.0
 2026-02-12,070000000,DAO PUBLIC MARKET,Corn,"Corn (Yellow) - Cob, Sweet Corn",100.0
 2026-02-12,070000000,DAO PUBLIC MARKET,Corn,"Corn Grits (White, Food Grade) - KG",52.0
 2026-02-12,070000000,DAO PUBLIC MARKET,Corn,"Corn Cracked (Yellow, Feed Grade) - KG",45.0
