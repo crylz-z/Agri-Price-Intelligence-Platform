@@ -34,15 +34,36 @@ st.markdown("""
 # ==========================================
 
 @st.cache_data(ttl=600)
-def load_parquet_file(date_str):
-    """Loads a specific Parquet file for a given date."""
-    filepath = os.path.join(CLEAN_DATA_DIR, f"market_prices_{date_str}.parquet")
-    if os.path.exists(filepath):
+def load_data_window(target_date_str, window_days=3):
+    """
+    LKGV Strategy: Loads a window of data (Target + Previous Days).
+    Returns a combined raw DataFrame.
+    """
+    try:
+        target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
+    except:
+        return None
+        
+    frames = []
+    
+    for i in range(window_days):
+        current_date = target_date - timedelta(days=i)
+        date_str = current_date.strftime("%Y-%m-%d")
+        filepath = os.path.join(CLEAN_DATA_DIR, f"market_prices_{date_str}.parquet")
         try:
-            return pd.read_parquet(filepath)
+            if os.path.exists(filepath):
+                df = pd.read_parquet(filepath)
+                # Ensure extract_dt is datetime
+                if 'extract_dt' in df.columns:
+                    df['extract_dt'] = pd.to_datetime(df['extract_dt'])
+                frames.append(df)
         except Exception:
-            return None
-    return None
+            continue
+                
+    if not frames:
+        return None
+        
+    return pd.concat(frames, ignore_index=True)
 
 @st.cache_data
 def load_reference_data():
@@ -97,11 +118,26 @@ def main():
         return
     selected_date = st.sidebar.selectbox("Date", available_dates)
     
-    # LOAD DATA
-    df = load_parquet_file(selected_date)
-    if df is None or df.empty:
-        st.error(f"Data Corrupted for {selected_date}")
+    # LOAD DATA (LKGV)
+    raw_df = load_data_window(selected_date)
+    
+    if raw_df is None or raw_df.empty:
+        st.error(f"System Offline: Unable to load data window for {selected_date}.")
         return
+
+    # COALESCE (The "Squash" Operation)
+    # 1. Sort by Date Descending (Newest first)
+    raw_df = raw_df.sort_values('extract_dt', ascending=False)
+    
+    # 2. Dedup (Keep first/newest)
+    # Natural Key: Region + Market + Commodity.
+    df = raw_df.drop_duplicates(subset=['region_name', 'market_name', 'commodity'], keep='first').copy()
+    
+    # 3. Calculate Freshness
+    target_dt = datetime.strptime(selected_date, "%Y-%m-%d")
+    df['days_ago'] = (target_dt - df['extract_dt']).dt.days
+    df['days_ago'] = df['days_ago'].fillna(0).astype(int)
+
 
     # LEVEL 2: REGION (Global)
     valid_regions = sorted(df['region_name'].dropna().unique())
@@ -160,7 +196,13 @@ def main():
     st.subheader("📢 Official Price Bulletin")
     
     # Aggregate Live Data by Commodity
-    bulletin_df = category_df.groupby('commodity')['price'].mean().reset_index()
+    # We aggregate Price (mean) and Days Ago (max - being conservative, showing staleness if any)
+    bulletin_df = category_df.groupby('commodity').agg({
+        'price': 'mean',
+        'days_ago': 'max' # If one market is stale, we warn? Or 'min' (best case)?
+                          # Let's use 'max' (Worst Case) to be transparent.
+    }).reset_index()
+    
     bulletin_df.rename(columns={'price': 'Live Avg'}, inplace=True)
     
     # Merge with SRP (Left Join to keep all live commodities)
@@ -186,22 +228,32 @@ def main():
     def format_diff(val):
         if pd.isna(val): return "—"
         return f"{val:+.2f}"
+    
+    def format_freshness(days):
+        if days == 0: return "Today"
+        if days == 1: return "Yesterday"
+        return f"{days} Days Ago"
+
+    bulletin_df['Data As Of'] = bulletin_df['days_ago'].apply(format_freshness)
 
     # Display Table
     st.dataframe(
         bulletin_df.style.apply(
             lambda x: ["background-color: #ffe6e6" if "High" in v else "" for v in x], subset=['Status']
+        ).apply(
+            lambda x: ["color: #e67e22; font-weight: bold" if v > 0 else "color: #2ecc71" for v in x], subset=['days_ago']
         ).format({
             'Live Avg': format_currency,
             'srp': format_currency,
             'Diff': format_diff
         }),
-        column_order=['commodity', 'srp', 'Live Avg', 'Diff', 'Status'],
+        column_order=['commodity', 'srp', 'Live Avg', 'Diff', 'Status', 'Data As Of'],
         column_config={
             'commodity': 'Commodity',
             'srp': 'Prevailing Price (SRP)',
             'Live Avg': 'Current Avg Price',
-            'Diff': 'Variance'
+            'Diff': 'Variance',
+            'Data As Of': 'Freshness'
         },
         use_container_width=True,
         hide_index=True
