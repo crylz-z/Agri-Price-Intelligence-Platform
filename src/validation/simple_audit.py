@@ -37,6 +37,7 @@ def get_latest_parquet_files(n=2):
 
 def log_result(message):
     """Appends result to a persistent text log."""
+    os.makedirs(os.path.dirname(AUDIT_LOG), exist_ok=True)
     with open(AUDIT_LOG, "a", encoding='utf-8') as f:
         f.write(message + "\n")
 

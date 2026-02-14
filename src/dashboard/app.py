@@ -18,12 +18,7 @@ REF_DATA_DIR = "data/reference"
 # PROFESSIONAL STYLE
 st.markdown("""
 <style>
-    .metric-card {
-        padding: 15px;
-        border-radius: 5px;
-        border: 1px solid #e0e0e0;
-        background-color: #ffffff;
-    }
+
     h1, h2, h3 { font-family: 'Segoe UI', sans-serif; }
     .stDataFrame { border: 1px solid #f0f0f0; }
 </style>
@@ -104,7 +99,7 @@ def get_available_dates():
 # ==========================================
 
 def main():
-    st.title("📋 Official Market Bulletin")
+    st.title("Official Market Bulletin")
     
     # ---------------------------
     # SIDEBAR: HIERARCHY
@@ -129,8 +124,16 @@ def main():
     # 1. Sort by Date Descending (Newest first)
     raw_df = raw_df.sort_values('extract_dt', ascending=False)
     
+    # RENAME COLUMN
+    # Rename verbose or simple 'price' to 'Prevailing Price (₱)'
+    if 'price' in raw_df.columns:
+        raw_df.rename(columns={'price': 'Prevailing Price (₱)'}, inplace=True)
+    elif 'PREVAILING RETAIL PRICE PER UNIT (P/UNIT)' in raw_df.columns:
+        raw_df.rename(columns={'PREVAILING RETAIL PRICE PER UNIT (P/UNIT)': 'Prevailing Price (₱)'}, inplace=True)
+
     # 2. Dedup (Keep first/newest)
     # Natural Key: Region + Market + Commodity.
+    # Note: 'category' is implied by commodity but good to keep if present.
     df = raw_df.drop_duplicates(subset=['region_name', 'market_name', 'commodity'], keep='first').copy()
     
     # 3. Calculate Freshness
@@ -141,7 +144,12 @@ def main():
 
     # LEVEL 2: REGION (Global)
     valid_regions = sorted(df['region_name'].dropna().unique())
-    selected_region = st.sidebar.selectbox("Region", valid_regions)
+    # Default to NCR if available
+    default_ix = 0
+    if "NCR (NATIONAL CAPITAL REGION)" in valid_regions:
+        default_ix = valid_regions.index("NCR (NATIONAL CAPITAL REGION)")
+        
+    selected_region = st.sidebar.selectbox("Region", valid_regions, index=default_ix)
     
     # FILTER STEP 1
     region_df = df[df['region_name'] == selected_region].copy()
@@ -169,18 +177,18 @@ def main():
     st.subheader(f"Executive Brief: {selected_category} in {selected_region}")
     
     # Category Stats
-    avg_price = category_df['price'].mean()
-    min_price = category_df['price'].min()
-    max_price = category_df['price'].max()
+    avg_price = category_df['Prevailing Price (₱)'].mean()
+    min_price = category_df['Prevailing Price (₱)'].min()
+    max_price = category_df['Prevailing Price (₱)'].max()
     volatility = ((max_price - min_price) / avg_price) * 100 if avg_price > 0 else 0
     
     # Status Banner
     if volatility > 20:
-        st.warning(f"⚠️ **High Volatility Detected**: Prices in this category vary by {volatility:.0f}%. Check for outliers.")
+        st.warning(f"High Volatility Detected: Prices in this category vary by {volatility:.0f}%. Check for outliers.")
     elif volatility < 10:
-        st.success(f"✅ **Stable Market**: Price variance is low ({volatility:.0f}%) across commodities.")
+        st.success(f"Stable Market: Price variance is low ({volatility:.0f}%) across commodities.")
     else:
-        st.info(f"ℹ️ **Moderate Activity**: Standard price fluctuations observed.")
+        st.info(f"Moderate Activity: Standard price fluctuations observed.")
         
     # KPI Cards
     k1, k2, k3 = st.columns(3)
@@ -188,22 +196,29 @@ def main():
     k2.metric("Category Avg Price", f"₱{avg_price:,.2f}")
     k3.metric("Commodities Tracked", category_df['commodity'].nunique())
     
+    # SPARKLINES (3-Day Trend)
+    # Get trend for this category across the loaded window
+    trend_df = region_df[region_df['category'] == selected_category].groupby('extract_dt')['Prevailing Price (₱)'].mean().reset_index()
+    if not trend_df.empty:
+        st.caption("3-Day Price Trend (Category Avg)")
+        st.line_chart(trend_df.set_index('extract_dt'), height=100)
+    
     st.markdown("---")
 
     # ==========================================
     # ZONE B: OFFICIAL PRICE BULLETIN (The Hero)
     # ==========================================
-    st.subheader("📢 Official Price Bulletin")
+    st.subheader("Official Price Bulletin")
     
     # Aggregate Live Data by Commodity
     # We aggregate Price (mean) and Days Ago (max - being conservative, showing staleness if any)
     bulletin_df = category_df.groupby('commodity').agg({
-        'price': 'mean',
+        'Prevailing Price (₱)': 'mean',
         'days_ago': 'max' # If one market is stale, we warn? Or 'min' (best case)?
                           # Let's use 'max' (Worst Case) to be transparent.
     }).reset_index()
     
-    bulletin_df.rename(columns={'price': 'Live Avg'}, inplace=True)
+    bulletin_df.rename(columns={'Prevailing Price (₱)': 'Live Avg'}, inplace=True)
     
     # Merge with SRP (Left Join to keep all live commodities)
     # Ensure join on commodity name
@@ -214,9 +229,9 @@ def main():
         live = row['Live Avg']
         srp = row['srp']
         if pd.isna(srp): return "N/A"
-        if live > (srp * 1.10): return "High 🔺"
-        if live < (srp * 0.90): return "Low 📉"
-        return "Fair ✅"
+        if live > (srp * 1.10): return "High"
+        if live < (srp * 0.90): return "Low"
+        return "Fair"
 
     bulletin_df['Status'] = bulletin_df.apply(get_status, axis=1)
     bulletin_df['Diff'] = bulletin_df['Live Avg'] - bulletin_df['srp']
@@ -263,7 +278,8 @@ def main():
     # DRILL DOWN SECTION
     # ==========================================
     st.markdown("---")
-    st.header(f"🔍 Deep Dive: {selected_commodity}")
+    st.markdown("---")
+    st.header(f"Deep Dive: {selected_commodity}")
     
     if commodity_df.empty:
         st.warning(f"No live data for **{selected_commodity}** today.")
@@ -272,23 +288,27 @@ def main():
     col_map, col_chart = st.columns([1, 1])
 
     # ==========================================
-    # ZONE C: GEOSPATIAL MAP
+    # ZONE C: GEOSPATIAL MAP (Always-On)
     # ==========================================
     with col_map:
-        st.subheader("📍 Market Location")
+        st.subheader("Market Location")
         
         # Merge Geo
         map_df = commodity_df.merge(geo_df, on='market_name', how='inner')
         
+        # Default Center (NCR)
+        default_lat, default_lon = 14.5995, 120.9842
+        default_zoom = 10
+        
         if not map_df.empty:
-            avg_comm_price = commodity_df['price'].mean()
+            avg_comm_price = commodity_df['Prevailing Price (₱)'].mean()
             center_lat = map_df['lat'].mean()
             center_lon = map_df['lon'].mean()
             
             m = folium.Map(location=[center_lat, center_lon], zoom_start=11)
             
             for _, row in map_df.iterrows():
-                price = row['price']
+                price = row['Prevailing Price (₱)']
                 color = 'green' if price <= avg_comm_price else 'red'
                 folium.CircleMarker(
                     location=[row['lat'], row['lon']],
@@ -302,17 +322,20 @@ def main():
             st_folium(m, height=400, use_container_width=True)
             st.caption("Green: Below Regional Avg | Red: Above Regional Avg")
         else:
-            st.info("Geographic data not available for these markets.")
+            # Fallback Map
+            m = folium.Map(location=[default_lat, default_lon], zoom_start=default_zoom)
+            st_folium(m, height=400, use_container_width=True)
+            st.warning("Specific market coordinates not available.")
 
     # ==========================================
     # ZONE D: ANALYTICS
     # ==========================================
     with col_chart:
-        st.subheader("📊 Price Fairness")
+        st.subheader("Price Fairness")
         
         # Z-Score
-        if commodity_df['price'].std() > 0:
-            commodity_df['z_score'] = (commodity_df['price'] - commodity_df['price'].mean()) / commodity_df['price'].std()
+        if commodity_df['Prevailing Price (₱)'].std() > 0:
+            commodity_df['z_score'] = (commodity_df['Prevailing Price (₱)'] - commodity_df['Prevailing Price (₱)'].mean()) / commodity_df['Prevailing Price (₱)'].std()
             commodity_df['color'] = commodity_df['z_score'].apply(lambda x: '#e74c3c' if x > 0 else '#2ecc71')
             
             fig = px.bar(
@@ -321,7 +344,7 @@ def main():
                 x='z_score',
                 orientation='h',
                 title="Fairness Meter (Z-Score)",
-                text=commodity_df['price'].apply(lambda x: f"₱{x:.0f}")
+                text=commodity_df['Prevailing Price (₱)'].apply(lambda x: f"₱{x:.0f}")
             )
             fig.update_traces(marker_color=commodity_df['color'])
             fig.add_vline(x=0, line_dash="dash", line_color="black")
@@ -330,17 +353,7 @@ def main():
         else:
             st.info("Price is uniform across all markets (No Variance).")
             
-    # Box Plot Row
-    st.subheader("📈 Price Distribution")
-    fig_box = px.box(
-        commodity_df, 
-        x='price', 
-        points="all", 
-        height=200,
-        title=f"Price Range for {selected_commodity}"
-    )
-    st.plotly_chart(fig_box, use_container_width=True)
-    st.caption("How to read: Dots outside the box are outliers (potential price gouging).")
+    # REMOVED BOX PLOT ROW AS REQUESTED
 
 if __name__ == "__main__":
     main()

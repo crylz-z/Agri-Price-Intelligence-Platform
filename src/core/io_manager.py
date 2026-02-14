@@ -13,6 +13,16 @@ class IOManager:
 
     @staticmethod
     def save_dataframe(df: pd.DataFrame, filepath: str, file_format: str = 'parquet', mode: str = 'overwrite'):
+        # PIPELINE LEAK FIX: Hardcode enforcement of data/raw for CSVs or generally
+        # The user requested: "Hardcode the base extraction path to explicitly be data/raw/"
+        if file_format == 'csv' and 'data/raw' not in filepath.replace('\\', '/'):
+             # Auto-correct the path if it's just in data/
+             if filepath.replace('\\', '/').startswith('data/'):
+                 filepath = filepath.replace('data/', 'data/raw/', 1)
+             else:
+                 # Fallback: Just prepend data/raw/ if it looks like a filename
+                 filepath = os.path.join('data', 'raw', os.path.basename(filepath))
+
         IOManager.ensure_directory(filepath)
         
         if file_format == 'parquet':
