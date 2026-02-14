@@ -8,6 +8,7 @@ on:
     # 10:00 UTC = 06:00 PM PH (Run 3: Final Close)
     - cron: '0 2 * * *'
     - cron: '0 6 * * *'
+    - cron: '0 9 * * *'  # 09:00 UTC = 05:00 PM PH (Run 4: PDF Extraction)
     - cron: '0 10 * * *'
   
   # Allow manual trigger from GitHub UI
@@ -40,6 +41,7 @@ jobs:
     - name: Run Extraction Engine
       run: |
         python -m src.etl.extract.extract_data
+        python -m src.etl.extract.extract_pdf
 
     # 5. Commit and Push Data
     - name: Commit and Push Changes
