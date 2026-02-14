@@ -7,7 +7,7 @@ from datetime import datetime
 import pandas as pd
 
 # Framework Imports
-from src.core.config import REGION_MAP, CATEGORY_MAP, BASE_URL, DATA_DIR
+from src.core.config import REGION_MAP, CATEGORY_MAP, BASE_URL, DATA_DIR, RAW_DIR, METRICS_DIR
 from src.core.http_client import AgriHttpClient
 from src.core.io_manager import IOManager
 
@@ -183,8 +183,12 @@ def process_region(args):
                 # User said: "Rewrite extract_data.py... It should shrink... hand it directly to io_manager".
                 # I will use CSV to be safe for now, as my IOManager supports it.
                 
+                # Create Date Subdirectory
+                date_dir = os.path.join(RAW_DIR, extract_dt)
+                os.makedirs(date_dir, exist_ok=True)
+                
                 filename = f"prices_{region_name}_{extract_dt}.csv"
-                filepath = os.path.join(DATA_DIR, filename)
+                filepath = os.path.join(date_dir, filename)
                 
                 # We need to handle the upsert logic? 
                 # "io_manager... checking if file exists, saving CSVs (upserts)"

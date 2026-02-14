@@ -8,8 +8,7 @@ from datetime import datetime
 # ==========================================
 # CONFIGURATION
 # ==========================================
-RAW_DIR = "data/raw"
-CLEAN_DIR = "data/clean"
+from src.core.config import RAW_DIR, CLEAN_DIR
 os.makedirs(CLEAN_DIR, exist_ok=True)
 
 # Shared Maps (Duplicated from Extract for strict isolation as requested)
@@ -136,8 +135,8 @@ def run_transform():
     """
     logger.info("🔨 Starting Silver Layer Transformation...")
     
-    # 1. Scan Files
-    all_files = glob.glob(os.path.join(RAW_DIR, "prices_*.csv"))
+    # 1. Scan Files (Recursive)
+    all_files = glob.glob(os.path.join(RAW_DIR, "**", "prices_*.csv"), recursive=True)
     if not all_files:
         logger.warning("No raw files found to transform.")
         return
