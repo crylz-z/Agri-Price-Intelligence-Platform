@@ -10,7 +10,7 @@ if os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../')) not in 
 
 from src.dashboard.utils.data_engine import DataEngine
 
-st.set_page_config(layout="wide", page_title="Historical Trends", page_icon="📈")
+st.set_page_config(layout="wide", page_title="Historical Trends", page_icon="🌽")
 
 # ==========================================
 # HEADER

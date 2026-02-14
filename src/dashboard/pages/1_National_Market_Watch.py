@@ -18,8 +18,9 @@ if os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../')) not in 
 
 from src.dashboard.utils.data_engine import DataEngine
 from src.dashboard.components import metrics, spatial
+import altair as alt
 
-st.set_page_config(layout="wide", page_title="National Market Watch", page_icon=None)
+st.set_page_config(layout="wide", page_title="National Market Watch", page_icon="🌽")
 
 # ==========================================
 # PAGE HEADER
