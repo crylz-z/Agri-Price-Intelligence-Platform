@@ -43,7 +43,8 @@ def fetch_latest_pdf():
     for url in candidates:
         try:
             logger.info(f"Attempting to fetch: {url}")
-            response = requests.get(url, timeout=30)
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+            response = requests.get(url, headers=headers, timeout=30)
             if response.status_code == 200:
                 with open(TEMP_PDF_PATH, 'wb') as f:
                     f.write(response.content)
