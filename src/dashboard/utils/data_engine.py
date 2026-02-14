@@ -91,6 +91,51 @@ class DataEngine:
         return df
 
     @staticmethod
+    @st.cache_data(ttl=3600)  # Cache for 1 hour
+    def load_historical_data(commodity, region, days_back=30):
+        """
+        Loads time-series data for a specific commodity/region over a longer window.
+        Does NOT squash dates. Preserves history for trend analysis.
+        """
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days_back)
+        
+        frames = []
+        for i in range(days_back + 1):
+            current_date = start_date + timedelta(days=i)
+            date_str = current_date.strftime("%Y-%m-%d")
+            filepath = os.path.join(CLEAN_DATA_DIR, f"market_prices_{date_str}.parquet")
+            
+            try:
+                if os.path.exists(filepath):
+                    df = pd.read_parquet(filepath)
+                    # Filter early to reduce memory
+                    mask = (df['region_name'] == region) & (df['commodity'] == commodity)
+                    filtered = df[mask].copy()
+                    
+                    if not filtered.empty:
+                        # Ensure datetime
+                        if 'extract_dt' in filtered.columns:
+                            filtered['extract_dt'] = pd.to_datetime(filtered['extract_dt'])
+                            
+                        # Rename price col if needed
+                        if 'price' in filtered.columns:
+                            filtered.rename(columns={'price': 'Prevailing Price (₱)'}, inplace=True)
+                        elif 'PREVAILING RETAIL PRICE PER UNIT (P/UNIT)' in filtered.columns:
+                            filtered.rename(columns={'PREVAILING RETAIL PRICE PER UNIT (P/UNIT)': 'Prevailing Price (₱)'}, inplace=True)
+                            
+                        frames.append(filtered)
+            except Exception:
+                continue
+                
+        if not frames:
+            return pd.DataFrame()
+            
+        # Combine
+        full_df = pd.concat(frames, ignore_index=True)
+        return full_df.sort_values('extract_dt')
+
+    @staticmethod
     @st.cache_data
     def load_reference_data():
         """Loads Geodata and SRPs."""

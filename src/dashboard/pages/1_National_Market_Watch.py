@@ -73,17 +73,65 @@ geo_df, srp_df = DataEngine.load_reference_data()
 
 
 # ==========================================
-# ROW 1: EXECUTIVE BRIEF (Category Level)
+# ROW 1: EXECUTIVE BRIEF (Commodity Level)
 # ==========================================
 st.markdown("---")
-st.subheader(f"Executive Brief: {selected_category}")
+st.subheader(f"Executive Brief: {selected_commodity}")
 
-metrics.render_kpi_cards(category_df, selected_category)
+# FIX: Passed commodity_df instead of category_df per user request
+metrics.render_kpi_cards(commodity_df)
 
 # Sparkline (Trend)
-# Calculate trend for entire category
-trend_df = region_df[region_df['category'] == selected_category].groupby('extract_dt')['Prevailing Price (₱)'].mean().reset_index()
-metrics.render_sparklines(trend_df, selected_category)
+# Calculate trend for specific commodity
+trend_df = region_df[region_df['commodity'] == selected_commodity].groupby('extract_dt')['Prevailing Price (₱)'].mean().reset_index()
+metrics.render_sparklines(trend_df, selected_commodity)
+
+# ==========================================
+# ROW 1.5: REGIONAL CONTEXT (New Feature)
+# ==========================================
+st.markdown("---")
+st.subheader(f"Regional Price Comparison: {selected_commodity}")
+
+col_bar, col_top5 = st.columns([2, 1])
+
+with col_bar:
+    # Calculate Average Price per Region for this Commodity (Snapshot)
+    # We need to load raw data for ALL regions for this date first.
+    # Currently `raw_df` acts as our snapshot.
+    # Filter raw_df for the selected commodity across ALL regions
+    cross_region_df = raw_df[raw_df['commodity'] == selected_commodity].copy()
+    
+    if not cross_region_df.empty:
+        reg_stats = cross_region_df.groupby('region_name')['Prevailing Price (₱)'].mean().reset_index()
+        reg_stats = reg_stats.sort_values('Prevailing Price (₱)', ascending=False)
+        
+        # Highlight current region
+        reg_stats['color'] = reg_stats['region_name'].apply(lambda x: '#ff4b4b' if x == selected_region else '#e0e0e0')
+        
+        chart_reg = alt.Chart(reg_stats).mark_bar().encode(
+            x=alt.X('Prevailing Price (₱):Q', title='Avg Price (₱)'),
+            y=alt.Y('region_name:N', sort='-x', title=None),
+            color=alt.Color('color:N', scale=None),
+            tooltip=['region_name', 'Prevailing Price (₱)']
+        ).properties(height=300)
+        st.altair_chart(chart_reg, use_container_width=True)
+    else:
+        st.info("No cross-regional data available.")
+
+with col_top5:
+    st.markdown("**Top 5 Most Expensive Markets**")
+    if not cross_region_df.empty:
+        top5 = cross_region_df.nlargest(5, 'Prevailing Price (₱)')[['region_name', 'market_name', 'Prevailing Price (₱)']]
+        st.dataframe(
+            top5,
+            column_config={
+                'region_name': 'Region',
+                'market_name': 'Market',
+                'Prevailing Price (₱)': st.column_config.NumberColumn("Price", format="₱%.2f")
+            },
+            hide_index=True,
+            use_container_width=True
+        )
 
 
 # ==========================================
