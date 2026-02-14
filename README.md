@@ -71,4 +71,4 @@ streamlit run src/dashboard/Home.py
 *   **uuid**: Unique record identifier.
 
 ## License
-Proprietary / Internal Use Only.
+MIT
