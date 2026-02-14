@@ -114,6 +114,7 @@ extract_dt,region_id,market_name,category,commodity,price
 2026-02-14,050000000,SORSOGON CITY PUBLIC MARKET,Fish,Bangus (Large) - LARGE (KG),240.0
 2026-02-14,050000000,PILI PUBLIC MARKET,Fish,Bangus (Large) - LARGE (KG),240.0
 2026-02-14,050000000,LIGAO CITY PUBLIC MARKET,Fish,Bangus (Large) - LARGE (KG),240.0
+<<<<<<< HEAD
 2026-02-14,050000000,LEGAZPI CITY PUBLIC MARKET,Fruits,Calamansi - KG,120.0
 2026-02-14,050000000,DAET PUBLIC MARKET,Fruits,Calamansi - KG,120.0
 2026-02-14,050000000,NAGA PEOPLE'S MALL,Fruits,Calamansi - KG,140.0
@@ -493,3 +494,5 @@ extract_dt,region_id,market_name,category,commodity,price
 2026-02-14,050000000,NAGA PEOPLE'S MALL,Other Commodities,Cooking Oil (Coconut) 1L - 1 LITER/BOTTLE,180.0
 2026-02-14,050000000,IRIGA CITY PUBLIC MARKET,Other Commodities,Cooking Oil (Coconut) 1L - 1 LITER/BOTTLE,174.0
 2026-02-14,050000000,PILI PUBLIC MARKET,Other Commodities,Cooking Oil (Coconut) 1L - 1 LITER/BOTTLE,180.0
+=======
+>>>>>>> origin/main
