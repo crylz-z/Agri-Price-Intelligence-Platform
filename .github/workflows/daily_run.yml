@@ -39,7 +39,7 @@ jobs:
     # 4. Run Pipeline (Extract -> Transform -> Audit)
     - name: Run Extraction Engine
       run: |
-        python src/etl/extract/extract_data.py
+        python -m src.etl.extract.extract_data
 
     # 5. Commit and Push Data
     - name: Commit and Push Changes
