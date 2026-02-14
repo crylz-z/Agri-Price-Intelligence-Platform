@@ -1,4 +1,105 @@
 extract_dt,region_id,market_name,category,commodity,price
+<<<<<<< HEAD,,,,,
+=======,,,,,
+2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,Beef Brisket - MEAT WITH BONES,390.0
+2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,Beef Brisket - MEAT WITH BONES,390.0
+2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,Beef Brisket - MEAT WITH BONES,370.0
+2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,Beef Brisket - MEAT WITH BONES,380.0
+2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,Beef Brisket - MEAT WITH BONES,340.0
+2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,Beef Brisket - MEAT WITH BONES,420.0
+2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,420.0
+2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,470.0
+2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,400.0
+2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,480.0
+2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,400.0
+2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.5
+2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.2
+2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",7.6
+2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
+2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
+2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",7.5
+2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
+2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",7.0
+2026-02-14,40000000.0,TIAONG PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",7.0
+2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),320.0
+2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),280.0
+2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),340.0
+2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),340.0
+2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),320.0
+2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),380.0
+2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,Pork Ham (Kasim),330.0
+2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,Pork Ham (Kasim),370.0
+2026-02-14,40000000.0,TIAONG PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),310.0
+2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),360.0
+2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),340.0
+2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),360.0
+2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),370.0
+2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),330.0
+2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),400.0
+2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,Pork Belly (Liempo),360.0
+2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,Pork Belly (Liempo),420.0
+2026-02-14,40000000.0,TIAONG PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),310.0
+2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,180.0
+2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,200.0
+2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,220.0
+2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,260.0
+2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,200.0
+2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,210.0
+2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,240.0
+2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,Whole Chicken - FULLY DRESSED,200.0
+2026-02-14,40000000.0,TIAONG PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,240.0
+2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,Frozen Kasim - KASIM,220.0
+2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,Frozen Kasim - KASIM,240.0
+2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,Frozen Kasim - KASIM,260.0
+2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,Frozen Kasim - KASIM,260.0
+2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,Frozen Liempo - LIEMPO,280.0
+2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,Frozen Liempo - LIEMPO,290.0
+2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,Frozen Liempo - LIEMPO,300.0
+2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,Frozen Liempo - LIEMPO,330.0
+2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Pewee) - 41-45 grams/pc",6.0
+2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.0
+2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.0
+2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.0
+2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",6.5
+2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.0
+2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
+2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
+2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.4
+2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
+2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
+2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.0
+2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
+2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",9.0
+2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
+2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
+2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
+2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
+2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.0
+2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
+2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.0
+2026-02-14,40000000.0,TIAONG PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",7.5
+2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.5
+2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.0
+2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.0
+2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",8.5
+2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.0
+2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",8.5
+2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.0
+2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",8.5
+2026-02-14,40000000.0,TIAONG PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",8.5
+2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
+2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",9.5
+2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
+2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",9.0
+2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",9.5
+2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",9.0
+2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
+2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
+2026-02-14,40000000.0,TIAONG PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",8.7
+2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (Brown, Medium) - Medium",10.0
+2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (Brown, Large) - Large",10.0
+2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (Brown, Extra Large) - Extra Large",11.0
+>>>>>>> origin/main,,,,,
 2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,56.0
 2026-02-14,40000000.0,TANAY PUBLIC MARKET,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,56.0
 2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,52.0
@@ -59,8 +160,6 @@ extract_dt,region_id,market_name,category,commodity,price
 2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Legumes,Mungbean - KG,120.0
 2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Legumes,Mungbean - KG,100.0
 2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Legumes,Mungbean - KG,100.0
-<<<<<<< HEAD,,,,,
-=======,,,,,
 2026-02-14,40000000.0,TANZA PUBLIC MARKET,Fish,Alumahan - MEDIUM (4-6PCS/KG),300.0
 2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Fish,Alumahan - MEDIUM (4-6PCS/KG),360.0
 2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Fish,Alumahan - MEDIUM (4-6PCS/KG),240.0
@@ -319,104 +418,6 @@ extract_dt,region_id,market_name,category,commodity,price
 2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Lowland Vegetables,Tomato - 15-18 PCS/KG,40.0
 2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Lowland Vegetables,Tomato - 15-18 PCS/KG,48.0
 2026-02-14,40000000.0,TIAONG PUBLIC MARKET,Lowland Vegetables,Tomato - 15-18 PCS/KG,30.0
-2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,Beef Brisket - MEAT WITH BONES,390.0
-2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,Beef Brisket - MEAT WITH BONES,390.0
-2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,Beef Brisket - MEAT WITH BONES,370.0
-2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,Beef Brisket - MEAT WITH BONES,380.0
-2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,Beef Brisket - MEAT WITH BONES,340.0
-2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,Beef Brisket - MEAT WITH BONES,420.0
-2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,420.0
-2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,470.0
-2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,400.0
-2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,480.0
-2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,400.0
-2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.5
-2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.2
-2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",7.6
-2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
-2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
-2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",7.5
-2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
-2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",7.0
-2026-02-14,40000000.0,TIAONG PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",7.0
-2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),320.0
-2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),280.0
-2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),340.0
-2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),340.0
-2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),320.0
-2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),380.0
-2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,Pork Ham (Kasim),330.0
-2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,Pork Ham (Kasim),370.0
-2026-02-14,40000000.0,TIAONG PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),310.0
-2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),360.0
-2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),340.0
-2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),360.0
-2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),370.0
-2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),330.0
-2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),400.0
-2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,Pork Belly (Liempo),360.0
-2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,Pork Belly (Liempo),420.0
-2026-02-14,40000000.0,TIAONG PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),310.0
-2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,180.0
-2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,200.0
-2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,220.0
-2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,260.0
-2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,200.0
-2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,210.0
-2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,240.0
-2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,Whole Chicken - FULLY DRESSED,200.0
-2026-02-14,40000000.0,TIAONG PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,240.0
-2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,Frozen Kasim - KASIM,220.0
-2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,Frozen Kasim - KASIM,240.0
-2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,Frozen Kasim - KASIM,260.0
-2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,Frozen Kasim - KASIM,260.0
-2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,Frozen Liempo - LIEMPO,280.0
-2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,Frozen Liempo - LIEMPO,290.0
-2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,Frozen Liempo - LIEMPO,300.0
-2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,Frozen Liempo - LIEMPO,330.0
-2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Pewee) - 41-45 grams/pc",6.0
-2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.0
-2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.0
-2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.0
-2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",6.5
-2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.0
-2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
-2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
-2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.4
-2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
-2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
-2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.0
-2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
-2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",9.0
-2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
-2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
-2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
-2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
-2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.0
-2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
-2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.0
-2026-02-14,40000000.0,TIAONG PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",7.5
-2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.5
-2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.0
-2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.0
-2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",8.5
-2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.0
-2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",8.5
-2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.0
-2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",8.5
-2026-02-14,40000000.0,TIAONG PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",8.5
-2026-02-14,40000000.0,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
-2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",9.5
-2026-02-14,40000000.0,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
-2026-02-14,40000000.0,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",9.0
-2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",9.5
-2026-02-14,40000000.0,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",9.0
-2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
-2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
-2026-02-14,40000000.0,TIAONG PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",8.7
-2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (Brown, Medium) - Medium",10.0
-2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (Brown, Large) - Large",10.0
-2026-02-14,40000000.0,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (Brown, Extra Large) - Extra Large",11.0
 2026-02-14,40000000.0,TANZA PUBLIC MARKET,Spices,Garlic(Imported) - KG,120.0
 2026-02-14,40000000.0,BINAN CITY PUBLIC MARKET,Spices,Garlic(Imported) - KG,125.0
 2026-02-14,40000000.0,TANAY PUBLIC MARKET,Spices,Garlic(Imported) - KG,140.0
@@ -516,7 +517,6 @@ extract_dt,region_id,market_name,category,commodity,price
 2026-02-14,40000000.0,LUCENA CITY PUBLIC MARKET,Other Commodities,Cooking Oil (Coconut) 1L - 1 LITER/BOTTLE,150.0
 2026-02-14,40000000.0,IMUS PUBLIC MARKET,Other Commodities,Cooking Oil (Coconut) 1L - 1 LITER/BOTTLE,150.0
 2026-02-14,40000000.0,CITY MALL OF ANTIPOLO,Other Commodities,Cooking Oil (Coconut) 1L - 1 LITER/BOTTLE,170.0
->>>>>>> origin/main,,,,,
 2026-02-14,040000000,BINAN CITY PUBLIC MARKET,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,56.0
 2026-02-14,040000000,TANAY PUBLIC MARKET,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,56.0
 2026-02-14,040000000,LIPA CITY PUBLIC MARKET,Rice,COMMERCIAL (IMPORTED) Premium (Yellow tagged) - 5% BROKEN,52.0
@@ -835,6 +835,104 @@ extract_dt,region_id,market_name,category,commodity,price
 2026-02-14,040000000,JULIAN PASTOR MEMORIAL MARKET,Lowland Vegetables,Tomato - 15-18 PCS/KG,40.0
 2026-02-14,040000000,CITY MALL OF ANTIPOLO,Lowland Vegetables,Tomato - 15-18 PCS/KG,48.0
 2026-02-14,040000000,TIAONG PUBLIC MARKET,Lowland Vegetables,Tomato - 15-18 PCS/KG,30.0
+2026-02-14,040000000,TANZA PUBLIC MARKET,Meat and Poultry,Beef Brisket - MEAT WITH BONES,390.0
+2026-02-14,040000000,BINAN CITY PUBLIC MARKET,Meat and Poultry,Beef Brisket - MEAT WITH BONES,390.0
+2026-02-14,040000000,LIPA CITY PUBLIC MARKET,Meat and Poultry,Beef Brisket - MEAT WITH BONES,370.0
+2026-02-14,040000000,LUCENA CITY PUBLIC MARKET,Meat and Poultry,Beef Brisket - MEAT WITH BONES,380.0
+2026-02-14,040000000,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,Beef Brisket - MEAT WITH BONES,340.0
+2026-02-14,040000000,CITY MALL OF ANTIPOLO,Meat and Poultry,Beef Brisket - MEAT WITH BONES,420.0
+2026-02-14,040000000,TANZA PUBLIC MARKET,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,420.0
+2026-02-14,040000000,BINAN CITY PUBLIC MARKET,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,470.0
+2026-02-14,040000000,LIPA CITY PUBLIC MARKET,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,400.0
+2026-02-14,040000000,LUCENA CITY PUBLIC MARKET,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,480.0
+2026-02-14,040000000,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,Beef Rump - LEAN MEAT / TAPADERA,400.0
+2026-02-14,040000000,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.5
+2026-02-14,040000000,BINAN CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.2
+2026-02-14,040000000,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",7.6
+2026-02-14,040000000,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
+2026-02-14,040000000,LUCENA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
+2026-02-14,040000000,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",7.5
+2026-02-14,040000000,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",8.0
+2026-02-14,040000000,CITY MALL OF ANTIPOLO,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",7.0
+2026-02-14,040000000,TIAONG PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Medium) - 56-60 grams/pc",7.0
+2026-02-14,040000000,TANZA PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),320.0
+2026-02-14,040000000,BINAN CITY PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),280.0
+2026-02-14,040000000,TANAY PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),340.0
+2026-02-14,040000000,LIPA CITY PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),340.0
+2026-02-14,040000000,LUCENA CITY PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),320.0
+2026-02-14,040000000,IMUS PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),380.0
+2026-02-14,040000000,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,Pork Ham (Kasim),330.0
+2026-02-14,040000000,CITY MALL OF ANTIPOLO,Meat and Poultry,Pork Ham (Kasim),370.0
+2026-02-14,040000000,TIAONG PUBLIC MARKET,Meat and Poultry,Pork Ham (Kasim),310.0
+2026-02-14,040000000,TANZA PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),360.0
+2026-02-14,040000000,BINAN CITY PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),340.0
+2026-02-14,040000000,TANAY PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),360.0
+2026-02-14,040000000,LIPA CITY PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),370.0
+2026-02-14,040000000,LUCENA CITY PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),330.0
+2026-02-14,040000000,IMUS PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),400.0
+2026-02-14,040000000,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,Pork Belly (Liempo),360.0
+2026-02-14,040000000,CITY MALL OF ANTIPOLO,Meat and Poultry,Pork Belly (Liempo),420.0
+2026-02-14,040000000,TIAONG PUBLIC MARKET,Meat and Poultry,Pork Belly (Liempo),310.0
+2026-02-14,040000000,TANZA PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,180.0
+2026-02-14,040000000,BINAN CITY PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,200.0
+2026-02-14,040000000,TANAY PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,220.0
+2026-02-14,040000000,LIPA CITY PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,260.0
+2026-02-14,040000000,LUCENA CITY PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,200.0
+2026-02-14,040000000,IMUS PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,210.0
+2026-02-14,040000000,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,240.0
+2026-02-14,040000000,CITY MALL OF ANTIPOLO,Meat and Poultry,Whole Chicken - FULLY DRESSED,200.0
+2026-02-14,040000000,TIAONG PUBLIC MARKET,Meat and Poultry,Whole Chicken - FULLY DRESSED,240.0
+2026-02-14,040000000,TANZA PUBLIC MARKET,Meat and Poultry,Frozen Kasim - KASIM,220.0
+2026-02-14,040000000,BINAN CITY PUBLIC MARKET,Meat and Poultry,Frozen Kasim - KASIM,240.0
+2026-02-14,040000000,TANAY PUBLIC MARKET,Meat and Poultry,Frozen Kasim - KASIM,260.0
+2026-02-14,040000000,CITY MALL OF ANTIPOLO,Meat and Poultry,Frozen Kasim - KASIM,260.0
+2026-02-14,040000000,TANZA PUBLIC MARKET,Meat and Poultry,Frozen Liempo - LIEMPO,280.0
+2026-02-14,040000000,BINAN CITY PUBLIC MARKET,Meat and Poultry,Frozen Liempo - LIEMPO,290.0
+2026-02-14,040000000,TANAY PUBLIC MARKET,Meat and Poultry,Frozen Liempo - LIEMPO,300.0
+2026-02-14,040000000,CITY MALL OF ANTIPOLO,Meat and Poultry,Frozen Liempo - LIEMPO,330.0
+2026-02-14,040000000,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Pewee) - 41-45 grams/pc",6.0
+2026-02-14,040000000,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.0
+2026-02-14,040000000,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.0
+2026-02-14,040000000,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.0
+2026-02-14,040000000,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",6.5
+2026-02-14,040000000,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Extra Small) - 46-50 grams/pc",7.0
+2026-02-14,040000000,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
+2026-02-14,040000000,BINAN CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
+2026-02-14,040000000,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.4
+2026-02-14,040000000,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
+2026-02-14,040000000,LUCENA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
+2026-02-14,040000000,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.0
+2026-02-14,040000000,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Small) - 51-55 grams/pc",7.5
+2026-02-14,040000000,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",9.0
+2026-02-14,040000000,BINAN CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
+2026-02-14,040000000,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
+2026-02-14,040000000,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
+2026-02-14,040000000,LUCENA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
+2026-02-14,040000000,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.0
+2026-02-14,040000000,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.5
+2026-02-14,040000000,CITY MALL OF ANTIPOLO,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",8.0
+2026-02-14,040000000,TIAONG PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Large) - 61-65 grams/pc",7.5
+2026-02-14,040000000,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.5
+2026-02-14,040000000,BINAN CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.0
+2026-02-14,040000000,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.0
+2026-02-14,040000000,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",8.5
+2026-02-14,040000000,LUCENA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.0
+2026-02-14,040000000,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",8.5
+2026-02-14,040000000,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",9.0
+2026-02-14,040000000,CITY MALL OF ANTIPOLO,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",8.5
+2026-02-14,040000000,TIAONG PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Extra Large) - 66-70 grams/pc",8.5
+2026-02-14,040000000,TANZA PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
+2026-02-14,040000000,BINAN CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",9.5
+2026-02-14,040000000,TANAY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
+2026-02-14,040000000,LIPA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",9.0
+2026-02-14,040000000,LUCENA CITY PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",9.5
+2026-02-14,040000000,IMUS PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",9.0
+2026-02-14,040000000,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
+2026-02-14,040000000,CITY MALL OF ANTIPOLO,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",10.0
+2026-02-14,040000000,TIAONG PUBLIC MARKET,Meat and Poultry,"Chicken Egg (White, Jumbo) - 71> grams/pc",8.7
+2026-02-14,040000000,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (Brown, Medium) - Medium",10.0
+2026-02-14,040000000,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (Brown, Large) - Large",10.0
+2026-02-14,040000000,JULIAN PASTOR MEMORIAL MARKET,Meat and Poultry,"Chicken Egg (Brown, Extra Large) - Extra Large",11.0
 2026-02-14,040000000,TANZA PUBLIC MARKET,Spices,Garlic(Imported) - KG,120.0
 2026-02-14,040000000,BINAN CITY PUBLIC MARKET,Spices,Garlic(Imported) - KG,125.0
 2026-02-14,040000000,TANAY PUBLIC MARKET,Spices,Garlic(Imported) - KG,140.0
