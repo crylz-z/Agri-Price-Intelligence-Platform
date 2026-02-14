@@ -1,17 +1,27 @@
-name: Daily Price Extraction (Triple Tap)
+name: Daily Price Extraction (Adaptive)
 
 on:
   schedule:
-    # Run 3 times a day (UTC times map to PH times: GMT+8)
-    # 02:00 UTC = 10:00 AM PH (Run 1: Early Bird)
-    # 06:00 UTC = 02:00 PM PH (Run 2: Lunch Update)
-    # 10:00 UTC = 06:00 PM PH (Run 3: Final Close)
-    - cron: '0 2 * * *'
-    - cron: '0 6 * * *'
-    - cron: '0 10 * * *'
+    # scout 1: 12:00 PM PHT = 04:00 UTC
+    - cron: '0 4 * * *'
+    # scout 2: 05:00 PM PHT = 09:00 UTC
+    - cron: '0 9 * * *'
+    # harvester 1: 08:30 PM PHT = 12:30 UTC
+    - cron: '30 12 * * *'
+    # harvester 2: 11:30 PM PHT = 15:30 UTC
+    - cron: '30 15 * * *'
   
-  # Allow manual trigger from GitHub UI
+  # Allow manual trigger with mode selection
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Execution Mode'
+        required: true
+        default: 'scout'
+        type: choice
+        options:
+        - scout
+        - harvester
 
 jobs:
   extract-and-transform:
@@ -36,10 +46,27 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # 4. Run Pipeline (Extract -> Transform -> Audit)
+    # 4. Run Pipeline (Adaptive Mode)
     - name: Run Extraction Engine
       run: |
-        python -m src.etl.extract.extract_data
+        # Determine Mode
+        MODE="${{ inputs.mode }}"
+        
+        if [ -z "$MODE" ]; then
+          # Automatic Schedule Logic (UTC)
+          HOUR=$(date -u +%H)
+          if [ "$HOUR" -ge 12 ]; then
+            MODE="harvester"
+          else
+            MODE="scout"
+          fi
+          echo "⏰ Scheduled Run detected. Time: $(date -u). Selected Mode: $MODE"
+        else
+          echo "👤 Manual Run detected. User selected: $MODE"
+        fi
+        
+        # Execute
+        python -m src.etl.extract.extract_data --mode $MODE
 
     # 5. Commit and Push Data
     - name: Commit and Push Changes
@@ -47,12 +74,12 @@ jobs:
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
         
-        # Add all new data files (Raw CSVs and Clean Parquet)
+        # Add Data & logs
         git add data/
-        if [ -f audit_log.txt ]; then git add audit_log.txt; fi
+        if [ -f "logs/audit_log.txt" ]; then git add "logs/audit_log.txt"; fi
         
         # Commit if there are changes
-        git commit -m "Auto-update: $(date +'%Y-%m-%d') Data Refresh" || echo "No changes to commit"
+        git commit -m "Auto-update: $(date +'%Y-%m-%d') Data Refresh ($MODE Mode)" || echo "No changes to commit"
         
         # Push to main branch
         git push origin main

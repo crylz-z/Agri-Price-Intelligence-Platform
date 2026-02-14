@@ -2,47 +2,56 @@ import sys
 import os
 import time
 import logging
+import argparse
 import concurrent.futures
 from datetime import datetime
 import pandas as pd
 
 # Framework Imports
-from src.core.config import REGION_MAP, CATEGORY_MAP, BASE_URL, DATA_DIR
+from src.core.config import REGION_MAP, CATEGORY_MAP, BASE_URL, DATA_DIR, RAW_DIR, METRICS_DIR
 from src.core.http_client import AgriHttpClient
 from src.core.io_manager import IOManager
 
 # Logging Setup
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+from src.core.config import LOGS_DIR
+os.makedirs(LOGS_DIR, exist_ok=True)
+log_file = os.path.join(LOGS_DIR, "scraper.log")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.FileHandler(log_file, encoding='utf-8'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 logger = logging.getLogger(__name__)
 
 # Initialize Core Components
-http_client = AgriHttpClient() # Thread-safe session internal
+http_client = AgriHttpClient()
 io_manager = IOManager()
 
 # Constants
 URL_DATE = f"{BASE_URL}/tbl_price_get_date_rice.php"
 URL_HEADER = f"{BASE_URL}/tbl_price_get_comm_header.php"
 URL_PRICE = f"{BASE_URL}/tbl_price_get_comm_price.php"
+METRICS_FILE = os.path.join(METRICS_DIR, "pipeline_health.csv")
 
-def fetch_category_data(region_id, category_id, category_name):
-    """
-    Fetches data for a single category within a region.
-    Returns parsed rows or None on failure.
-    """
+def fetch_category_data(region_id, category_id, category_name, timeout):
     try:
         payload_base = {'region': region_id, 'commodity': category_id}
 
         # Step 1: Get Date
-        # Note: We rely on the client to handle retries/timeouts
-        response = http_client.post(URL_DATE, data=payload_base)
+        response = http_client.post(URL_DATE, data=payload_base, timeout=timeout)
         date_text = response.text
 
         # Step 2: Get Headers
-        response = http_client.post(URL_HEADER, data=payload_base)
+        response = http_client.post(URL_HEADER, data=payload_base, timeout=timeout)
         headers_html = response.text
         
-        # Parse Headers to get Markets
-        from bs4 import BeautifulSoup # Import here to keep it contained or top level? Top level is better usually but strict separation is ok.
+        # Parse Headers
+        from bs4 import BeautifulSoup
         soup = BeautifulSoup(headers_html, 'html.parser')
         markets = [td.get_text(strip=True) for td in soup.find_all('td', class_='text-wrap')]
         markets = [m for m in markets if m and "SPECIFICATIONS" not in m.upper()]
@@ -54,7 +63,7 @@ def fetch_category_data(region_id, category_id, category_name):
         payload_price = payload_base.copy()
         payload_price['count'] = str(len(markets))
         
-        response = http_client.post(URL_PRICE, data=payload_price)
+        response = http_client.post(URL_PRICE, data=payload_price, timeout=timeout)
         prices_html = response.text
         
         # Parse Prices
@@ -62,13 +71,9 @@ def fetch_category_data(region_id, category_id, category_name):
         return parsed_data
 
     except Exception as e:
-        # logger.warning(f"Failed to fetch {category_name} for region {region_id}: {e}")
         return None
 
 def parse_price_rows(html_rows, market_list, region_id, category_name, payload_date):
-    """
-    Parses the price HTML rows. Refactored helper.
-    """
     from bs4 import BeautifulSoup
     soup = BeautifulSoup(html_rows, 'html.parser')
     parsed_data = []
@@ -95,7 +100,6 @@ def parse_price_rows(html_rows, market_list, region_id, category_name, payload_d
                 except ValueError:
                     continue
 
-                # Date resolution
                 row_date = row.get('data-date') or row.get('data-price_date')
                 final_date = current_date_str
                 
@@ -125,7 +129,10 @@ def process_region(args):
     """
     Worker function to process a single region.
     """
-    region_id, region_name = args
+    region_id, region_name, mode_config = args
+    timeout = mode_config['timeout']
+    breaker_limit = mode_config['breaker_limit']
+    
     start_time = time.time()
     total_records = 0
     consecutive_failures = 0
@@ -137,77 +144,52 @@ def process_region(args):
     try:
         for cat_id, cat_name in CATEGORY_MAP.items():
             # Circuit Breaker Check
-            if consecutive_failures >= 3:
-                logger.warning(f"⚠️  CIRCUIT BREAKER: {region_name} - Skipping remaining categories after strings of failures.")
+            if breaker_limit and consecutive_failures >= breaker_limit:
+                logger.warning(f"⚠️  CIRCUIT BREAKER: {region_name} - Skipping remaining categories.")
                 break
 
             try:
-                # Fetch
-                rows = fetch_category_data(region_id, cat_id, cat_name)
+                rows = fetch_category_data(region_id, cat_id, cat_name, timeout)
                 
                 if rows:
                     all_region_data.extend(rows)
-                    consecutive_failures = 0 # Reset on success
+                    consecutive_failures = 0 
                 else:
                     consecutive_failures += 1
                 
-                time.sleep(0.5) # Polite delay
+                time.sleep(0.5)
                 
             except Exception as e:
                 consecutive_failures += 1
                 logger.warning(f"  > Error in {cat_name}: {e}")
 
-        # Save Data using IOManager
+        # Save Data
         if all_region_data:
             df = pd.DataFrame(all_region_data)
-            
-            # Group by extract_dt for efficient partitioning/file naming
             for extract_dt, group in df.groupby('extract_dt'):
                 timestamp = int(time.time())
-                filename = f"prices_{region_name}_{extract_dt}_{timestamp}.parquet" # Using Parquet as default now, or should we stick to CSV/Parquet switch? 
-                # User asked to use io_manager. File manager says "save_dataframe".
-                # Let's stick to the previous naming convention roughly, but maybe upgrade to parquet if the framework suggests it?
-                # User prompt: "If we read/write Parquet files, we build src/core/file_manager.py."
-                # But io_manager.py default is 'parquet'.
-                # Let's use parquet for "Enterprise" feel? Or stick to CSV for now to match 'upsert' logic?
-                # The old logic did complex upsert/dedup on CSVs.
-                # The new request says: "If data is found, hand it directly to io_manager.save_raw(...)."
-                # Wait, "save_raw" is not in my IOManager. I made "save_dataframe".
-                # I should just save it.
-                # To maintain compatibility with downstream (silver layer), I should probably check what it expects.
-                # Existing silver likely reads CSVs? "src.etl.transform.clean_data"
-                # I can't check that file easily right now without reading more.
-                # Safest bet: Save as CSV to match old behavior, using IOManager.
                 
-                # Replicating the 'idempotent_upsert' logic via IOManager is tricky if IOManager is simple.
-                # User said: "Rewrite extract_data.py... It should shrink... hand it directly to io_manager".
-                # I will use CSV to be safe for now, as my IOManager supports it.
+                # Create Date Subdirectory
+                date_dir = os.path.join(RAW_DIR, extract_dt)
+                os.makedirs(date_dir, exist_ok=True)
                 
                 filename = f"prices_{region_name}_{extract_dt}.csv"
-                filepath = os.path.join(DATA_DIR, filename)
-                
-                # We need to handle the upsert logic? 
-                # "io_manager... checking if file exists, saving CSVs (upserts)"
-                # My IOManager.save_dataframe implementation has `mode='overwrite'` or `mode='append'`.
-                # True upsert (dedup) requires reading first.
-                # I will implement basic read-dedup-write here using IOManager primitives to keep this script "high level orchestrator".
+                filepath = os.path.join(date_dir, filename)
                 
                 existing_df = io_manager.load_dataframe(filepath, file_format='csv')
                 if not existing_df.empty:
                     combined = pd.concat([existing_df, group], ignore_index=True)
-                    # Dedup
-                    subset = ['region_id', 'market_name', 'commodity', 'extract_dt']
-                    deduped = combined.drop_duplicates(subset=subset, keep='last')
+                    deduped = combined.drop_duplicates(subset=['region_id', 'market_name', 'commodity', 'extract_dt'], keep='last')
                     io_manager.save_dataframe(deduped, filepath, file_format='csv', mode='overwrite')
-                    total_records += len(group) # Count new rows? Or total?
-                    # Let's count *batch* rows for reporting.
+                    total_records += len(group)
                 else:
                     io_manager.save_dataframe(group, filepath, file_format='csv', mode='overwrite')
                     total_records += len(group)
 
         duration = time.time() - start_time
+        status = "OK" if total_records > 0 else "NO_DATA"
         logger.info(f"✅ DONE: {region_name} | {total_records} rows | {duration:.2f}s")
-        return (region_name, "OK", total_records, duration)
+        return (region_name, status, total_records, duration)
 
     except Exception as e:
         duration = time.time() - start_time
@@ -215,14 +197,25 @@ def process_region(args):
         return (region_name, f"FAIL ({e})", 0, duration)
 
 def main():
-    logger.info("🚀 Starting Extraction Engine V3.0 (Enterprise Framework)...")
-    logger.info(f"   Target: {len(REGION_MAP)} Regions | Parallel Workers: 5")
+    parser = argparse.ArgumentParser(description="Agri-Price Extraction Engine")
+    parser.add_argument('--mode', choices=['scout', 'harvester'], default='scout', help='Execution mode')
+    args = parser.parse_args()
+    
+    # Adaptive Configuration
+    if args.mode == 'scout':
+        config = {'timeout': 10, 'breaker_limit': 3, 'workers': 5}
+    else: # harvester
+        config = {'timeout': 60, 'breaker_limit': None, 'workers': 8}
+        
+    logger.info(f"🚀 Starting Extraction Engine (Mode: {args.mode.upper()})")
+    logger.info(f"   Timeout: {config['timeout']}s | Breaker: {config['breaker_limit']} | Workers: {config['workers']}")
     
     pipeline_start = time.time()
     results = []
     
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        region_args = [(rid, rname) for rid, rname in REGION_MAP.items()]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=config['workers']) as executor:
+        # Pass config to workers
+        region_args = [(rid, rname, config) for rid, rname in REGION_MAP.items()]
         future_results = executor.map(process_region, region_args)
         
         for res in future_results:
@@ -232,44 +225,29 @@ def main():
     total_duration = pipeline_end - pipeline_start
     total_rows = sum(r[2] for r in results)
     
-    # PERFORMANCE REPORT
-    logger.info("\n" + "="*50)
-    logger.info(f"📊 PERFORMANCE REPORT (Total: {total_duration:.2f}s)")
-    logger.info("="*50)
-    logger.info(f"{'REGION':<30} | {'STATUS':<10} | {'ROWS':<5} | {'DURATION'}")
-    logger.info("-" * 65)
-    
+    # Telemetry
     for rname, status, rows, dur in results:
-        dur_str = f"{dur:.2f}s"
-        logger.info(f"{rname:<30} | {status:<10} | {rows:<5} | {dur_str}")
+        metric = {
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'mode': args.mode,
+            'region': rname,
+            'status': status,
+            'rows_extracted': rows,
+            'duration_seconds': round(dur, 2)
+        }
+        io_manager.append_metric_row(METRICS_FILE, metric)
         
-    logger.info("-" * 65)
-    logger.info(f"TOTAL ROWS EXTRACTED: {total_rows}")
-    logger.info("="*50)
+    logger.info(f"🏁 Pipeline Finished. Metrics saved to {METRICS_FILE}")
+    logger.info(f"TOTAL ROWS: {total_rows}")
 
-    # Trigger Downstream (Silver Layer)
+    # Trigger Downstream
     try:
-        # Assuming these paths are still valid or will be refactored later.
-        # Check if files exist before importing?
-        # Use dynamic import or just standard try/except logic handling
-        # For now, we comment out strict dependency if not sure, but user asked to refactor THIS script.
-        # I'll keep the triggers but wrap them safely.
-        pass 
-        # Note: The prompt didn't strictly say to remove downstream triggers, but "Rewite extract_data.py... high level orchestrator".
-        # I will leave them commented out or generic if I don't know the status of 'src.etl.transform'.
-        # Actually, "Rewrite src/validation/..." is a future step.
-        # I will include them as in original.
-        
         from src.etl.transform.clean_data import run_transform
         from src.validation.simple_audit import run_audit
-        
         run_transform()
         run_audit()
-        
-    except ImportError:
-        logger.warning("Downstream pipeline modules not found (clean_data or simple_audit). Skipping.")
     except Exception as e:
-        logger.error(f"Pipeline Trigger Failed: {e}")
+        logger.error(f"Downstream Trigger Failed: {e}")
 
 if __name__ == "__main__":
     main()

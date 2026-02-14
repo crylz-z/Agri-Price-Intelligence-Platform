@@ -19,9 +19,11 @@ class AgriHttpClient:
         self.session.mount("http://", adapter)
         self.timeout = config.TIMEOUT_SECONDS
 
-    def get(self, url, params=None, **kwargs):
+    def get(self, url, params=None, timeout=None, **kwargs):
         try:
-            response = self.session.get(url, params=params, timeout=self.timeout, **kwargs)
+            # Use provided timeout or default
+            req_timeout = timeout if timeout is not None else self.timeout
+            response = self.session.get(url, params=params, timeout=req_timeout, **kwargs)
             response.raise_for_status()
             return response
         except requests.exceptions.HTTPError as err:
@@ -31,9 +33,10 @@ class AgriHttpClient:
             # Log critical failure
             raise e
 
-    def post(self, url, data=None, json=None, **kwargs):
+    def post(self, url, data=None, json=None, timeout=None, **kwargs):
         try:
-            response = self.session.post(url, data=data, json=json, timeout=self.timeout, **kwargs)
+            req_timeout = timeout if timeout is not None else self.timeout
+            response = self.session.post(url, data=data, json=json, timeout=req_timeout, **kwargs)
             response.raise_for_status()
             return response
         except requests.exceptions.RequestException as e:

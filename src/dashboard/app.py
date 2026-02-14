@@ -8,12 +8,15 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
+from src.core import config
+
 # ==========================================
 # CONFIGURATION & CONSTANTS
 # ==========================================
 st.set_page_config(layout="wide", page_title="Market Bulletin | Agri-Price Intelligence", page_icon="📋")
-CLEAN_DATA_DIR = "data/clean"
-REF_DATA_DIR = "data/reference"
+
+CLEAN_DATA_DIR = os.path.join(config.DATA_DIR, "clean")
+REF_DATA_DIR = os.path.join(config.DATA_DIR, "reference")
 
 # PROFESSIONAL STYLE
 st.markdown("""
@@ -49,7 +52,9 @@ def load_data_window(target_date_str, window_days=3):
     for i in range(window_days):
         current_date = target_date - timedelta(days=i)
         date_str = current_date.strftime("%Y-%m-%d")
+        # Try finding parquet file
         filepath = os.path.join(CLEAN_DATA_DIR, f"market_prices_{date_str}.parquet")
+        
         try:
             if os.path.exists(filepath):
                 df = pd.read_parquet(filepath)
@@ -88,6 +93,9 @@ def load_reference_data():
 
 def get_available_dates():
     """Scans for available parquet files."""
+    if not os.path.exists(CLEAN_DATA_DIR):
+        return []
+        
     files = glob.glob(os.path.join(CLEAN_DATA_DIR, "market_prices_*.parquet"))
     dates = []
     for f in files:
@@ -114,7 +122,7 @@ def main():
     # LEVEL 1: DATE (Global)
     available_dates = get_available_dates()
     if not available_dates:
-        st.error("System Offline: No data available.")
+        st.error(f"System Offline: No data available in {CLEAN_DATA_DIR}.")
         return
     selected_date = st.sidebar.selectbox("Date", available_dates)
     
@@ -140,6 +148,10 @@ def main():
 
 
     # LEVEL 2: REGION (Global)
+    if 'region_name' not in df.columns:
+        st.error("Data integrity error: 'region_name' column missing.")
+        return
+
     valid_regions = sorted(df['region_name'].dropna().unique())
     selected_region = st.sidebar.selectbox("Region", valid_regions)
     
@@ -147,6 +159,10 @@ def main():
     region_df = df[df['region_name'] == selected_region].copy()
     
     # LEVEL 3: CATEGORY (Primary Filter)
+    if 'category' not in region_df.columns:
+        st.error("Data integrity error: 'category' column missing.")
+        return
+
     valid_categories = sorted(region_df['category'].dropna().unique())
     selected_category = st.sidebar.selectbox("Category", valid_categories)
     
@@ -154,6 +170,10 @@ def main():
     category_df = region_df[region_df['category'] == selected_category].copy()
     
     # LEVEL 4: COMMODITY (Secondary Filter for Drill-Down)
+    if 'commodity' not in category_df.columns:
+        st.error("Data integrity error: 'commodity' column missing.")
+        return
+
     valid_commodities = sorted(category_df['commodity'].dropna().unique())
     selected_commodity = st.sidebar.selectbox("Deep Dive Commodity", valid_commodities, index=0)
     

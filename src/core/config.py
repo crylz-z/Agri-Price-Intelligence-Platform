@@ -43,4 +43,7 @@ CATEGORY_MAP = {
 # Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(BASE_DIR, os.getenv("AGRI_DATA_DIR", "data"))
+RAW_DIR = os.path.join(DATA_DIR, "raw")
+CLEAN_DIR = os.path.join(DATA_DIR, "clean")
+METRICS_DIR = os.path.join(DATA_DIR, "metrics")
 LOGS_DIR = os.path.join(BASE_DIR, "logs")
