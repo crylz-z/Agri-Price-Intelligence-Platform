@@ -1,9 +1,10 @@
-requests
-pandas
-beautifulsoup4
 streamlit
+pandas
+requests
+beautifulsoup4
+altair
 plotly
 folium
 streamlit-folium
 pyarrow
-pdfplumber
+fastparquet

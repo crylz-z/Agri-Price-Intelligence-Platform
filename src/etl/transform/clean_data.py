@@ -96,9 +96,8 @@ def process_file(filepath):
         # 3. Enrichment
         # Add Region Name from Map (if available)
         if 'region_id' in df.columns:
-            # Cast to string and Ensure 9-digit format (padding leading zeros)
-            # e.g. 80000000 -> 080000000
-            df['region_id'] = df['region_id'].astype(str).str.zfill(9)
+            # Cast to string, handle float decimals (e.g. "90000000.0" -> "90000000"), then padding
+            df['region_id'] = df['region_id'].astype(str).str.split('.').str[0].str.zfill(9)
             df['region_name'] = df['region_id'].map(REGION_MAP).fillna("Unknown Region")
             
         # 4. Generate Primary Key

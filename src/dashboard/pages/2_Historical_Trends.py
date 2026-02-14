@@ -10,7 +10,7 @@ if os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../')) not in 
 
 from src.dashboard.utils.data_engine import DataEngine
 
-st.set_page_config(layout="wide", page_title="Historical Trends", page_icon="🌽")
+st.set_page_config(layout="wide", page_title="Historical Trends", page_icon=None)
 
 # ==========================================
 # HEADER
@@ -127,3 +127,9 @@ combined = (area + line_avg).properties(height=300).interactive()
 
 st.altair_chart(combined, use_container_width=True)
 st.caption("Gray Area = Price Range (Low to High). Red Line = Market Average.") 
+
+# ==========================================
+# FOOTER
+# ==========================================
+st.markdown("---")
+st.caption("Data Source: [Department of Agriculture - Bantay Presyo](https://www.da.gov.ph/price-monitoring/) | © 2026 Agri-Price Intelligence Platform") 

@@ -1,52 +1,74 @@
-# Philippine Agri-Price Intelligence Platform (APIP) 🌾
+# Philippine Agri-Price Intelligence Platform (APIP)
 
-> **"A Time Machine for Food Prices"**
-> An automated data pipeline that captures, validates, and archives daily agricultural price data from the Department of Agriculture, enabling real-time inflation monitoring and arbitrage detection.
+## System Overview
+The Agri-Price Intelligence Platform (APIP) is an automated data pipeline and decision support system designed to capture, validate, and visualize daily agricultural price data from the Department of Agriculture. It serves as a centralized repository for market intelligence, enabling inflation monitoring, price anomaly detection, and regional arbitrage analysis.
 
-![Python](https://img.shields.io/badge/Python-3.9-blue) ![Architecture](https://img.shields.io/badge/Architecture-Matrix_Strategy-purple) ![Data](https://img.shields.io/badge/Data-Parquet-orange)
+## System Architecture
 
-## 🚀 The Problem
-The government price monitoring website is ephemeral. Data is updated daily, and historical data is deleted. This creates "Information Asymmetry" where market variances (e.g., ₱50 Corn vs ₱80 Corn) are hidden from consumers and businesses.
+### 1. Ingestion Layer (The Matrix)
+*   **Strategy**: Matrix Extraction (Region x Category Iteration).
+*   **Mechanism**: The `src/etl/extract/extract_data.py` script orchestrates a concurrent scraping operation, targeting 17 regions and 10 commodity groups.
+*   **Resilience**: Implements content-based routing to handle API inconsistencies and the "Midnight Bug" (data date mismatches).
 
-## 🛠️ The Solution: "The Robot"
-We built a robust extraction engine that uses a **Matrix Strategy** to capture granular data across 17 Regions and 10 Commodity Categories.
+### 2. Transformation Layer (Silver)
+*   **Process**: Raw CSV data is ingested, cleaned, and standardized.
+*   **Storage**: Data is saved as persistent Parquet files with Snappy compression to ensure high-performance I/O and reduced storage footprint.
+*   **Logic**: `src/etl/transform/clean_data.py` enforces schema validation and data type casting.
 
-### Core Architecture
-1.  **Extract (The Matrix)**: Iterates through every Region-Category pair to force the API to yield data.
-2.  **Route (Content-Based)**: Inspects the *actual date* inside the data payload to handle the "Midnight Bug" (where API returns yesterday's data during transition).
-3.  **Transform (Silver Layer)**: Standardizes data and saves it as optimized **Parquet** files (Snappy compression).
-4.  **Audit (The Bouncer)**: Automatically checks volume (>500 rows) and reach (>10 regions) before signing off.
+### 3. Application Layer (Dashboard)
+*   **Framework**: Streamlit.
+*   **Modules**:
+    *   **National Market Watch**: Real-time operational dashboard for daily price monitoring and gouging alerts.
+    *   **Historical Trends**: Strategic view for analyzing long-term price trajectories and market volatility.
 
-## 📂 Project Structure
-```bash
-├── config/             # Configuration maps
-├── data/               # The "Pantry"
-│   ├── raw/            # Daily CSV snapshots (Bronze)
-│   ├── clean/          # Optimized Parquet files (Silver)
-│   └── reference/      # GeoJSON and SRP data
-├── src/                # Source Code
-│   ├── etl/            # Extraction & Transformation
-│   │   ├── extract/    # extract_data.py (The Engine)
-│   │   └── transform/  # clean_data.py (The Cleaner)
-│   ├── dashboard/      # Streamlit App
-│   │   └── app.py      # The "Bulletin Board"
-│   └── validation/     # Quality Control
-│       └── simple_audit.py # "The Bouncer"
-└── audit_log.txt       # Daily Pass/Fail records
+## Repository Structure
+
+```
+├── config/             # System configuration and mapping constants
+├── data/               # Data storage
+│   ├── raw/            # Transient raw CSV extraction snapshots
+│   ├── clean/          # Production-grade Parquet files
+│   └── reference/      # GeoJSON and SRP reference data
+├── docs/               # Project documentation and requirements
+├── src/                # Project source code
+│   ├── etl/            # Extract-Transform-Load pipelines
+│   │   ├── extract/    # Ingestion logic
+│   │   └── transform/  # Cleaning and standardization logic
+│   ├── dashboard/      # User interface and visualization components
+│   └── validation/     # Data integrity and audit scripts
+└── requirements.txt    # Production dependencies
 ```
 
-## 💻 Tech Stack
-*   **Ingestion**: Python (`requests`, `BeautifulSoup`)
-*   **Storage**: Parquet (PyArrow)
-*   **Visualization**: Streamlit, Plotly, Folium
-*   **Automation**: GitHub Actions (Planned)
+## Setup and Execution
 
-## 🏃 How to Run
-1.  **Run the Pipeline** (Extract -> Transform -> Audit):
-    ```bash
-    python src/etl/extract/extract_data.py
-    ```
-2.  **Launch Dashboard**:
-    ```bash
-    streamlit run src/dashboard/app.py
-    ```
+### Prerequisites
+*   Python 3.9+
+*   Recommended: Virtual Environment
+
+### Installation
+```bash
+pip install -r requirements.txt
+```
+
+### Pipeline Execution
+To execute the full data pipeline (Extract -> Transform -> Audit):
+```bash
+python src/etl/extract/extract_data.py
+```
+
+### Dashboard Launch
+To start the web application:
+```bash
+streamlit run src/dashboard/Home.py
+```
+
+## Data Dictionary
+*   **region_name**: Administrative region (e.g., NCR, Region III).
+*   **market_name**: Specific market location.
+*   **commodity**: Full commodity name (including specifications).
+*   **price**: Prevailing market price (PHP).
+*   **extract_dt**: Date of data extraction (YYYY-MM-DD).
+*   **uuid**: Unique record identifier.
+
+## License
+Proprietary / Internal Use Only.

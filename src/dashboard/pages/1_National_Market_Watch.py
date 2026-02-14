@@ -20,7 +20,7 @@ from src.dashboard.utils.data_engine import DataEngine
 from src.dashboard.components import metrics, spatial
 import altair as alt
 
-st.set_page_config(layout="wide", page_title="National Market Watch", page_icon="🌽")
+st.set_page_config(layout="wide", page_title="National Market Watch", page_icon=None)
 
 # ==========================================
 # PAGE HEADER
@@ -42,7 +42,22 @@ if not available_dates:
     st.error("System Offline: No data available.")
     st.stop()
     
-selected_date = st.sidebar.selectbox("Date", available_dates)
+from datetime import datetime
+
+# Convert available strings to date objects for the picker
+date_objs = [datetime.strptime(d, "%Y-%m-%d").date() for d in available_dates]
+min_date = min(date_objs)
+max_date = max(date_objs)
+
+# Calendar Picker
+picked_date = st.sidebar.date_input(
+    "Date",
+    value=max_date,
+    min_value=min_date,
+    max_value=max_date,
+    help="Select a date to view market prices."
+)
+selected_date = picked_date.strftime("%Y-%m-%d")
 
 # LOAD DATA (LKGV)
 raw_df = DataEngine.load_market_data(selected_date)
@@ -134,6 +149,11 @@ with col_top5:
             use_container_width=True
         )
 
+# ==========================================
+# FOOTER
+# ==========================================
+
+
 
 # ==========================================
 # ROW 2: VISUAL INTELLIGENCE
@@ -179,3 +199,9 @@ st.dataframe(
     use_container_width=True,
     hide_index=True
 )
+
+# ==========================================
+# FOOTER
+# ==========================================
+st.markdown("---")
+st.caption("Data Source: [Department of Agriculture - Bantay Presyo](https://www.da.gov.ph/price-monitoring/) | © 2026 Agri-Price Intelligence Platform")
