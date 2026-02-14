@@ -204,4 +204,4 @@ st.dataframe(
 # FOOTER
 # ==========================================
 st.markdown("---")
-st.caption("Data Source: [Department of Agriculture - Bantay Presyo](https://www.da.gov.ph/price-monitoring/) | © 2026 Agri-Price Intelligence Platform")
+st.caption("Data Source: [Department of Agriculture - Bantay Presyo](http://www.bantaypresyo.da.gov.ph/) | © 2026 Agri-Price Intelligence Platform")

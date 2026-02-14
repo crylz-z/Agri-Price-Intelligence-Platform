@@ -90,6 +90,14 @@ st.markdown("---")
 st.subheader("Price Trajectory by Market")
 st.caption("Tracking daily price movements across different markets in the region.")
 
+with st.expander("How to Read This Chart", expanded=False):
+    st.markdown("""
+    *   **Trend Identification**: Upward sloping lines indicate inflationary pressure; downward slopes suggest supply stabilization.
+    *   **Market Outliers**: Lines that deviate significantly above the group may indicate localized supply constraints or potential price gouging.
+    *   **Convergence**: When lines cluster tightly together, it indicates a competitive and stable market environment.
+    *   **Gaps**: Broken lines indicate days where a specific market did not report data.
+    """)
+
 # Line Chart: X=Date, Y=Price, Color=Market
 line_chart = alt.Chart(hist_df).mark_line(point=True).encode(
     x=alt.X('extract_dt:T', title='Date', axis=alt.Axis(format='%b %d')),
@@ -132,4 +140,4 @@ st.caption("Gray Area = Price Range (Low to High). Red Line = Market Average.")
 # FOOTER
 # ==========================================
 st.markdown("---")
-st.caption("Data Source: [Department of Agriculture - Bantay Presyo](https://www.da.gov.ph/price-monitoring/) | © 2026 Agri-Price Intelligence Platform") 
+st.caption("Data Source: [Department of Agriculture - Bantay Presyo](http://www.bantaypresyo.da.gov.ph/) | © 2026 Agri-Price Intelligence Platform") 
