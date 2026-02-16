@@ -1,183 +1,191 @@
 import os
-import glob
-import pandas as pd
-import hashlib
-import logging
+import sys
+import duckdb
 from datetime import datetime
+from dotenv import load_dotenv
+import pandas as pd
 
-# ==========================================
-# CONFIGURATION
-# ==========================================
-from src.core.config import RAW_DIR, CLEAN_DIR
-os.makedirs(CLEAN_DIR, exist_ok=True)
+# Framework Imports
+from src.core.config import REGION_MAP
+from src.utils.logger import get_logger
 
-# Shared Maps (Duplicated from Extract for strict isolation as requested)
-REGION_MAP = {
-    '140000000': 'CAR (CORDILLERA ADMINISTRATIVE REGION)',
-    '010000000': 'REGION I (ILOCOS REGION)',
-    '020000000': 'REGION II (CAGAYAN VALLEY)',
-    '030000000': 'REGION III (CENTRAL LUZON)',
-    '040000000': 'REGION IV-A (CALABARZON)',
-    '170000000': 'REGION IV-B (MIMAROPA)',
-    '050000000': 'REGION V (BICOL REGION)',
-    '060000000': 'REGION VI (WESTERN VISAYAS)',
-    '070000000': 'REGION VII (CENTRAL VISAYAS)',
-    '080000000': 'REGION VIII (EASTERN VISAYAS)',
-    '090000000': 'REGION IX (ZAMBOANGA PENINSULA)',
-    '100000000': 'REGION X (NORTHERN MINDANAO)',
-    '110000000': 'REGION XI (DAVAO REGION)',
-    '120000000': 'REGION XII (SOCCSKSARGEN)',
-    '130000000': 'NCR (NATIONAL CAPITAL REGION)',
-    '150000000': 'BARMM (Bangsamoro Autonomous Region of Muslim Mindanao)',
-    '160000000': 'REGION XIII (Caraga)'
-}
+# Load Environment Variables
+load_dotenv()
 
-# Logging
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger(__name__)
+# Initialize Logger
+logger = get_logger(__name__)
 
-# ==========================================
-# CORE LOGIC
-# ==========================================
+def get_latest_date_str():
+    """Returns today's date in YYYY-MM-DD format for default processing."""
+    return datetime.now().strftime("%Y-%m-%d")
 
-def clean_column_name(col):
-    """
-    Standardize column names to snake_case.
-    e.g. "Market Name" -> "market_name"
-    """
-    return col.strip().lower().replace(' ', '_').replace('-', '_')
+def setup_duckdb(con):
+    """Configures DuckDB with AWS credentials and httpfs."""
+    aws_key = os.getenv("AWS_ACCESS_KEY_ID")
+    aws_secret = os.getenv("AWS_SECRET_ACCESS_KEY")
+    aws_region = os.getenv("AWS_DEFAULT_REGION")
 
-def clean_string(val):
-    """
-    Standardize text: Title Case, Strip Whitespace.
-    """
-    if pd.isna(val):
-        return None
-    return str(val).strip().title()
+    if not all([aws_key, aws_secret, aws_region]):
+        logger.error("Missing AWS Credentials in environment variables.")
+        raise ValueError("Missing AWS Credentials")
 
-def generate_record_id(row):
-    """
-    Generate a deterministic hash for Primary Key.
-    MD5(extract_dt + region_id + market_name + commodity)
-    """
-    raw_str = f"{row['extract_dt']}{row['region_id']}{row['market_name']}{row['commodity']}"
-    return hashlib.md5(raw_str.encode()).hexdigest()
+    con.execute("INSTALL httpfs;")
+    con.execute("LOAD httpfs;")
+    con.execute(f"SET s3_region='{aws_region}';")
+    con.execute(f"SET s3_access_key_id='{aws_key}';")
+    con.execute(f"SET s3_secret_access_key='{aws_secret}';")
+    
+    # Optional: Increase timeout or retries if needed
+    # con.execute("SET s3_url_style='path';") 
 
-def process_file(filepath):
+def run_transform(target_date=None):
     """
-    Reads and cleans a single CSV file.
+    Orchestrates the S3-based Lakehouse pipeline (Phase 7.2).
+    Bronze (S3) -> Silver (S3 Parquet) -> Gold (S3 Parquet)
     """
+    start_time = datetime.now()
+    logger.info("START: Lakehouse Transformation Pipeline (Phase 7)")
+
+    if not target_date:
+        target_date = get_latest_date_str()
+    
+    # Parse Date
     try:
-        if os.path.getsize(filepath) == 0:
-            logger.warning(f"Skipping empty file: {filepath}")
-            return None
+        dt = datetime.strptime(target_date, "%Y-%m-%d")
+        year, month, day = dt.strftime("%Y"), dt.strftime("%m"), dt.strftime("%d")
+    except ValueError:
+        logger.error(f"Invalid date format: {target_date}. Expected YYYY-MM-DD.")
+        return
 
-        df = pd.read_csv(filepath)
+    s3_bucket = os.getenv("S3_BUCKET_NAME")
+    if not s3_bucket:
+        logger.error("S3_BUCKET_NAME not set.")
+        return
+
+    # Paths (Deep Partitioning)
+    bronze_path = f"s3://{s3_bucket}/bronze/year={year}/month={month}/day={day}/*.csv"
+    silver_path = f"s3://{s3_bucket}/silver/year={year}/month={month}/day={day}/clean_prices.parquet"
+    gold_path = f"s3://{s3_bucket}/gold/year={year}/month={month}/day={day}/regional_kpis.parquet"
+
+    con = duckdb.connect(database=':memory:')
+    
+    try:
+        setup_duckdb(con)
         
-        # 1. Standardize Columns
-        df.columns = [clean_column_name(c) for c in df.columns]
+        # --- SILVER LAYER ---
+        logger.info("Processing Silver Layer...", source=bronze_path)
         
-        # 2. Type Casting & Cleaning
-        # Price -> Float
-        if 'price' in df.columns:
-            df['price'] = pd.to_numeric(df['price'], errors='coerce')
-            # Drop invalid prices (0 or Negative) - Edge Case handling
-            df = df[df['price'] > 0]
+        # Register Region Map for enrichment
+        # Normalize keys as string 
+        # (Assuming CSV region_id is read as int/string, we cast to string in SQL)
+        region_df = pd.DataFrame(list(REGION_MAP.items()), columns=['region_id', 'region_name'])
+        con.register('region_map', region_df)
+
+        silver_query = f"""
+        WITH raw_data AS (
+            SELECT 
+                extract_dt,
+                CAST(region_id AS VARCHAR) as region_id_raw,
+                market_name,
+                category,
+                commodity,
+                CAST(price AS DOUBLE) as price
+            FROM read_csv_auto('{bronze_path}', header=True)
+        ),
+        enriched AS (
+            SELECT 
+                r.*,
+                COALESCE(m.region_name, r.region_id_raw) as region_name,
+                md5(concat(extract_dt, region_id_raw, commodity, market_name)) as record_id
+            FROM raw_data r
+            LEFT JOIN region_map m ON r.region_id_raw = m.region_id
+        ),
+        deduped AS (
+            SELECT * 
+            FROM (
+                SELECT 
+                    *,
+                    row_number() OVER (PARTITION BY record_id ORDER BY extract_dt DESC) as rn
+                FROM enriched
+            )
+            WHERE rn = 1
+        )
+        SELECT * EXCLUDE (rn) FROM deduped
+        """
         
-        # Strings -> Title Case
-        for col in ['market_name', 'category', 'commodity']:
-            if col in df.columns:
-                df[col] = df[col].apply(clean_string)
+        # Debug: Check if data exists
+        # Just strict copy
+        con.execute(f"COPY ({silver_query}) TO '{silver_path}' (FORMAT PARQUET, OVERWRITE_OR_IGNORE true)")
+        logger.info("Silver Layer Written", path=silver_path)
+
+        # --- GOLD LAYER ---
+        logger.info("Processing Gold Layer...")
         
-        # Date -> Datetime
-        if 'extract_dt' in df.columns:
-            df['extract_dt'] = pd.to_datetime(df['extract_dt'])
-            
-        # 3. Enrichment
-        # Add Region Name from Map (if available)
-        if 'region_id' in df.columns:
-            # Cast to string, handle float decimals (e.g. "90000000.0" -> "90000000"), then padding
-            df['region_id'] = df['region_id'].astype(str).str.split('.').str[0].str.zfill(9)
-            df['region_name'] = df['region_id'].map(REGION_MAP).fillna("Unknown Region")
-            
-        # 4. Generate Primary Key
-        # Ensure we have required columns
-        required_cols = ['extract_dt', 'region_id', 'market_name', 'commodity']
-        if all(c in df.columns for c in required_cols):
-             df['record_id'] = df.apply(generate_record_id, axis=1)
-             
-        return df
+        gold_query = f"""
+        SELECT 
+            region_name,
+            commodity,
+            AVG(price) as avg_price,
+            MAX(price) - MIN(price) as price_volatility,
+            MAX(extract_dt) as latest_date
+        FROM read_parquet('{silver_path}')
+        GROUP BY region_name, commodity
+        ORDER BY region_name, commodity
+        """
+        
+        con.execute(f"COPY ({gold_query}) TO '{gold_path}' (FORMAT PARQUET, OVERWRITE_OR_IGNORE true)")
+        logger.info("Gold Layer Written", path=gold_path)
 
     except Exception as e:
-        logger.error(f"Failed to process {filepath}: {e}")
-        return None
-
-def cleanup_silver_layer():
-    """
-    Enforce Silver Layer Policy: PURGE any .csv files in data/clean/.
-    """
-    csv_files = glob.glob(os.path.join(CLEAN_DIR, "*.csv"))
-    for f in csv_files:
+        logger.error("S3 Pipeline Failed. Initiating Local Fallback...", error=str(e))
+        
+        # --- LOCAL FALLBACK (Strict Hive Partitioning) ---
         try:
-            os.remove(f)
-            logger.info(f"🧹 Purged legacy file: {f}")
-        except Exception as e:
-            logger.warning(f"Failed to delete {f}: {e}")
-
-def run_transform():
-    """
-    Main execution function:
-    1. Scan Raw CSVs (Bronze)
-    2. Clean & Merge (Silver)
-    3. Save to Parquet (Silver)
-    4. Cleanup Legacy CSVs
-    """
-    logger.info("🔨 Starting Silver Layer Transformation...")
-    
-    # 1. Scan Files (Recursive)
-    all_files = glob.glob(os.path.join(RAW_DIR, "**", "prices_*.csv"), recursive=True)
-    if not all_files:
-        logger.warning("No raw files found to transform.")
-        return
-
-    logger.info(f"   Found {len(all_files)} raw files.")
-    
-    # 2. Process & Merge
-    frames = [] 
-    for fp in all_files:
-        df = process_file(fp)
-        if df is not None:
-            frames.append(df)
+            # Paths (Local)
+            # data/clean/year={YYYY}/month={MM}/day={DD}/
+            local_clean_dir = f"data/clean/year={year}/month={month}/day={day}"
+            local_gold_dir = f"data/gold/year={year}/month={month}/day={day}"
             
-    if not frames:
-        logger.warning("No valid data extracted from files.")
-        return
-        
-    df_silver = pd.concat(frames, ignore_index=True)
-    
-    # 3. Final Deduplication (Defensive)
-    if 'record_id' in df_silver.columns:
-        before_dedup = len(df_silver)
-        df_silver = df_silver.drop_duplicates(subset=['record_id'], keep='last')
-        dupes = before_dedup - len(df_silver)
-        if dupes > 0:
-            logger.info(f"   Dropped {dupes} duplicate rows based on record_id.")
-
-    # 4. Partition/Save by Date (The "Midnight" Bug handling)
-    if 'extract_dt' in df_silver.columns:
-        for extract_dt, group in df_silver.groupby(df_silver['extract_dt'].dt.date):
-            date_str = extract_dt.strftime("%Y-%m-%d")
-            filename = f"market_prices_{date_str}.parquet"
-            output_path = os.path.join(CLEAN_DIR, filename)
+            os.makedirs(local_clean_dir, exist_ok=True)
+            os.makedirs(local_gold_dir, exist_ok=True)
             
-            # Save with Snappy
-            group.to_parquet(output_path, engine='pyarrow', compression='snappy', index=False)
-            logger.info(f"✅ Saved {output_path} ({len(group)} records)")
-    else:
-        logger.error("Critical: 'extract_dt' column missing. Cannot save partitioned files.")
-        
-    # 5. Policy Enforcement
-    cleanup_silver_layer()
+            local_silver_path = f"{local_clean_dir}/market_prices.parquet"
+            local_gold_path = f"{local_gold_dir}/regional_kpis.parquet"
+            
+            # Check if silver_query was successful (it tries to write to S3).
+            # If it failed, we try to run the SAME query but write locally.
+            
+            logger.info("Attempting Local Silver Write...")
+            con.execute(f"COPY ({silver_query}) TO '{local_silver_path}' (FORMAT PARQUET)")
+            logger.info("Local Silver Layer Written", path=local_silver_path)
+            
+            logger.info("Attempting Local Gold Write...")
+            # Gold needs to read from the JUST WRITTEN Silver.
+            # If S3 write failed, we read from LOCAL Silver.
+            
+            gold_query_local = f"""
+            SELECT 
+                region_name,
+                commodity,
+                AVG(price) as avg_price,
+                MAX(price) - MIN(price) as price_volatility,
+                MAX(extract_dt) as latest_date
+            FROM read_parquet('{local_silver_path}')
+            GROUP BY region_name, commodity
+            ORDER BY region_name, commodity
+            """
+            con.execute(f"COPY ({gold_query_local}) TO '{local_gold_path}' (FORMAT PARQUET)")
+            logger.info("Local Gold Layer Written", path=local_gold_path)
+            
+        except Exception as local_e:
+            logger.error("CRITICAL: Local Fallback Failed", error=str(local_e))          
+            import traceback
+            traceback.print_exc()
+
+    finally:
+        con.close()
+        duration = datetime.now() - start_time
+        logger.info("Pipeline Finished", duration=str(duration))
 
 if __name__ == "__main__":
     run_transform()
