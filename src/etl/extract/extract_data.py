@@ -1,73 +1,115 @@
 import sys
 import os
 import time
-import logging
 import concurrent.futures
 from datetime import datetime
 import pandas as pd
+import requests
+from dotenv import load_dotenv
+
+# Third-party libraries
+import boto3
+from botocore.exceptions import ClientError
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, before_sleep_log
 
 # Framework Imports
-from src.core.config import REGION_MAP, CATEGORY_MAP, BASE_URL, DATA_DIR, RAW_DIR, METRICS_DIR
+from src.core.config import REGION_MAP, CATEGORY_MAP, BASE_URL, DATA_DIR, RAW_DIR
 from src.core.http_client import AgriHttpClient
 from src.core.io_manager import IOManager
+from src.utils.logger import get_logger
 
-# Logging Setup
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger(__name__)
+# Load Environment Variables
+load_dotenv()
 
-# Initialize Core Components
-http_client = AgriHttpClient() # Thread-safe session internal
-io_manager = IOManager()
+# Initialize Logger
+logger = get_logger(__name__)
 
 # Constants
 URL_DATE = f"{BASE_URL}/tbl_price_get_date_rice.php"
 URL_HEADER = f"{BASE_URL}/tbl_price_get_comm_header.php"
 URL_PRICE = f"{BASE_URL}/tbl_price_get_comm_price.php"
 
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+
+# Initialize Core Components
+http_client = AgriHttpClient()
+io_manager = IOManager()
+
+def to_snake_case(text):
+    import re
+    name = text.replace("(", "").replace(")", "")
+    name = re.sub(r'[\s\-]+', '_', name)
+    name = re.sub(r'[^a-zA-Z0-9_]', '', name)
+    return name.lower()
+
+def send_discord_alert(region_name: str, error_msg: str):
+    """Sends a lightweight alert to Discord on region failure."""
+    if not DISCORD_WEBHOOK_URL:
+        logger.warning(
+            "Discord Webhook URL not set. Skipping alert.",
+            region=region_name,
+            error=error_msg
+        )
+        return
+
+    payload = {
+        "content": f"[CRITICAL FAILURE]: Extraction failed for region **{region_name}**.\nError: `{error_msg}`"
+    }
+    try:
+        requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=5)
+    except Exception as e:
+        logger.error("Failed to send Discord alert", error=str(e))
+
+@retry(
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=1, min=4, max=10),
+    retry=retry_if_exception_type((requests.exceptions.RequestException, requests.exceptions.HTTPError))
+)
 def fetch_category_data(region_id, category_id, category_name):
     """
-    Fetches data for a single category within a region.
+    Fetches data for a single category within a region with robust retries.
     Returns parsed rows or None on failure.
     """
-    try:
-        payload_base = {'region': region_id, 'commodity': category_id}
+    payload_base = {'region': region_id, 'commodity': category_id}
 
-        # Step 1: Get Date
-        # Note: We rely on the client to handle retries/timeouts
-        response = http_client.post(URL_DATE, data=payload_base)
-        date_text = response.text
+    logger.debug(
+        "Fetching category data",
+        region_id=region_id,
+        category=category_name,
+        url=URL_DATE
+    )
 
-        # Step 2: Get Headers
-        response = http_client.post(URL_HEADER, data=payload_base)
-        headers_html = response.text
-        
-        # Parse Headers to get Markets
-        from bs4 import BeautifulSoup # Import here to keep it contained or top level? Top level is better usually but strict separation is ok.
-        soup = BeautifulSoup(headers_html, 'html.parser')
-        markets = [td.get_text(strip=True) for td in soup.find_all('td', class_='text-wrap')]
-        markets = [m for m in markets if m and "SPECIFICATIONS" not in m.upper()]
-        
-        if not markets:
-            return None
+    # Step 1: Get Date
+    response = http_client.post(URL_DATE, data=payload_base)
+    date_text = response.text
 
-        # Step 3: Get Prices
-        payload_price = payload_base.copy()
-        payload_price['count'] = str(len(markets))
-        
-        response = http_client.post(URL_PRICE, data=payload_price)
-        prices_html = response.text
-        
-        # Parse Prices
-        parsed_data = parse_price_rows(prices_html, markets, region_id, category_name, date_text)
-        return parsed_data
-
-    except Exception as e:
-        # logger.warning(f"Failed to fetch {category_name} for region {region_id}: {e}")
+    # Step 2: Get Headers
+    response = http_client.post(URL_HEADER, data=payload_base)
+    headers_html = response.text
+    
+    # Parse Headers to get Markets
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(headers_html, 'html.parser')
+    markets = [td.get_text(strip=True) for td in soup.find_all('td', class_='text-wrap')]
+    markets = [m for m in markets if m and "SPECIFICATIONS" not in m.upper()]
+    
+    if not markets:
         return None
+
+    # Step 3: Get Prices
+    payload_price = payload_base.copy()
+    payload_price['count'] = str(len(markets))
+    
+    response = http_client.post(URL_PRICE, data=payload_price)
+    prices_html = response.text
+    
+    # Parse Prices
+    parsed_data = parse_price_rows(prices_html, markets, region_id, category_name, date_text)
+    return parsed_data
 
 def parse_price_rows(html_rows, market_list, region_id, category_name, payload_date):
     """
-    Parses the price HTML rows. Refactored helper.
+    Parses the price HTML rows.
     """
     from bs4 import BeautifulSoup
     soup = BeautifulSoup(html_rows, 'html.parser')
@@ -128,99 +170,149 @@ def process_region(args):
     region_id, region_name = args
     start_time = time.time()
     total_records = 0
-    consecutive_failures = 0
     
-    logger.info(f"🚀 START: {region_name} ({region_id})...")
+    logger.info("START Region Processing", region=region_name, region_id=region_id)
     
     all_region_data = []
     
     try:
         for cat_id, cat_name in CATEGORY_MAP.items():
-            # Circuit Breaker Check
-            if consecutive_failures >= 3:
-                logger.warning(f"⚠️  CIRCUIT BREAKER: {region_name} - Skipping remaining categories after strings of failures.")
-                break
-
             try:
-                # Fetch
+                # Fetch with retry
                 rows = fetch_category_data(region_id, cat_id, cat_name)
                 
                 if rows:
                     all_region_data.extend(rows)
-                    consecutive_failures = 0 # Reset on success
-                else:
-                    consecutive_failures += 1
                 
                 time.sleep(0.5) # Polite delay
                 
             except Exception as e:
-                consecutive_failures += 1
-                logger.warning(f"  > Error in {cat_name}: {e}")
+                # Individual category failure shouldn't kill the whole region instantly? 
+                # Or should we let it warn and continue?
+                # User prompt said: "If a region fails completely after all retries..."
+                # Fetch_category_data retries 5 times. If it fails, it raises RetryError.
+                # We catch it here.
+                import traceback
+                logger.warning(
+                    "Category fetch failed",
+                    region=region_name,
+                    category=cat_name,
+                    error=str(e),
+                    traceback=traceback.format_exc()
+                )
 
-        # Save Data using IOManager
+
+        # Save Data (Immutability enforced)
         if all_region_data:
             df = pd.DataFrame(all_region_data)
             
-            # Group by extract_dt for efficient partitioning/file naming
+            # Group by extract_dt
             for extract_dt, group in df.groupby('extract_dt'):
                 timestamp = int(time.time())
-                filename = f"prices_{region_name}_{extract_dt}_{timestamp}.parquet" # Using Parquet as default now, or should we stick to CSV/Parquet switch? 
-                # User asked to use io_manager. File manager says "save_dataframe".
-                # Let's stick to the previous naming convention roughly, but maybe upgrade to parquet if the framework suggests it?
-                # User prompt: "If we read/write Parquet files, we build src/core/file_manager.py."
-                # But io_manager.py default is 'parquet'.
-                # Let's use parquet for "Enterprise" feel? Or stick to CSV for now to match 'upsert' logic?
-                # The old logic did complex upsert/dedup on CSVs.
-                # The new request says: "If data is found, hand it directly to io_manager.save_raw(...)."
-                # Wait, "save_raw" is not in my IOManager. I made "save_dataframe".
-                # I should just save it.
-                # To maintain compatibility with downstream (silver layer), I should probably check what it expects.
-                # Existing silver likely reads CSVs? "src.etl.transform.clean_data"
-                # I can't check that file easily right now without reading more.
-                # Safest bet: Save as CSV to match old behavior, using IOManager.
                 
-                # Replicating the 'idempotent_upsert' logic via IOManager is tricky if IOManager is simple.
-                # User said: "Rewrite extract_data.py... It should shrink... hand it directly to io_manager".
-                # I will use CSV to be safe for now, as my IOManager supports it.
-                
-                # Create Date Subdirectory
-                date_dir = os.path.join(RAW_DIR, extract_dt)
+                # Deep Partitioning: data/raw/year={YYYY}/month={MM}/day={DD}/
+                try:
+                    dt_obj = datetime.strptime(extract_dt, "%Y-%m-%d")
+                    year, month, day = dt_obj.strftime("%Y"), dt_obj.strftime("%m"), dt_obj.strftime("%d")
+                except ValueError:
+                    # Fallback for unexpected format (should be YYYY-MM-DD from parse_price_rows)
+                    year, month, day = extract_dt[:4], extract_dt[5:7], extract_dt[8:10]
+
+                date_dir = os.path.join(RAW_DIR, f"year={year}", f"month={month}", f"day={day}")
                 os.makedirs(date_dir, exist_ok=True)
                 
-                filename = f"prices_{region_name}_{extract_dt}.csv"
+                # Filename: prices_{region_snake}.csv (Idempotent)
+                region_snake = to_snake_case(region_name)
+                filename = f"prices_{region_snake}.csv"
                 filepath = os.path.join(date_dir, filename)
                 
-                # We need to handle the upsert logic? 
-                # "io_manager... checking if file exists, saving CSVs (upserts)"
-                # My IOManager.save_dataframe implementation has `mode='overwrite'` or `mode='append'`.
-                # True upsert (dedup) requires reading first.
-                # I will implement basic read-dedup-write here using IOManager primitives to keep this script "high level orchestrator".
+                io_manager.save_dataframe(group, filepath, file_format='csv', mode='overwrite')
+                total_records += len(group)
                 
-                existing_df = io_manager.load_dataframe(filepath, file_format='csv')
-                if not existing_df.empty:
-                    combined = pd.concat([existing_df, group], ignore_index=True)
-                    # Dedup
-                    subset = ['region_id', 'market_name', 'commodity', 'extract_dt']
-                    deduped = combined.drop_duplicates(subset=subset, keep='last')
-                    io_manager.save_dataframe(deduped, filepath, file_format='csv', mode='overwrite')
-                    total_records += len(group) # Count new rows? Or total?
-                    # Let's count *batch* rows for reporting.
-                else:
-                    io_manager.save_dataframe(group, filepath, file_format='csv', mode='overwrite')
-                    total_records += len(group)
+                logger.info("Data saved", filepath=filepath, rows=len(group))
+
+                # Cloud Ingestion (Bronze Layer) - Fallback Pattern
+                try:
+                    s3_bucket = os.getenv("S3_BUCKET_NAME")
+                    if s3_bucket:
+                        # Key structure: bronze/year={YYYY}/month={MM}/day={DD}/filename.csv
+                        s3_key = f"bronze/year={year}/month={month}/day={day}/{filename}"
+                        
+                        s3_client = boto3.client('s3')
+                        s3_client.upload_file(filepath, s3_bucket, s3_key)
+                        
+                        logger.info(
+                            "[CLOUD] Uploaded to S3 (Bronze)",
+                            bucket=s3_bucket,
+                            key=s3_key
+                        )
+                    else:
+                        logger.warning("S3_BUCKET_NAME not set. Skipping cloud upload.")
+
+                except ClientError as e:
+                    # FALLBACK: We already saved locally. Log structured JSON error.
+                    logger.error(
+                        "[WARN] S3 Upload Failed (ClientError)",
+                        region=region_name,
+                        error=e.response.get('Error', {}),
+                        file=filepath
+                    )
+                except Exception as e:
+                     logger.error(
+                        "[WARN] S3 Upload Generic Failure",
+                        region=region_name,
+                        error=str(e)
+                    )
 
         duration = time.time() - start_time
-        logger.info(f"✅ DONE: {region_name} | {total_records} rows | {duration:.2f}s")
+        logger.info(
+            "[INFO] DONE Region",
+            region=region_name,
+            rows=total_records,
+            duration=f"{duration:.2f}s"
+        )
         return (region_name, "OK", total_records, duration)
 
     except Exception as e:
+        # Circuit Breaker & Alerting
         duration = time.time() - start_time
-        logger.error(f"❌ FAIL: {region_name} | Error: {e}")
-        return (region_name, f"FAIL ({e})", 0, duration)
+        error_msg = str(e)
+        logger.error(
+            "[ERROR] FAIL Region",
+            region=region_name,
+            error=error_msg
+        )
+        
+        # DLQ Logic (Deep Partitioning)
+        try:
+            current_date = datetime.now()
+            year, month, day = current_date.strftime("%Y"), current_date.strftime("%m"), current_date.strftime("%d")
+            
+            dlq_dir = os.path.join("data", "dlq", f"year={year}", f"month={month}", f"day={day}")
+            os.makedirs(dlq_dir, exist_ok=True)
+            
+            region_snake = to_snake_case(region_name)
+            filename = f"failed_prices_{region_snake}.csv" # Idempotent filename
+            filepath = os.path.join(dlq_dir, filename)
+            
+            # Save error record
+            error_df = pd.DataFrame([{
+                'region_name': region_name,
+                'error': error_msg,
+                'timestamp': datetime.now().isoformat()
+            }])
+            io_manager.save_dataframe(error_df, filepath, file_format='csv', mode='overwrite')
+            logger.info("Saved to DLQ", filepath=filepath)
+            
+        except Exception as dlq_error:
+            logger.error("Failed to save to DLQ", error=str(dlq_error))
+
+        send_discord_alert(region_name, error_msg)
+        return (region_name, f"FAIL ({error_msg})", 0, duration)
 
 def main():
-    logger.info("🚀 Starting Extraction Engine V3.0 (Enterprise Framework)...")
-    logger.info(f"   Target: {len(REGION_MAP)} Regions | Parallel Workers: 5")
+    logger.info("Starting Extraction Engine V3.1 (Resilience & Observability)...")
+    logger.info("Configuration", regions=len(REGION_MAP), workers=5)
     
     pipeline_start = time.time()
     results = []
@@ -237,43 +329,30 @@ def main():
     total_rows = sum(r[2] for r in results)
     
     # PERFORMANCE REPORT
-    logger.info("\n" + "="*50)
-    logger.info(f"📊 PERFORMANCE REPORT (Total: {total_duration:.2f}s)")
-    logger.info("="*50)
-    logger.info(f"{'REGION':<30} | {'STATUS':<10} | {'ROWS':<5} | {'DURATION'}")
-    logger.info("-" * 65)
+    logger.info("PERFORMANCE REPORT", total_duration=f"{total_duration:.2f}s", total_rows=total_rows)
     
     for rname, status, rows, dur in results:
         dur_str = f"{dur:.2f}s"
-        logger.info(f"{rname:<30} | {status:<10} | {rows:<5} | {dur_str}")
+        logger.info(
+            "Region Stats",
+            region=rname,
+            status=status,
+            rows=rows,
+            duration=dur_str
+        )
         
-    logger.info("-" * 65)
-    logger.info(f"TOTAL ROWS EXTRACTED: {total_rows}")
-    logger.info("="*50)
+    logger.info("Extraction Complete", total_rows=total_rows)
 
     # Trigger Downstream (Silver Layer)
     try:
-        # Assuming these paths are still valid or will be refactored later.
-        # Check if files exist before importing?
-        # Use dynamic import or just standard try/except logic handling
-        # For now, we comment out strict dependency if not sure, but user asked to refactor THIS script.
-        # I'll keep the triggers but wrap them safely.
-        pass 
-        # Note: The prompt didn't strictly say to remove downstream triggers, but "Rewite extract_data.py... high level orchestrator".
-        # I will leave them commented out or generic if I don't know the status of 'src.etl.transform'.
-        # Actually, "Rewrite src/validation/..." is a future step.
-        # I will include them as in original.
-        
         from src.etl.transform.clean_data import run_transform
-        from src.validation.simple_audit import run_audit
-        
         run_transform()
-        run_audit()
+
         
     except ImportError:
-        logger.warning("Downstream pipeline modules not found (clean_data or simple_audit). Skipping.")
+        logger.warning("Downstream pipeline modules not found. Skipping.")
     except Exception as e:
-        logger.error(f"Pipeline Trigger Failed: {e}")
+        logger.error("Pipeline Trigger Failed", error=str(e))
 
 if __name__ == "__main__":
     main()

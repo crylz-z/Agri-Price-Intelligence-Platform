@@ -16,7 +16,11 @@ class AgriHttpClient:
         
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("https://", adapter)
+        self.session.mount("https://", adapter)
         self.session.mount("http://", adapter)
+        self.session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        })
         self.timeout = config.TIMEOUT_SECONDS
 
     def get(self, url, params=None, **kwargs):
