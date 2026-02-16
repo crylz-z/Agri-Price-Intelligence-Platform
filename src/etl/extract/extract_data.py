@@ -387,17 +387,27 @@ def main():
     logger.info("Extraction Complete", total_rows=total_rows)
 
     # Human-Readable Summary
-    success_count = sum(1 for r in results if r[1] == "OK")
-    failure_count = len(results) - success_count
+    print("\n" + "="*80)
+    print(f"{'REGION':<40} | {'STATUS':<10} | {'ROWS':<8} | {'TIME'}")
+    print("-" * 80)
     
-    print("\n" + "="*50)
-    print(f"EXTRACTION SUMMARY")
-    print("="*50)
+    success_count = 0
+    failure_count = 0
+    
+    for rname, status, rows, dur in results:
+        if status == "OK":
+            success_count += 1
+        else:
+            failure_count += 1
+            
+        print(f"{rname:<40} | {status:<10} | {rows:<8} | {dur:.2f}s")
+        
+    print("-" * 80)
     print(f"Total Time:      {total_duration:.2f}s")
     print(f"Total Rows:      {total_rows}")
     print(f"Successful:      {success_count}")
     print(f"Failed:          {failure_count}")
-    print("="*50 + "\n")
+    print("="*80 + "\n")
 
     # Trigger Downstream (Silver Layer)
     logger.info("Etl Pipeline Decoupled. Transformation must be triggered separately.")
