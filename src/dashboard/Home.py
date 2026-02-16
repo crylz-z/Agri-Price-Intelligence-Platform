@@ -2,7 +2,7 @@ import streamlit as st
 
 st.set_page_config(
     page_title="Agri-Price Intelligence",
-    page_icon=None,
+    page_icon="🌽",
 )
 
 st.write("# Welcome to Agri-Price Intelligence!")

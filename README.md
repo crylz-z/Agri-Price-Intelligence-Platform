@@ -47,7 +47,8 @@ The Agri-Price Intelligence Platform (APIP) is an automated data pipeline and de
 
 ### Installation
 ```bash
-pip install -r requirements.txt
+# Install dependencies using uv
+uv pip install -r requirements.txt
 ```
 
 ### Pipeline Execution
@@ -59,7 +60,7 @@ python src/etl/extract/extract_data.py
 ### Dashboard Launch
 To start the web application:
 ```bash
-streamlit run src/dashboard/Home.py
+uv run streamlit run src/dashboard/app.py
 ```
 
 ## Data Dictionary

@@ -9,8 +9,12 @@ if os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../')) not in 
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../')))
 
 from src.dashboard.utils.data_engine import DataEngine
+from src.dashboard.utils import ui
 
-st.set_page_config(layout="wide", page_title="Historical Trends", page_icon=None)
+# Apply Global Styling
+ui.apply_enterprise_styling()
+
+st.set_page_config(layout="wide", page_title="Historical Trends", page_icon="🌽")
 
 # ==========================================
 # HEADER
@@ -35,13 +39,14 @@ days_back = range_options[selected_range_label]
 
 # 2. Region & Commodity (We need a reference to populate these, load latest available)
 # We can use the DataEngine to get the latest date to bootstrap the lists
-available_dates = DataEngine.get_available_dates()
-if not available_dates:
+# We can use the DataEngine to get the latest date to bootstrap the lists
+min_date, max_date = DataEngine.get_date_range()
+if not max_date:
     st.error("System Offline: No data available.")
     st.stop()
 
-latest_date = available_dates[0]
-reference_df = DataEngine.load_market_data(latest_date)
+latest_date = max_date.strftime("%Y-%m-%d")
+reference_df = DataEngine.get_market_snapshot(latest_date)
 
 if reference_df is None or reference_df.empty:
     st.error("Unable to load reference metadata.")
@@ -64,7 +69,7 @@ selected_commodity = st.sidebar.selectbox("Commodity", valid_commodities)
 # LOAD HISTORICAL DATA
 # ==========================================
 with st.spinner(f"Loading {days_back} days of history for {selected_commodity}..."):
-    hist_df = DataEngine.load_historical_data(selected_commodity, selected_region, days_back=days_back)
+    hist_df = DataEngine.get_historical_trends(selected_commodity, selected_region, days_back=days_back)
 
 if hist_df.empty:
     st.warning(f"No historical data found for {selected_commodity} in {selected_region} over the last {days_back} days.")
@@ -80,64 +85,77 @@ min_price_period = hist_df['Prevailing Price (₱)'].min()
 max_price_period = hist_df['Prevailing Price (₱)'].max()
 
 m1, m2, m3 = st.columns(3)
-m1.metric("Period Average", f"₱{avg_price_period:,.2f}")
-m2.metric("Period Low", f"₱{min_price_period:,.2f}")
-m3.metric("Period High", f"₱{max_price_period:,.2f}")
-
-st.markdown("---")
+with m1:
+    with st.container(border=True):
+        st.metric("Period Average", f"₱{avg_price_period:,.2f}")
+with m2:
+    with st.container(border=True):
+        st.metric("Period Low", f"₱{min_price_period:,.2f}")
+with m3:
+    with st.container(border=True):
+        st.metric("Period High", f"₱{max_price_period:,.2f}")
 
 # CHART 1: PRICE TRAJECTORY (Multi-Line)
-st.subheader("Price Trajectory by Market")
-st.caption("Tracking daily price movements across different markets in the region.")
+with st.container(border=True):
+    st.markdown("#### Price Trajectory by Market")
+    st.caption("Tracking daily price movements across different markets in the region.")
 
-with st.expander("How to Read This Chart", expanded=False):
-    st.markdown("""
-    *   **Trend Identification**: Upward sloping lines indicate inflationary pressure; downward slopes suggest supply stabilization.
-    *   **Market Outliers**: Lines that deviate significantly above the group may indicate localized supply constraints or potential price gouging.
-    *   **Convergence**: When lines cluster tightly together, it indicates a competitive and stable market environment.
-    *   **Gaps**: Broken lines indicate days where a specific market did not report data.
-    """)
+    with st.expander("How to Read This Chart", expanded=False):
+        st.markdown("""
+        *   **↗️ Upward Slope**: Prices are getting more expensive (Inflation).
+        *   **↘️ Downward Slope**: Prices are going down (Supply is stabilizing).
+        *   **High Flyers**: Lines far above the rest might indicate localized shortages.
+        *   **Tight Cluster**: When lines are close together, prices are consistent across markets.
+        """)
 
-# Line Chart: X=Date, Y=Price, Color=Market
-line_chart = alt.Chart(hist_df).mark_line(point=True).encode(
-    x=alt.X('extract_dt:T', title='Date', axis=alt.Axis(format='%b %d')),
-    y=alt.Y('Prevailing Price (₱):Q', title='Price (₱)', scale=alt.Scale(zero=False)),
-    color=alt.Color('market_name:N', title='Market'),
-    tooltip=['extract_dt', 'market_name', 'Prevailing Price (₱)']
-).properties(
-    height=400
-).interactive()
+    # Line Chart: X=Date, Y=Price, Color=Market(distinct)
+    # Enterprise: No Grid, Interactive Tooltips, Distinct Muted Colors
+    line_chart = alt.Chart(hist_df).mark_line(point=True).encode(
+        x=alt.X('extract_dt:T', title='Date', axis=alt.Axis(format='%b %d')),
+        y=alt.Y('Prevailing Price (₱):Q', title='Price (₱)', scale=alt.Scale(zero=False)),
+        color=alt.Color('market_name:N', title='Market', scale=alt.Scale(scheme='tableau20')), # Professional distinct scheme
+        tooltip=['extract_dt', 'market_name', 'Prevailing Price (₱)']
+    ).properties(
+        height=400
+    ).configure_axis(
+        grid=False
+    ).interactive()
 
-st.altair_chart(line_chart, use_container_width=True)
+    st.altair_chart(line_chart, use_container_width=True)
 
 # CHART 2: VOLATILITY / SPREAD
-st.markdown("---")
-st.subheader("Daily Price Spread (Volatility)")
-st.caption("The gap between the cheapest and most expensive market each day.")
+with st.container(border=True):
+    st.markdown("#### Daily Price Spread (Volatility)")
+    st.caption("The gap between the cheapest and most expensive market each day.")
 
-# Calculate Daily Min/Max/Avg
-daily_stats = hist_df.groupby('extract_dt')['Prevailing Price (₱)'].agg(['min', 'max', 'mean']).reset_index()
-daily_stats['spread'] = daily_stats['max'] - daily_stats['min']
+    # Calculate Daily Min/Max/Avg
+    daily_stats = hist_df.groupby('extract_dt')['Prevailing Price (₱)'].agg(['min', 'max', 'mean']).reset_index()
+    daily_stats['spread'] = daily_stats['max'] - daily_stats['min']
 
-# Area Chart for Range
-base = alt.Chart(daily_stats).encode(x=alt.X('extract_dt:T', title='Date'))
+    # Area Chart for Range
+    base = alt.Chart(daily_stats).encode(x=alt.X('extract_dt:T', title='Date'))
 
-area = base.mark_area(opacity=0.3, color='gray').encode(
-    y=alt.Y('min:Q', title='Price Range (₱)', scale=alt.Scale(zero=False)),
-    y2='max:Q'
-)
+    # Enterprise: Muted Blue Range
+    area = base.mark_area(opacity=0.3, color='#2E86AB').encode( # Slate Blue
+        y=alt.Y('min:Q', title='Price Range (₱)', scale=alt.Scale(zero=False)),
+        y2='max:Q',
+        tooltip=['extract_dt', 'min', 'max', 'mean']
+    )
 
-line_avg = base.mark_line(color='red').encode(
-    y='mean:Q'
-)
+    # Enterprise: Muted Coral Dashed Line
+    line_avg = base.mark_line(color='#D64045', strokeDash=[5,5]).encode( # Muted Coral
+        y='mean:Q'
+    )
 
-combined = (area + line_avg).properties(height=300).interactive()
+    combined = (area + line_avg).properties(height=300).configure_axis(
+        grid=False
+    ).interactive()
 
-st.altair_chart(combined, use_container_width=True)
-st.caption("Gray Area = Price Range (Low to High). Red Line = Market Average.") 
+    st.altair_chart(combined, use_container_width=True)
+    st.caption("Blue Area = Price Range (Low to High). Red Dashed Line = Market Average.")
 
 # ==========================================
 # FOOTER
 # ==========================================
-st.markdown("---")
-st.caption("Data Source: [Department of Agriculture - Bantay Presyo](http://www.bantaypresyo.da.gov.ph/) | © 2026 Agri-Price Intelligence Platform") 
+
+st.caption("Data Source: [Department of Agriculture - Bantay Presyo](http://www.bantaypresyo.da.gov.ph/) | © 2026 Agri-Price Intelligence Platform")

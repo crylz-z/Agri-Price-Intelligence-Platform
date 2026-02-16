@@ -17,10 +17,14 @@ if os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../')) not in 
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../')))
 
 from src.dashboard.utils.data_engine import DataEngine
+from src.dashboard.utils import ui
 from src.dashboard.components import metrics, spatial
+
+# Apply Global Styling
+ui.apply_enterprise_styling()
 import altair as alt
 
-st.set_page_config(layout="wide", page_title="National Market Watch", page_icon=None)
+st.set_page_config(layout="wide", page_title="National Market Watch", page_icon="🌽")
 
 # ==========================================
 # PAGE HEADER
@@ -37,17 +41,11 @@ st.markdown("### Real-Time Price Monitoring & Intelligence")
 st.sidebar.header("Configuration")
 
 # 1. Date
-available_dates = DataEngine.get_available_dates()
-if not available_dates:
+# 1. Date
+min_date, max_date = DataEngine.get_date_range()
+if not min_date or not max_date:
     st.error("System Offline: No data available.")
     st.stop()
-    
-from datetime import datetime
-
-# Convert available strings to date objects for the picker
-date_objs = [datetime.strptime(d, "%Y-%m-%d").date() for d in available_dates]
-min_date = min(date_objs)
-max_date = max(date_objs)
 
 # Calendar Picker
 picked_date = st.sidebar.date_input(
@@ -60,9 +58,10 @@ picked_date = st.sidebar.date_input(
 selected_date = picked_date.strftime("%Y-%m-%d")
 
 # LOAD DATA (LKGV)
-raw_df = DataEngine.load_market_data(selected_date)
+raw_df = DataEngine.get_market_snapshot(selected_date)
 if raw_df is None or raw_df.empty:
     st.error(f"System Offline: Unable to load data window for {selected_date}.")
+    # st.stop() # Don't stop hard if empty, just show empty
     st.stop()
 
 # 2. Region
@@ -91,63 +90,89 @@ geo_df, srp_df = DataEngine.load_reference_data()
 # ==========================================
 # ROW 1: EXECUTIVE BRIEF (Commodity Level)
 # ==========================================
-st.markdown("---")
+
 st.subheader(f"Executive Brief: {selected_commodity}")
 
-# FIX: Passed commodity_df instead of category_df per user request
-metrics.render_kpi_cards(commodity_df)
-
 # Sparkline (Trend)
-# Calculate trend for specific commodity
-trend_df = region_df[region_df['commodity'] == selected_commodity].groupby('extract_dt')['Prevailing Price (₱)'].mean().reset_index()
-metrics.render_sparklines(trend_df, selected_commodity)
+# Sparkline (Trend) - Fetch 7-Day History
+# Previously we tried to derive this from the snapshot, but that only has 1 date.
+# We must explicitly fetch history for this specific commodity/region.
+trend_df = DataEngine.get_historical_trends(selected_commodity, selected_region, days_back=7)
+
+# FIX: Passed commodity_df instead of category_df per user request
+# NEW: Pass trend_df to enable Delta calculation
+metrics.render_kpi_cards(commodity_df, trend_df)
+
+with st.container(border=True):
+    metrics.render_sparklines(trend_df, selected_commodity)
+
+# ==========================================
 
 # ==========================================
 # ROW 1.5: REGIONAL CONTEXT (New Feature)
 # ==========================================
-st.markdown("---")
-st.subheader(f"Regional Price Comparison: {selected_commodity}")
 
-col_bar, col_top5 = st.columns([2, 1])
+# Remove top-level header to put it inside the card for alignment
+# st.subheader(f"Regional Price Comparison: {selected_commodity}")
+
+col_bar, col_top5 = st.columns(2)
 
 with col_bar:
-    # Calculate Average Price per Region for this Commodity (Snapshot)
-    # We need to load raw data for ALL regions for this date first.
-    # Currently `raw_df` acts as our snapshot.
-    # Filter raw_df for the selected commodity across ALL regions
-    cross_region_df = raw_df[raw_df['commodity'] == selected_commodity].copy()
-    
-    if not cross_region_df.empty:
-        reg_stats = cross_region_df.groupby('region_name')['Prevailing Price (₱)'].mean().reset_index()
-        reg_stats = reg_stats.sort_values('Prevailing Price (₱)', ascending=False)
+    with st.container(border=True):
+        st.markdown(f"#### Regional Comparison: {selected_commodity}")
+        # Calculate Average Price per Region for this Commodity (Snapshot)
+        # We need to load raw data for ALL regions for this date first.
+        # Currently `raw_df` acts as our snapshot.
+        # Filter raw_df for the selected commodity across ALL regions
+        cross_region_df = raw_df[raw_df['commodity'] == selected_commodity].copy()
         
-        # Highlight current region
-        reg_stats['color'] = reg_stats['region_name'].apply(lambda x: '#ff4b4b' if x == selected_region else '#e0e0e0')
-        
-        chart_reg = alt.Chart(reg_stats).mark_bar().encode(
-            x=alt.X('Prevailing Price (₱):Q', title='Avg Price (₱)'),
-            y=alt.Y('region_name:N', sort='-x', title=None),
-            color=alt.Color('color:N', scale=None),
-            tooltip=['region_name', 'Prevailing Price (₱)']
-        ).properties(height=300)
-        st.altair_chart(chart_reg, use_container_width=True)
-    else:
-        st.info("No cross-regional data available.")
+        if not cross_region_df.empty:
+            reg_stats = cross_region_df.groupby('region_name')['Prevailing Price (₱)'].mean().reset_index()
+            reg_stats = reg_stats.sort_values('Prevailing Price (₱)', ascending=False)
+            
+            # Highlight current region
+            # Enterprise Colors: #2E86AB (Blue) for others, #D64045 (Red) for selected
+            
+            chart_reg = alt.Chart(reg_stats).mark_bar().encode(
+                x=alt.X('Prevailing Price (₱):Q', title='Avg Price (₱)'),
+                y=alt.Y('region_name:N', sort='-x', title=None),
+                # Precise Enterprise Color Logic
+                color=alt.condition(
+                    alt.datum.region_name == selected_region,
+                    alt.value('#D64045'), # Red highlight for selected
+                    alt.value('#2E86AB')  # Slate Blue for all others
+                ),
+                tooltip=['region_name', 'Prevailing Price (₱)']
+            ).properties(height=400).configure_axis(
+                grid=False
+            )
+            st.altair_chart(chart_reg, use_container_width=True)
+        else:
+            st.info("No cross-regional data available.")
 
 with col_top5:
-    st.markdown("**Top 5 Most Expensive Markets**")
-    if not cross_region_df.empty:
-        top5 = cross_region_df.nlargest(5, 'Prevailing Price (₱)')[['region_name', 'market_name', 'Prevailing Price (₱)']]
-        st.dataframe(
-            top5,
-            column_config={
-                'region_name': 'Region',
-                'market_name': 'Market',
-                'Prevailing Price (₱)': st.column_config.NumberColumn("Price", format="₱%.2f")
-            },
-            hide_index=True,
-            use_container_width=True
-        )
+    with st.container(border=True):
+        st.markdown("#### Top 5 Most Expensive Markets")
+        if not cross_region_df.empty:
+            top5 = cross_region_df.nlargest(5, 'Prevailing Price (₱)')[['region_name', 'market_name', 'Prevailing Price (₱)']].reset_index(drop=True)
+            
+            # Apply Alternating Colors (Professional Look)
+            # Dirty White (#FAFAFA) and Light Gray (#F0F2F6)
+            def alternating_rows(row):
+                color = '#F0F2F6' if row.name % 2 != 0 else '#FAFAFA'
+                return ['background-color: {}'.format(color) for _ in row]
+    
+            st.dataframe(
+                top5.style.apply(alternating_rows, axis=1).format({'Prevailing Price (₱)': "₱{:.2f}"}),
+                column_config={
+                    'region_name': 'Region',
+                    'market_name': 'Market',
+                    'Prevailing Price (₱)': st.column_config.NumberColumn("Price", format="₱%.2f")
+                },
+                hide_index=True,
+                use_container_width=True,
+                height=400
+            )
 
 # ==========================================
 # FOOTER
@@ -158,39 +183,44 @@ with col_top5:
 # ==========================================
 # ROW 2: VISUAL INTELLIGENCE
 # ==========================================
-st.markdown("---")
-col_map, col_alert = st.columns([2, 1])
+
+# 50/50 Split per request
+col_map, col_alert = st.columns(2)
 
 with col_map:
-    st.subheader(f"Market Locations: {selected_commodity}")
-    # Enhance specific commodity data with Geo
-    # This uses the Resilient Geo-Join from Data Engine
-    geo_enriched = DataEngine.enrich_with_geo(commodity_df, geo_df)
-    
-    # Render Map Feature
-    spatial.render_market_map(geo_enriched)
+    with st.container(border=True):
+        st.markdown(f"#### Market Locations")
+        # Enhance specific commodity data with Geo
+        # This uses the Resilient Geo-Join from Data Engine
+        geo_enriched = DataEngine.enrich_with_geo(commodity_df, geo_df)
+        
+        # Render Map Feature
+        spatial.render_market_map(geo_enriched)
+        # st.warning("Map disabled for debugging")
 
 with col_alert:
-    st.subheader("Price Watch")
-    # Check for Gouging
-    metrics.render_gouging_alert(commodity_df, srp_df)
-
-    # Z-Score Chart (Restored)
-    metrics.render_zscore_chart(commodity_df)
+    with st.container(border=True):
+        st.markdown("#### Price Watch")
+        # Check for Gouging
+        metrics.render_gouging_alert(commodity_df, srp_df)
+    
+        # Z-Score Chart (Restored)
+        metrics.render_zscore_chart(commodity_df, height=400)
 
 
 # ==========================================
 # ROW 3: THE LEDGER
 # ==========================================
-st.markdown("---")
+
 st.subheader("Official Price Bulletin")
 
 # Format for display
-display_df = commodity_df[['market_name', 'commodity', 'Prevailing Price (₱)', 'days_ago']].copy()
+display_df = commodity_df[['market_name', 'commodity', 'Prevailing Price (₱)', 'days_ago']].copy().reset_index(drop=True)
 display_df['Freshness'] = display_df['days_ago'].apply(lambda x: "Today" if x==0 else f"{x} days ago")
 
+# Apply Alternating Colors to Bulletin
 st.dataframe(
-    display_df,
+    display_df.style.apply(alternating_rows, axis=1).format({'Prevailing Price (₱)': "₱{:.2f}"}),
     column_config={
         'market_name': 'Market',
         'Prevailing Price (₱)': st.column_config.NumberColumn("Price", format="₱%.2f"),
@@ -203,5 +233,5 @@ st.dataframe(
 # ==========================================
 # FOOTER
 # ==========================================
-st.markdown("---")
+
 st.caption("Data Source: [Department of Agriculture - Bantay Presyo](http://www.bantaypresyo.da.gov.ph/) | © 2026 Agri-Price Intelligence Platform")

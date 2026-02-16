@@ -19,7 +19,7 @@ def render_market_map(geo_enriched_df, center_lat=14.5995, center_lon=120.9842, 
 
     # If no data (rare due to resilient join), show empty map
     if geo_enriched_df.empty:
-        st_folium(m, height=400, use_container_width=True)
+        st_folium(m, height=400)
         st.caption("No geographic data available for this selection.")
         return
 
@@ -46,5 +46,5 @@ def render_market_map(geo_enriched_df, center_lat=14.5995, center_lon=120.9842, 
             popup=tooltip_txt
         ).add_to(m)
 
-    st_folium(m, height=400, use_container_width=True, returned_objects=[])
+    st_folium(m, height=400, returned_objects=[])
     st.caption("Green: Below Average | Red: Above Average")
