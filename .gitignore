@@ -64,3 +64,4 @@ data/*.tmp
 *.log
 logs/*.txt
 reports/*.txt
+data/clean/
