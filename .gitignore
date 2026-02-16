@@ -56,8 +56,10 @@ ENV/
 Thumbs.db
 
 # Project Specific
-# We WANT to commit data for this MVP (Git Scraping), so we do NOT ignore data/*.parquet
-# But we might want to ignore temporary data files
+# Data Persistence Strategy:
+# - Data files are committed for MVP (Git Scraping).
+# - Temporary data files are ignored.
+
 # Project Specific
 logs/
 data/*.tmp
