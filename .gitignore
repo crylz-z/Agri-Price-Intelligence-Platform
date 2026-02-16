@@ -65,3 +65,6 @@ data/*.tmp
 logs/*.txt
 reports/*.txt
 data/clean/
+
+# Agent
+.agent/
