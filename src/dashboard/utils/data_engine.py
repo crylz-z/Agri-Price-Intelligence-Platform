@@ -124,6 +124,12 @@ class DataEngine:
             if "price" in df.columns:
                 df.rename(columns={"price": "Prevailing Price (₱)"}, inplace=True)
 
+            # Calculate days_ago for freshness tracking (LKGV)
+            if not df.empty and "extract_dt" in df.columns:
+                df["extract_dt"] = pd.to_datetime(df["extract_dt"])
+                target_dt = pd.to_datetime(target_date_str)
+                df["days_ago"] = (target_dt - df["extract_dt"]).dt.days
+
             return df
         except Exception as e:
             print(f"[ERROR] Engine Error: {e}")
