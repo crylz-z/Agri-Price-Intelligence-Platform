@@ -43,11 +43,11 @@ def setup_duckdb(con):
 
 def run_transform(target_date=None):
     """
-    Orchestrates the S3-based Lakehouse pipeline (Phase 7.2).
+    Orchestrates the S3-based Lakehouse transformation pipeline.
     Bronze (S3) -> Silver (S3 Parquet) -> Gold (S3 Parquet)
     """
     start_time = datetime.now()
-    logger.info("START: Lakehouse Transformation Pipeline (Phase 7)")
+    logger.info("START: Lakehouse Transformation Pipeline")
 
     if not target_date:
         target_date = get_latest_date_str()

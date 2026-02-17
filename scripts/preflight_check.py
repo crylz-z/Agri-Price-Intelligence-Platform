@@ -2,7 +2,9 @@ import os
 import sys
 import boto3
 from botocore.exceptions import ClientError
+from dotenv import load_dotenv
 
+load_dotenv()
 s3_bucket = os.getenv("S3_BUCKET_NAME")
 if not s3_bucket:
     print("ERROR: S3_BUCKET_NAME environment variable not set")
