@@ -207,8 +207,9 @@ class DataEngine:
             con.close()
 
             if not df.empty and pd.notnull(df.iloc[0]["min_dt"]):
-                min_dt = datetime.strptime(str(df.iloc[0]["min_dt"]), "%Y-%m-%d").date()
-                max_dt = datetime.strptime(str(df.iloc[0]["max_dt"]), "%Y-%m-%d").date()
+                # Use pd.to_datetime for robust parsing (handles timestamps)
+                min_dt = pd.to_datetime(df.iloc[0]["min_dt"]).date()
+                max_dt = pd.to_datetime(df.iloc[0]["max_dt"]).date()
                 return min_dt, max_dt
             return None, None
         except Exception as e:
