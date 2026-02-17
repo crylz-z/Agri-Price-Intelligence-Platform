@@ -99,10 +99,13 @@ def run_transform(target_date=None):
         ),
         enriched AS (
             SELECT
-                r.*,
+                r.extract_dt,
+                r.market_name,
+                r.category,
+                r.commodity,
+                r.price,
                 COALESCE(m.region_name, r.region_id_raw) as region_name,
-                md5(concat(extract_dt, region_id_raw, commodity, market_name))
-                as record_id
+                md5(concat(r.extract_dt, r.region_id_raw, r.commodity, r.market_name)) as record_id
             FROM raw_data r
             LEFT JOIN region_map m ON r.region_id_raw = m.region_id
         ),
