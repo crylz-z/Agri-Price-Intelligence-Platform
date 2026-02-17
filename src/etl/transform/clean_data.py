@@ -96,6 +96,10 @@ def run_transform(target_date=None):
                 commodity,
                 CAST(price AS DOUBLE) as price
             FROM read_csv_auto('{bronze_path}', header=True, union_by_name=true)
+            WHERE CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
+              AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'
+              AND CAST(extract_dt AS VARCHAR) NOT LIKE '%=%'
+              AND extract_dt IS NOT NULL
         ),
         enriched AS (
             SELECT

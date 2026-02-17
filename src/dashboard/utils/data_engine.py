@@ -99,8 +99,10 @@ class DataEngine:
                 commodity,
                 price,
                 extract_dt
-            FROM read_parquet('{SILVER_LAYER_PATH}', hive_partitioning=true)
-            WHERE CAST(extract_dt AS DATE) BETWEEN '{start_date_str}' AND '{target_date_str}'
+            FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true)
+            WHERE CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
+              AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'
+              AND CAST(extract_dt AS DATE) BETWEEN '{start_date_str}' AND '{target_date_str}'
         ),
         ranked AS (
             SELECT 
@@ -155,9 +157,11 @@ class DataEngine:
             region_name,
             market_name,
             commodity
-        FROM read_parquet('{SILVER_LAYER_PATH}', hive_partitioning=true)
+        FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true)
         WHERE
-            CAST(extract_dt AS DATE) >= '{start_date_str}'
+            CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
+            AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'
+            AND CAST(extract_dt AS DATE) >= '{start_date_str}'
             AND commodity = '{commodity}'
             AND region_name = '{region}'
         ORDER BY extract_dt ASC
@@ -204,7 +208,9 @@ class DataEngine:
 
         query = (
             "SELECT MIN(extract_dt) as min_dt, MAX(extract_dt) as max_dt "
-            f"FROM read_parquet('{SILVER_LAYER_PATH}', hive_partitioning=true)"
+            f"FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true) "
+            "WHERE CAST(extract_dt AS VARCHAR) NOT LIKE '%<%' "
+            "AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'"
         )
 
         try:
@@ -230,7 +236,10 @@ class DataEngine:
 
         query = (
             f"SELECT DISTINCT extract_dt FROM read_parquet('{SILVER_LAYER_PATH}', "
-            "hive_partitioning=true) ORDER BY extract_dt DESC"
+            "union_by_name=true) "
+            "WHERE CAST(extract_dt AS VARCHAR) NOT LIKE '%<%' "
+            "AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%' "
+            "ORDER BY extract_dt DESC"
         )
 
         try:
