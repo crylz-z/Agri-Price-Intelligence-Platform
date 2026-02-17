@@ -95,7 +95,7 @@ def run_transform(target_date=None):
                 category,
                 commodity,
                 CAST(price AS DOUBLE) as price
-            FROM read_csv_auto('{bronze_path}', header=True)
+            FROM read_csv_auto('{bronze_path}', header=True, union_by_name=true)
         ),
         enriched AS (
             SELECT
