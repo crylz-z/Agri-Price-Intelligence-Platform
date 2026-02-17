@@ -7,6 +7,13 @@ from streamlit_folium import st_folium
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+# Load environment variables for S3 access
+load_dotenv()
+
+# Import S3-enabled Data Engine
+from src.dashboard.utils.data_engine import DataEngine
 
 # ==========================================
 # CONFIGURATION & CONSTANTS
@@ -14,7 +21,6 @@ from datetime import datetime, timedelta
 st.set_page_config(
     layout="wide", page_title="Market Bulletin | Agri-Price Intelligence", page_icon="📋"
 )
-CLEAN_DATA_DIR = "data/clean"
 REF_DATA_DIR = "data/reference"
 
 # PROFESSIONAL STYLE
@@ -34,73 +40,16 @@ st.markdown(
 # ==========================================
 
 
-@st.cache_data(ttl=600)
-def load_data_window(target_date_str, window_days=3):
-    """
-    LKGV Strategy: Loads a window of data (Target + Previous Days).
-    Returns a combined raw DataFrame.
-    """
-    try:
-        target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
-    except:
-        return None
-
-    frames = []
-
-    for i in range(window_days):
-        current_date = target_date - timedelta(days=i)
-        date_str = current_date.strftime("%Y-%m-%d")
-        filepath = os.path.join(CLEAN_DATA_DIR, f"market_prices_{date_str}.parquet")
-        try:
-            if os.path.exists(filepath):
-                df = pd.read_parquet(filepath)
-                # Ensure extract_dt is datetime
-                if "extract_dt" in df.columns:
-                    df["extract_dt"] = pd.to_datetime(df["extract_dt"])
-                frames.append(df)
-        except Exception:
-            continue
-
-    if not frames:
-        return None
-
-    return pd.concat(frames, ignore_index=True)
-
 
 @st.cache_data
 def load_reference_data():
     """Loads SRP and Lat/Lon data safely."""
-    # 1. GEO DATA
-    geo_path = os.path.join(REF_DATA_DIR, "markets_geo.csv")
-    if os.path.exists(geo_path):
-        geo_df = pd.read_csv(geo_path)
-    else:
-        geo_df = pd.DataFrame(columns=["market_name", "lat", "lon"])
-
-    # 2. SRP DATA
-    srp_path = os.path.join(REF_DATA_DIR, "official_srp.csv")
-    if os.path.exists(srp_path):
-        srp_df = pd.read_csv(srp_path)
-        if "official_srp" in srp_df.columns:
-            srp_df.rename(columns={"official_srp": "srp"}, inplace=True)
-    else:
-        srp_df = pd.DataFrame(columns=["commodity", "srp"])
-
-    return geo_df, srp_df
+    return DataEngine.load_reference_data()
 
 
 def get_available_dates():
-    """Scans for available parquet files."""
-    files = glob.glob(os.path.join(CLEAN_DATA_DIR, "market_prices_*.parquet"))
-    dates = []
-    for f in files:
-        basename = os.path.basename(f)
-        try:
-            date_str = basename.replace("market_prices_", "").replace(".parquet", "")
-            dates.append(date_str)
-        except:
-            continue
-    return sorted(dates, reverse=True)
+    """Gets available dates from S3 Gold layer."""
+    return DataEngine.get_available_dates()
 
 
 # ==========================================
@@ -123,8 +72,8 @@ def main():
         return
     selected_date = st.sidebar.selectbox("Date", available_dates)
 
-    # LOAD DATA (LKGV)
-    raw_df = load_data_window(selected_date)
+    # LOAD DATA from S3 Gold Layer (Last Known Good Value strategy)
+    raw_df = DataEngine.get_market_snapshot(selected_date, window_days=3)
 
     if raw_df is None or raw_df.empty:
         st.error(f"System Offline: Unable to load data window for {selected_date}.")

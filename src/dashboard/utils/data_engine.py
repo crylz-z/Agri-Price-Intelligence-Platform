@@ -5,6 +5,10 @@ import duckdb
 import streamlit as st
 from datetime import datetime, timedelta
 import random
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # ==========================================
 # ==========================================
