@@ -122,7 +122,7 @@ class DataEngine:
             con.close()
 
             if "price" in df.columns:
-                df.rename(columns={"price": "Prevailing Price (PH)"}, inplace=True)
+                df.rename(columns={"price": "Prevailing Price (₱)"}, inplace=True)
 
             return df
         except Exception as e:
