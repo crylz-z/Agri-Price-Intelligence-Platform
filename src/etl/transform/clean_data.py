@@ -118,7 +118,14 @@ def run_transform(target_date=None):
             )
             WHERE rn = 1
         )
-        SELECT * EXCLUDE (rn) FROM deduped
+        SELECT
+            extract_dt,
+            region_name,
+            market_name,
+            category,
+            commodity,
+            price
+        FROM deduped
         """
 
         # Debug: Check if data exists
