@@ -15,8 +15,9 @@ load_dotenv()
 # CONFIGURATION
 # ==========================================
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
-GOLD_LAYER_PATH = (
-    f"s3://{S3_BUCKET_NAME}/gold/year=*/month=*/day=*/*.parquet"
+# Dashboard needs market-level detail, use Silver layer instead of Gold
+SILVER_LAYER_PATH = (
+    f"s3://{S3_BUCKET_NAME}/silver/year=*/month=*/day=*/*.parquet"
     if S3_BUCKET_NAME
     else None
 )
@@ -77,9 +78,9 @@ class DataEngine:
     @st.cache_data(ttl=600)
     def get_market_snapshot(target_date_str, window_days=3):
         """
-        Loads the 'Last Known Good Value' (LKGV) snapshot for a specific date from S3.
+        Loads the 'Last Known Good Value' (LKGV) snapshot for a specific date from S3 Silver layer.
         """
-        if not GOLD_LAYER_PATH:
+        if not SILVER_LAYER_PATH:
             return pd.DataFrame()
 
         try:
@@ -93,24 +94,24 @@ class DataEngine:
         WITH windowed_data AS (
             SELECT 
                 region_name,
+                market_name,
+                category,
                 commodity,
-                avg_price as price,
-                latest_date as extract_date
-            FROM read_parquet('{GOLD_LAYER_PATH}', hive_partitioning=true)
-            WHERE CAST(latest_date AS DATE) BETWEEN '{start_date_str}' AND '{target_date_str}'
+                price,
+                extract_dt
+            FROM read_parquet('{SILVER_LAYER_PATH}', hive_partitioning=true)
+            WHERE CAST(extract_dt AS DATE) BETWEEN '{start_date_str}' AND '{target_date_str}'
         ),
         ranked AS (
             SELECT 
                 *,
                 ROW_NUMBER() OVER (
-                    PARTITION BY region_name, commodity 
-                    ORDER BY extract_date DESC
+                    PARTITION BY region_name, market_name, commodity 
+                    ORDER BY extract_dt DESC
                 ) as rn
             FROM windowed_data
         )
-        SELECT
-            * EXCLUDE (rn),
-            extract_date as extract_dt
+        SELECT * EXCLUDE (rn)
         FROM ranked
         WHERE rn = 1
         """
@@ -132,9 +133,9 @@ class DataEngine:
     @st.cache_data(ttl=3600)
     def get_historical_trends(commodity, region, days_back=30):
         """
-        Fetches time-series data for a commodity/region pair from S3.
+        Fetches time-series data for a commodity/region pair from S3 Silver layer.
         """
-        if not GOLD_LAYER_PATH:
+        if not SILVER_LAYER_PATH:
             return pd.DataFrame()
 
         end_date = datetime.now()
@@ -143,13 +144,14 @@ class DataEngine:
 
         query = f"""
         SELECT
-            latest_date as extract_dt,
-            avg_price as 'Prevailing Price (PH)',
+            extract_dt,
+            price as 'Prevailing Price (₱)',
             region_name,
+            market_name,
             commodity
-        FROM read_parquet('{GOLD_LAYER_PATH}', hive_partitioning=true)
+        FROM read_parquet('{SILVER_LAYER_PATH}', hive_partitioning=true)
         WHERE
-            CAST(latest_date AS DATE) >= '{start_date_str}'
+            CAST(extract_dt AS DATE) >= '{start_date_str}'
             AND commodity = '{commodity}'
             AND region_name = '{region}'
         ORDER BY extract_dt ASC
@@ -189,14 +191,14 @@ class DataEngine:
     @st.cache_data(ttl=3600)
     def get_date_range():
         """
-        Efficiently polls the S3 Parquet dataset to find the absolute MIN and MAX dates.
+        Efficiently polls the S3 Silver Parquet dataset to find the absolute MIN and MAX dates.
         """
-        if not GOLD_LAYER_PATH:
+        if not SILVER_LAYER_PATH:
             return None, None
 
         query = (
-            "SELECT MIN(latest_date) as min_dt, MAX(latest_date) as max_dt "
-            f"FROM read_parquet('{GOLD_LAYER_PATH}', hive_partitioning=true)"
+            "SELECT MIN(extract_dt) as min_dt, MAX(extract_dt) as max_dt "
+            f"FROM read_parquet('{SILVER_LAYER_PATH}', hive_partitioning=true)"
         )
 
         try:
@@ -215,22 +217,20 @@ class DataEngine:
 
     @staticmethod
     def get_available_dates():
-        """Scans S3 partitions for available dates."""
-        # DuckDB handles this via Hive Partitioning,
-        # so we can just query distinct dates.
-        if not GOLD_LAYER_PATH:
+        """Scans S3 Silver layer partitions for available dates."""
+        if not SILVER_LAYER_PATH:
             return []
 
         query = (
-            f"SELECT DISTINCT latest_date FROM read_parquet('{GOLD_LAYER_PATH}', "
-            "hive_partitioning=true) ORDER BY latest_date DESC"
+            f"SELECT DISTINCT extract_dt FROM read_parquet('{SILVER_LAYER_PATH}', "
+            "hive_partitioning=true) ORDER BY extract_dt DESC"
         )
 
         try:
             con = DataEngine._get_connection()
             df = con.sql(query).df()
             con.close()
-            return df["latest_date"].astype(str).tolist()
+            return df["extract_dt"].astype(str).tolist()
         except Exception as e:
             print(f"[ERROR] Available Dates Error: {e}")
             return []

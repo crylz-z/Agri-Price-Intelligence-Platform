@@ -5,7 +5,7 @@ st.set_page_config(
     page_icon="🌽",
 )
 
-st.write("# Welcome to Agri-Price Intelligence!")
+st.write("# Home - Agri-Price Intelligence")
 
 st.markdown(
     """
