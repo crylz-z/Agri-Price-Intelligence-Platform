@@ -39,7 +39,16 @@ jobs:
         pip install uv
         uv pip install -e . --system
 
-    # 4. Run Lakehouse ETL Pipeline (Extract -> Transform -> Audit)
+    # 4. Pre-Flight S3 Connection Test
+    - name: Pre-Flight S3 Connection Test
+      run: python scripts/preflight_check.py
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+        AWS_DEFAULT_REGION: ${{ vars.AWS_DEFAULT_REGION }}
+
+    # 5. Run Lakehouse ETL Pipeline (Extract -> Transform -> Audit)
     - name: Run Lakehouse ETL Pipeline
       run: |
         python -m src.etl.extract.extract_data

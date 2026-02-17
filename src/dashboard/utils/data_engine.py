@@ -11,7 +11,11 @@ import random
 # CONFIGURATION
 # ==========================================
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
-GOLD_LAYER_PATH = f"s3://{S3_BUCKET_NAME}/gold/year=*/month=*/day=*/*.parquet" if S3_BUCKET_NAME else None
+GOLD_LAYER_PATH = (
+    f"s3://{S3_BUCKET_NAME}/gold/year=*/month=*/day=*/*.parquet"
+    if S3_BUCKET_NAME
+    else None
+)
 
 # REGION CENTERS (Approximate Lat/Lon)
 REGION_CENTERS = {
@@ -31,8 +35,9 @@ REGION_CENTERS = {
     "REGION XI (DAVAO REGION)": (7.1907, 125.4553),
     "REGION XII (SOCCSKSARGEN)": (6.5063, 124.8483),
     "REGION XIII (Caraga)": (8.8142, 125.5905),
-    "BARMM (Bangsamoro Autonomous Region of Muslim Mindanao)": (7.2245, 124.2687)
+    "BARMM (Bangsamoro Autonomous Region of Muslim Mindanao)": (7.2245, 124.2687),
 }
+
 
 class DataEngine:
     """
@@ -43,8 +48,8 @@ class DataEngine:
     @staticmethod
     def _get_connection():
         """Returns a DuckDB connection configured for S3 access."""
-        con = duckdb.connect(database=':memory:')
-        
+        con = duckdb.connect(database=":memory:")
+
         aws_key = os.getenv("AWS_ACCESS_KEY_ID")
         aws_secret = os.getenv("AWS_SECRET_ACCESS_KEY")
         aws_region = os.getenv("AWS_DEFAULT_REGION")
@@ -61,7 +66,7 @@ class DataEngine:
             con.execute(f"SET s3_secret_access_key='{aws_secret}';")
         except Exception as e:
             print(f"[ERROR] Failed to configure DuckDB S3: {e}")
-        
+
         return con
 
     @staticmethod
@@ -79,7 +84,7 @@ class DataEngine:
             start_date_str = start_date.strftime("%Y-%m-%d")
         except:
             return pd.DataFrame()
-        
+
         query = f"""
         WITH windowed_data AS (
             SELECT 
@@ -99,21 +104,21 @@ class DataEngine:
                 ) as rn
             FROM windowed_data
         )
-        SELECT 
+        SELECT
             * EXCLUDE (rn),
             extract_date as extract_dt
         FROM ranked
         WHERE rn = 1
         """
-        
+
         try:
             con = DataEngine._get_connection()
             df = con.sql(query).df()
             con.close()
-            
-            if 'price' in df.columns:
-                df.rename(columns={'price': 'Prevailing Price (PH)'}, inplace=True)
-                
+
+            if "price" in df.columns:
+                df.rename(columns={"price": "Prevailing Price (PH)"}, inplace=True)
+
             return df
         except Exception as e:
             print(f"[ERROR] Engine Error: {e}")
@@ -131,28 +136,28 @@ class DataEngine:
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days_back)
         start_date_str = start_date.strftime("%Y-%m-%d")
-        
+
         query = f"""
-        SELECT 
+        SELECT
             latest_date as extract_dt,
             avg_price as 'Prevailing Price (PH)',
             region_name,
             commodity
         FROM read_parquet('{GOLD_LAYER_PATH}', hive_partitioning=true)
-        WHERE 
+        WHERE
             CAST(latest_date AS DATE) >= '{start_date_str}'
             AND commodity = '{commodity}'
             AND region_name = '{region}'
         ORDER BY extract_dt ASC
         """
-        
+
         try:
             con = DataEngine._get_connection()
             df = con.sql(query).df()
             con.close()
 
             if not df.empty:
-                df['extract_dt'] = pd.to_datetime(df['extract_dt'])
+                df["extract_dt"] = pd.to_datetime(df["extract_dt"])
             return df
         except Exception as e:
             print(f"[ERROR] History Engine Error: {e}")
@@ -165,13 +170,14 @@ class DataEngine:
         # Kept local for simplicity as per instructions only focused on Data Parquet
         # But for full enterprise, these should likely be in S3 Reference layer too.
         # Check if local exists, else empty.
-        
+
         # 1. GEO
-        # For now, we return empty or basic structure if files missing, 
-        # as the user didn't explicitly safeguard this part, but we must ensure it doesn't crash.
-        geo_df = pd.DataFrame(columns=['market_name', 'lat', 'lon'])
-        srp_df = pd.DataFrame(columns=['commodity', 'srp'])
-        
+        # For now, we return empty or basic structure if files missing,
+        # as the user didn't explicitly safeguard this part,
+        # but we must ensure it doesn't crash.
+        geo_df = pd.DataFrame(columns=["market_name", "lat", "lon"])
+        srp_df = pd.DataFrame(columns=["commodity", "srp"])
+
         # NOTE: Ideally migrate these to S3 reference bucket in future steps.
         return geo_df, srp_df
 
@@ -184,16 +190,19 @@ class DataEngine:
         if not GOLD_LAYER_PATH:
             return None, None
 
-        query = f"SELECT MIN(latest_date) as min_dt, MAX(latest_date) as max_dt FROM read_parquet('{GOLD_LAYER_PATH}', hive_partitioning=true)"
-        
+        query = (
+            "SELECT MIN(latest_date) as min_dt, MAX(latest_date) as max_dt "
+            f"FROM read_parquet('{GOLD_LAYER_PATH}', hive_partitioning=true)"
+        )
+
         try:
             con = DataEngine._get_connection()
             df = con.sql(query).df()
             con.close()
-            
-            if not df.empty and pd.notnull(df.iloc[0]['min_dt']):
-                min_dt = datetime.strptime(str(df.iloc[0]['min_dt']), "%Y-%m-%d").date()
-                max_dt = datetime.strptime(str(df.iloc[0]['max_dt']), "%Y-%m-%d").date()
+
+            if not df.empty and pd.notnull(df.iloc[0]["min_dt"]):
+                min_dt = datetime.strptime(str(df.iloc[0]["min_dt"]), "%Y-%m-%d").date()
+                max_dt = datetime.strptime(str(df.iloc[0]["max_dt"]), "%Y-%m-%d").date()
                 return min_dt, max_dt
             return None, None
         except Exception as e:
@@ -203,17 +212,21 @@ class DataEngine:
     @staticmethod
     def get_available_dates():
         """Scans S3 partitions for available dates."""
-        # DuckDB handles this via Hive Partitioning, so we can just query distinct dates.
+        # DuckDB handles this via Hive Partitioning,
+        # so we can just query distinct dates.
         if not GOLD_LAYER_PATH:
             return []
 
-        query = f"SELECT DISTINCT latest_date FROM read_parquet('{GOLD_LAYER_PATH}', hive_partitioning=true) ORDER BY latest_date DESC"
-        
+        query = (
+            f"SELECT DISTINCT latest_date FROM read_parquet('{GOLD_LAYER_PATH}', "
+            "hive_partitioning=true) ORDER BY latest_date DESC"
+        )
+
         try:
             con = DataEngine._get_connection()
             df = con.sql(query).df()
             con.close()
-            return df['latest_date'].astype(str).tolist()
+            return df["latest_date"].astype(str).tolist()
         except Exception as e:
             print(f"[ERROR] Available Dates Error: {e}")
             return []
@@ -228,9 +241,9 @@ class DataEngine:
 
         # Logic adapted for Region-based Gold Data (No Market level in Gold)
         # We Map Region Center directly.
-        
+
         def get_coords(row):
-            region = row.get('region_name')
+            region = row.get("region_name")
             if region in REGION_CENTERS:
                 base_lat, base_lon = REGION_CENTERS[region]
                 # Add small jitter
@@ -240,7 +253,7 @@ class DataEngine:
             return None, None
 
         coords = df.apply(get_coords, axis=1)
-        df['lat'] = [c[0] for c in coords]
-        df['lon'] = [c[1] for c in coords]
-        
-        return df.dropna(subset=['lat', 'lon'])
+        df["lat"] = [c[0] for c in coords]
+        df["lon"] = [c[1] for c in coords]
+
+        return df.dropna(subset=["lat", "lon"])

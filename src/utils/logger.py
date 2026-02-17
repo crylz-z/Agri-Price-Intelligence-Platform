@@ -1,16 +1,18 @@
 import sys
 import structlog
 import logging
-import os
+
 
 def get_logger(name):
     """
     Configures and returns a structlog logger.
-    
-    In development (TTY detected), it uses ConsoleRenderer for colorful, human-readable logs.
-    In production (No TTY), it uses JSONRenderer for structured logs suitable for observability tools.
+
+    In development (TTY detected), it uses ConsoleRenderer for colorful,
+    human-readable logs.
+    In production (No TTY), it uses JSONRenderer for structured logs
+    suitable for observability tools.
     """
-    
+
     # Configure shared processors
     processors = [
         structlog.contextvars.merge_contextvars,
@@ -30,22 +32,22 @@ def get_logger(name):
     # Determine environment
     if sys.stderr.isatty():
         # Local development: Human-readable
-        processors.extend([
-            structlog.dev.ConsoleRenderer()
-        ])
+        processors.extend([structlog.dev.ConsoleRenderer()])
     else:
         # Production: JSON
-        processors.extend([
-            structlog.processors.dict_tracebacks,
-            structlog.processors.JSONRenderer()
-        ])
+        processors.extend(
+            [
+                structlog.processors.dict_tracebacks,
+                structlog.processors.JSONRenderer(),
+            ]
+        )
 
     structlog.configure(
         processors=processors,
         wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),
-        cache_logger_on_first_use=True
+        cache_logger_on_first_use=True,
     )
 
     log = structlog.get_logger(name)

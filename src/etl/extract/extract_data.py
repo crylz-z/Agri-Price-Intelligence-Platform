@@ -1,4 +1,3 @@
-import sys
 import os
 import time
 import concurrent.futures
@@ -15,11 +14,10 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential,
     retry_if_exception_type,
-    before_sleep_log,
 )
 
 # Framework Imports
-from src.core.config import REGION_MAP, CATEGORY_MAP, BASE_URL, DATA_DIR, RAW_DIR
+from src.core.config import REGION_MAP, CATEGORY_MAP, BASE_URL, RAW_DIR
 from src.core.http_client import AgriHttpClient
 from src.core.io_manager import IOManager
 from src.utils.logger import get_logger
@@ -62,7 +60,10 @@ def send_discord_alert(region_name: str, error_msg: str):
         return
 
     payload = {
-        "content": f"[CRITICAL FAILURE]: Extraction failed for region **{region_name}**.\nError: `{error_msg}`"
+        "content": (
+            f"[CRITICAL FAILURE]: Extraction failed for region **{region_name}**.\n"
+            f"Error: `{error_msg}`"
+        )
     }
     try:
         requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=5)
@@ -214,7 +215,8 @@ def process_region(args):
                 # Individual category failure shouldn't kill the whole region instantly?
                 # Or should we let it warn and continue?
                 # User prompt said: "If a region fails completely after all retries..."
-                # Fetch_category_data retries 5 times. If it fails, it raises RetryError.
+                # Fetch_category_data retries 5 times.
+                # If it fails, it raises RetryError.
                 # We catch it here.
                 import traceback
 
@@ -232,8 +234,6 @@ def process_region(args):
 
             # Group by extract_dt
             for extract_dt, group in df.groupby("extract_dt"):
-                timestamp = int(time.time())
-
                 # Deep Partitioning: data/raw/year={YYYY}/month={MM}/day={DD}/
                 try:
                     dt_obj = datetime.strptime(extract_dt, "%Y-%m-%d")
@@ -243,7 +243,8 @@ def process_region(args):
                         dt_obj.strftime("%d"),
                     )
                 except ValueError:
-                    # Fallback for unexpected format (should be YYYY-MM-DD from parse_price_rows)
+                    # Fallback for unexpected format
+                    # (should be YYYY-MM-DD from parse_price_rows)
                     year, month, day = extract_dt[:4], extract_dt[5:7], extract_dt[8:10]
 
                 date_dir = os.path.join(
@@ -267,7 +268,8 @@ def process_region(args):
                 try:
                     s3_bucket = os.getenv("S3_BUCKET_NAME")
                     if s3_bucket:
-                        # Key structure: bronze/year={YYYY}/month={MM}/day={DD}/filename.csv
+                        # Key structure:
+                        # bronze/year={YYYY}/month={MM}/day={DD}/filename.csv
                         s3_key = (
                             f"bronze/year={year}/month={month}/day={day}/{filename}"
                         )
@@ -285,18 +287,22 @@ def process_region(args):
 
                 except ClientError as e:
                     # FALLBACK: We already saved locally. Log structured JSON error.
+                    error_msg = f"S3 Upload ClientError: {e.response.get('Error', {})}"
                     logger.error(
                         "[WARN] S3 Upload Failed (ClientError)",
                         region=region_name,
                         error=e.response.get("Error", {}),
                         file=filepath,
                     )
+                    send_discord_alert(region_name, error_msg)
                 except Exception as e:
+                    error_msg = f"S3 Upload Generic Failure: {str(e)}"
                     logger.error(
                         "[WARN] S3 Upload Generic Failure",
                         region=region_name,
                         error=str(e),
                     )
+                    send_discord_alert(region_name, error_msg)
 
         duration = time.time() - start_time
         logger.info(
@@ -354,18 +360,43 @@ def process_region(args):
 
 
 def main():
-    logger.info("Starting Extraction Engine V3.1 (Resilience & Observability)...")
-    logger.info("Configuration", regions=len(REGION_MAP), workers=5)
+    logger.info("Starting Extraction Engine V3.2 (Fail-Fast Timeout Constraints)...")
+    logger.info("Configuration", regions=len(REGION_MAP), workers=5, timeout="900s")
 
     pipeline_start = time.time()
     results = []
+    REGION_TIMEOUT = 900  # 15 minutes per region
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         region_args = [(rid, rname) for rid, rname in REGION_MAP.items()]
-        future_results = executor.map(process_region, region_args)
+        
+        # Submit all futures
+        future_to_region = {
+            executor.submit(process_region, args): args[1] for args in region_args
+        }
 
-        for res in future_results:
-            results.append(res)
+        # Process completed futures with timeout
+        for future in concurrent.futures.as_completed(future_to_region, timeout=None):
+            region_name = future_to_region[future]
+            try:
+                res = future.result(timeout=REGION_TIMEOUT)
+                results.append(res)
+            except concurrent.futures.TimeoutError:
+                # Region exceeded 15-minute timeout
+                error_msg = f"Region timeout: exceeded {REGION_TIMEOUT}s limit"
+                logger.error(
+                    "[TIMEOUT] Region abandoned",
+                    region=region_name,
+                    timeout=f"{REGION_TIMEOUT}s",
+                )
+                send_discord_alert(region_name, error_msg)
+                results.append((region_name, "TIMEOUT", 0, REGION_TIMEOUT))
+            except Exception as e:
+                # Catch any other execution exceptions
+                error_msg = f"Region execution error: {str(e)}"
+                logger.error("[ERROR] Region execution failed", region=region_name, error=str(e))
+                send_discord_alert(region_name, error_msg)
+                results.append((region_name, f"ERROR ({str(e)})", 0, 0))
 
     pipeline_end = time.time()
     total_duration = pipeline_end - pipeline_start

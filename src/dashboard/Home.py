@@ -27,7 +27,8 @@ st.markdown(
 st.markdown("---")
 
 with st.expander("Platform Documentation & Terms of Use", expanded=False):
-    st.markdown("""
+    st.markdown(
+        """
     ### Data Attribution & Architecture
     All data is independently extracted from the official [Philippine Department of Agriculture (DA) Bantay Presyo](http://www.bantaypresyo.da.gov.ph/) platform via an automated ELT pipeline.
 
@@ -44,4 +45,5 @@ with st.expander("Platform Documentation & Terms of Use", expanded=False):
 
     ### Limitation of Liability
     This platform is provided for informational, educational, and portfolio demonstration purposes only. The data is aggregated from public government sources and is provided 'AS IS' without warranties of any kind, either express or implied, regarding accuracy, completeness, or real-time timeliness. The creator of this platform assumes no liability for any financial, trading, procurement, or business decisions made based on this data. Users must independently verify all prices and market conditions prior to conducting commercial transactions.
-    """)
+    """
+    )
