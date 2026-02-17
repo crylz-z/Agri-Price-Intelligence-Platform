@@ -1,6 +1,10 @@
 import streamlit as st
 import sys
 import os
+from dotenv import load_dotenv
+
+# Load environment variables for S3 access
+load_dotenv()
 
 # Ensure root is in path to find components
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
@@ -47,7 +51,8 @@ st.sidebar.header("Configuration")
 # 1. Date
 min_date, max_date = DataEngine.get_date_range()
 if not min_date or not max_date:
-    st.error("System Offline: No data available.")
+    st.warning("⚠️ No data currently available. Please check back later.")
+    st.info("The ETL pipeline runs daily. Data may be temporarily unavailable during processing.")
     st.stop()
 
 # Calendar Picker
@@ -63,8 +68,8 @@ selected_date = picked_date.strftime("%Y-%m-%d")
 # LOAD DATA (LKGV)
 raw_df = DataEngine.get_market_snapshot(selected_date)
 if raw_df is None or raw_df.empty:
-    st.error(f"System Offline: Unable to load data window for {selected_date}.")
-    # st.stop() # Don't stop hard if empty, just show empty
+    st.warning(f"⚠️ No data available for {selected_date}.")
+    st.info("Try selecting a different date or check back later.")
     st.stop()
 
 # 2. Region

@@ -3,6 +3,10 @@ import sys
 import os
 import altair as alt
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables for S3 access
+load_dotenv()
 
 # Ensure root is in path
 if (
@@ -49,14 +53,16 @@ days_back = range_options[selected_range_label]
 # We can use the DataEngine to get the latest date to bootstrap the lists
 min_date, max_date = DataEngine.get_date_range()
 if not max_date:
-    st.error("System Offline: No data available.")
+    st.warning("⚠️ No data currently available. Please check back later.")
+    st.info("The ETL pipeline runs daily. Data may be temporarily unavailable during processing.")
     st.stop()
 
 latest_date = max_date.strftime("%Y-%m-%d")
 reference_df = DataEngine.get_market_snapshot(latest_date)
 
 if reference_df is None or reference_df.empty:
-    st.error("Unable to load reference metadata.")
+    st.warning("⚠️ Unable to load data for {latest_date}.")
+    st.info("Try again later or contact support if the issue persists.")
     st.stop()
 
 # Region
