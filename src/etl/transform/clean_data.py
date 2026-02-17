@@ -218,34 +218,54 @@ def run_transform(target_date=None):
 
 
 def discover_bronze_dates(s3_bucket):
-    """Scans S3 Bronze layer to find all available dates."""
-    con = duckdb.connect(":memory:")
+    """Scans S3 Bronze layer partitions to find all available dates."""
+    import boto3
+    from collections import defaultdict
     
     try:
-        setup_duckdb(con)
+        s3 = boto3.client('s3')
+        logger.info("Discovering Bronze dates via S3 partitions...")
         
-        bronze_path = f"s3://{s3_bucket}/bronze/year=*/month=*/day=*/*.csv"
+        # List all objects in Bronze layer
+        paginator = s3.get_paginator('list_objects_v2')
+        pages = paginator.paginate(Bucket=s3_bucket, Prefix='bronze/')
         
-        # Query distinct dates from Bronze layer
-        query = f"""
-        SELECT DISTINCT CAST(extract_dt AS DATE) as date
-        FROM read_csv_auto('{bronze_path}', header=True, union_by_name=true)
-        WHERE extract_dt IS NOT NULL
-        ORDER BY date ASC
-        """
+        dates_set = set()
         
-        logger.info("Discovering Bronze dates...", path=bronze_path)
-        df = con.sql(query).df()
+        for page in pages:
+            if 'Contents' not in page:
+                continue
+                
+            for obj in page['Contents']:
+                key = obj['Key']
+                # Parse path: bronze/year=2026/month=02/day=09/file.csv
+                if '/day=' in key:
+                    parts = key.split('/')
+                    year = month = day = None
+                    
+                    for part in parts:
+                        if part.startswith('year='):
+                            year = part.split('=')[1]
+                        elif part.startswith('month='):
+                            month = part.split('=')[1]
+                        elif part.startswith('day='):
+                            day = part.split('=')[1]
+                    
+                    if year and month and day:
+                        date_str = f"{year}-{month}-{day}"
+                        dates_set.add(date_str)
         
-        dates = df['date'].tolist()
-        logger.info(f"Discovered {len(dates)} dates in Bronze", dates=dates)
+        # Convert to datetime objects and sort
+        dates = sorted([datetime.strptime(d, "%Y-%m-%d") for d in dates_set])
+        
+        logger.info(f"Discovered {len(dates)} dates in Bronze", dates=[d.strftime("%Y-%m-%d") for d in dates])
         
         return dates
     except Exception as e:
         logger.error(f"Failed to discover Bronze dates: {e}")
+        import traceback
+        traceback.print_exc()
         return []
-    finally:
-        con.close()
 
 
 def run_backfill():
