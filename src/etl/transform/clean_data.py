@@ -217,5 +217,81 @@ def run_transform(target_date=None):
         logger.info("Pipeline Finished", duration=str(duration))
 
 
+def discover_bronze_dates(s3_bucket):
+    """Scans S3 Bronze layer to find all available dates."""
+    con = duckdb.connect(":memory:")
+    
+    try:
+        setup_duckdb(con)
+        
+        bronze_path = f"s3://{s3_bucket}/bronze/year=*/month=*/day=*/*.csv"
+        
+        # Query distinct dates from Bronze layer
+        query = f"""
+        SELECT DISTINCT CAST(extract_dt AS DATE) as date
+        FROM read_csv_auto('{bronze_path}', header=True, union_by_name=true)
+        WHERE extract_dt IS NOT NULL
+        ORDER BY date ASC
+        """
+        
+        logger.info("Discovering Bronze dates...", path=bronze_path)
+        df = con.sql(query).df()
+        
+        dates = df['date'].tolist()
+        logger.info(f"Discovered {len(dates)} dates in Bronze", dates=dates)
+        
+        return dates
+    except Exception as e:
+        logger.error(f"Failed to discover Bronze dates: {e}")
+        return []
+    finally:
+        con.close()
+
+
+def run_backfill():
+    """Processes all available Bronze dates into Silver/Gold."""
+    logger.info("START: Backfill Mode")
+    
+    s3_bucket = os.getenv("S3_BUCKET_NAME")
+    if not s3_bucket:
+        logger.error("S3_BUCKET_NAME not set")
+        return False
+    
+    dates = discover_bronze_dates(s3_bucket)
+    
+    if not dates:
+        logger.warning("No dates found to backfill")
+        return False
+    
+    success_count = 0
+    failed_dates = []
+    
+    for date_obj in dates:
+        date_str = date_obj.strftime("%Y-%m-%d")
+        logger.info(f"Processing backfill for {date_str}")
+        
+        if run_transform(target_date=date_str):
+            success_count += 1
+        else:
+            failed_dates.append(date_str)
+    
+    logger.info(
+        "COMPLETE: Backfill",
+        total=len(dates),
+        success=success_count,
+        failed=len(failed_dates),
+        failed_dates=failed_dates
+    )
+    
+    return len(failed_dates) == 0
+
+
 if __name__ == "__main__":
-    run_transform()
+    import sys
+    
+    if "--backfill" in sys.argv:
+        success = run_backfill()
+    else:
+        success = run_transform()
+    
+    sys.exit(0 if success else 1)
