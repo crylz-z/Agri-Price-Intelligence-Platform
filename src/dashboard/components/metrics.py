@@ -241,3 +241,66 @@ def render_zscore_chart(df, height=400):
     )
 
     st.altair_chart(chart, use_container_width=True)
+
+
+def render_smart_insight(df, commodity: str) -> None:
+    """
+    Calculates a natural-language price insight and renders it as a Streamlit
+    banner. Compares the current snapshot price against the 30-day average
+    derived from `df`.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Historical trend DataFrame. Expected columns:
+        - 'extract_dt'        : datetime, the observation date.
+        - 'Prevailing Price (\u20b1)' : float, the market price.
+        - 'market_name'       : str, the market identifier.
+    commodity : str
+        Human-readable commodity name used in the insight text.
+
+    Renders
+    -------
+    st.success  when the current price is below the 30-day average (good deal).
+    st.info     when the current price is at or above the 30-day average.
+    st.warning  when there is insufficient data to compute a meaningful insight.
+    """
+    required_cols = {"extract_dt", "Prevailing Price (\u20b1)", "market_name"}
+    if df is None or df.empty or not required_cols.issubset(df.columns):
+        st.warning(f"Insufficient data to generate an insight for {commodity}.")
+        return
+
+    # 30-day rolling average across all markets.
+    avg_30d = df["Prevailing Price (\u20b1)"].mean()
+
+    # Current price = mean of the most recent extraction date.
+    latest_date = df["extract_dt"].max()
+    current_df = df[df["extract_dt"] == latest_date]
+    current_price = current_df["Prevailing Price (\u20b1)"].mean()
+
+    if pd.isna(avg_30d) or pd.isna(current_price) or avg_30d == 0:
+        st.warning(f"Insufficient data to generate an insight for {commodity}.")
+        return
+
+    # Percentage deviation from the 30-day average.
+    pct_diff = ((current_price - avg_30d) / avg_30d) * 100
+    direction = "cheaper" if pct_diff < 0 else "more expensive"
+    abs_pct = abs(pct_diff)
+
+    # Best market = the market with the lowest price on the latest date.
+    best_market_row = current_df.loc[
+        current_df["Prevailing Price (\u20b1)"].idxmin()
+    ]
+    best_market = best_market_row["market_name"]
+    best_price = best_market_row["Prevailing Price (\u20b1)"]
+
+    insight_text = (
+        f"**Insight:** {commodity} is currently **{abs_pct:.1f}% {direction}** "
+        f"than the 30-day average (\u20b1{avg_30d:,.2f}). "
+        f"The best place to buy is **{best_market}** at \u20b1{best_price:,.2f}."
+    )
+
+    if pct_diff < 0:
+        st.success(insight_text)
+    else:
+        st.info(insight_text)

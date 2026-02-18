@@ -224,14 +224,16 @@ with col_top5:
                 ].reset_index(drop=True)
 
                 st.dataframe(
-                    top5_high.style.apply(alternating_rows, axis=1).format(
-                        {"Prevailing Price (₱)": "₱{:.2f}"}
-                    ),
+                    top5_high,
                     column_config={
-                        "region_name": "Region",
-                        "market_name": "Market",
+                        "region_name": st.column_config.TextColumn(
+                            "Region", width="large"
+                        ),
+                        "market_name": st.column_config.TextColumn(
+                            "Market", width="large"
+                        ),
                         "Prevailing Price (₱)": st.column_config.NumberColumn(
-                            "Price", format="₱%.2f"
+                            "Price", format="₱%.2f", width="small"
                         ),
                     },
                     hide_index=True,
@@ -250,14 +252,16 @@ with col_top5:
                 ].reset_index(drop=True)
 
                 st.dataframe(
-                    top5_low.style.apply(alternating_rows, axis=1).format(
-                        {"Prevailing Price (₱)": "₱{:.2f}"}
-                    ),
+                    top5_low,
                     column_config={
-                        "region_name": "Region",
-                        "market_name": "Market",
+                        "region_name": st.column_config.TextColumn(
+                            "Region", width="large"
+                        ),
+                        "market_name": st.column_config.TextColumn(
+                            "Market", width="large"
+                        ),
                         "Prevailing Price (₱)": st.column_config.NumberColumn(
-                            "Price", format="₱%.2f"
+                            "Price", format="₱%.2f", width="small"
                         ),
                     },
                     hide_index=True,

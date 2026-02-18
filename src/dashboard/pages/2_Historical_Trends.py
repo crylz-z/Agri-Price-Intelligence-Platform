@@ -234,16 +234,31 @@ with st.container(border=True):
             bars = base.mark_bar().encode(
                 color=alt.condition(
                     alt.datum.day_name == best_day,
-                    alt.value("#00A896"),  # Highlight Best Day (Green)
-                    alt.value("#E0E0E0")   # Neutral for others
+                    alt.value("#2ca02c"),   # Best day: green (consistent with regional bar chart)
+                    alt.value("#d3d3d3"),   # All others: muted gray
                 )
             )
-            
-            text = base.mark_text(align='left', dx=2).encode(
-                text=alt.Text("Prevailing Price (₱)", format=",.0f")
+
+            text = base.mark_text(align="left", dx=3, color="#333333").encode(
+                text=alt.Text("Prevailing Price (₱):Q", format=",.0f")
             )
 
-            st.altair_chart((bars + text).properties(height=300), use_container_width=True)
+            # Sort descending so the cheapest (green) bar is at the bottom —
+            # a natural visual anchor for the 'best deal' reading direction.
+            chart = (
+                (bars + text)
+                .encode(
+                    y=alt.Y(
+                        "day_name:N",
+                        sort=alt.EncodingSortField(
+                            field="Prevailing Price (₱)", order="descending"
+                        ),
+                        title=None,
+                    )
+                )
+                .properties(height=300)
+            )
+            st.altair_chart(chart, use_container_width=True)
             st.success(f"**Insight:** Historical data suggests **{best_day}** is generally the best day to buy.")
 
 # ==========================================
