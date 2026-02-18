@@ -48,14 +48,11 @@ jobs:
     - name: Pre-Flight S3 Connection Test
       run: python scripts/preflight_check.py
 
-    - name: Run dlt Pipeline (Extract)
-      run: python -m src.etl.dlt_pipeline.agri_price_pipeline
-
-    - name: Run dbt Build (Transform)
-      run: |
-        cd src/etl/dbt_project
-        dbt deps
-        dbt build --profiles-dir .
+    - name: Run ELT Pipeline (Extract → Transform → Audit)
+      # run_pipeline.py enforces WAP order: dlt → dbt deps → dbt build.
+      # dbt build runs models then tests; any test failure halts the pipeline
+      # before bad data reaches the Gold layer.
+      run: python scripts/run_pipeline.py
       env:
         AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}

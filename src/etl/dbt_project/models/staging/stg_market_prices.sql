@@ -1,6 +1,15 @@
+-- Staging model: reads Bronze Parquet files directly from S3 via DuckDB httpfs.
+-- This bypasses the dbt-duckdb external source plugin requirement and works with
+-- the :memory: DuckDB profile as long as the httpfs + aws extensions are loaded
+-- (configured in profiles.yml).
+--
+-- Source path mirrors the dlt filesystem destination:
+--   s3://<bucket>/bronze/dlt/market_data/agri_price_resource/*.parquet
 
 with source as (
-    select * from {{ source('agri_prices_bronze', 'market_prices') }}
+    select * from read_parquet(
+        's3://{{ env_var("S3_BUCKET_NAME") }}/bronze/dlt/market_data/agri_price_resource/*.parquet'
+    )
 ),
 
 renamed as (
@@ -19,9 +28,9 @@ renamed as (
 )
 
 select * from renamed
-where 
-    -- Sanity Check: Price (Agri prices > 20,000 are errors)
+where
+    -- Sanity check: agri prices above ₱20,000 are data errors.
     price <= 20000
     and price >= 0
-    -- Sanity Check: Region Name (Filter out "1000000", "400000.0" etc)
+    -- Sanity check: filter rows where region_name is a raw numeric ID (e.g. "1000000", "40000000.0").
     and not regexp_matches(region_name, '^[0-9.]+$')
