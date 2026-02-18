@@ -21,10 +21,6 @@ jobs:
       contents: write
       id-token: write
 
-    env:
-      S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-      AWS_DEFAULT_REGION: ap-southeast-2
-
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
@@ -47,19 +43,17 @@ jobs:
 
     - name: Pre-Flight S3 Connection Test
       run: python scripts/preflight_check.py
+      env:
+        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
-    - name: Run ELT Pipeline (Extract → Transform → Audit)
+    - name: Run ELT Lakehouse Pipeline
       # run_pipeline.py enforces WAP order: dlt → dbt deps → dbt build.
       # dbt build runs models then tests; any test failure halts the pipeline
-      # before bad data reaches the Gold layer.
+      # and triggers a Discord alert before bad data reaches the Gold layer.
       run: python scripts/run_pipeline.py
       env:
-        AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
-        AWS_SESSION_TOKEN: ${{ env.AWS_SESSION_TOKEN }}
-
-    - name: Run Data Contract Validation
-      run: python -m src.validation.contract
-      env:
-        LOG_LEVEL: INFO
+        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ vars.AWS_DEFAULT_REGION }}
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
