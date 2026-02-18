@@ -3,24 +3,57 @@ version: 2
 
 models:
   - name: stg_market_prices
-    description: "Staged market prices with cast types"
+    description: "Staged market prices with cast types from S3 parquet source"
     columns:
+      - name: extract_ts
+        description: "Timestamp when the data was extracted"
+        data_tests:
+          - not_null
       - name: price
-        tests:
+        description: "Price of the commodity"
+        data_tests:
           - not_null
       - name: region_name
-        tests:
+        description: "Name of the region"
+        data_tests:
           - not_null
       - name: commodity_name
-        tests:
+        description: "Name of the commodity including specifications"
+        data_tests:
+          - not_null
+      - name: region_id
+        data_tests:
+          - not_null
+      - name: raw_date_text
+        data_tests:
           - not_null
 
   - name: market_summary
     description: "Daily summary of prices by commodity and market"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - report_date
+            - region_name
+            - commodity_name
+            - market_name
     columns:
       - name: report_date
-        tests:
+        description: "Date of the report (extracted from extract_ts)"
+        data_tests:
           - not_null
       - name: avg_price
-        tests:
+        description: "Average price for the day"
+        data_tests:
+          - not_null
+      - name: min_price
+        description: "Minimum price for the day"
+        data_tests:
+          - not_null
+      - name: max_price
+        description: "Maximum price for the day"
+        data_tests:
+          - not_null
+      - name: commodity_group
+        data_tests:
           - not_null

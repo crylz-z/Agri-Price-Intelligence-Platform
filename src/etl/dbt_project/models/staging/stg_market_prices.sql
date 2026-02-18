@@ -1,6 +1,6 @@
 
 with source as (
-    select * from read_parquet('s3://{{ env_var('S3_BUCKET_NAME') }}/bronze/dlt/market_data/agri_price_resource/**/*.parquet')
+    select * from {{ source('agri_prices_bronze', 'market_prices') }}
 ),
 
 renamed as (

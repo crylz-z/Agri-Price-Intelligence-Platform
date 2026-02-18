@@ -18,11 +18,14 @@ dependencies = [
     "pyarrow",
     "structlog",
     "pandera",
-    "duckdb",
+    "duckdb>=1.4.0",
     "python-dotenv",
     "tenacity",
-    "boto3>=1.42.49",
+    "boto3",
     "pre-commit",
+    "dbt-core>=1.8.0",
+    "dbt-duckdb>=1.8.0",
+    "dlt[s3]>=1.22.0",
 ]
 
 [build-system]
