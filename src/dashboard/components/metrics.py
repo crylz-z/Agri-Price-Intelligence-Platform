@@ -72,80 +72,83 @@ def render_kpi_cards(commodity_df, trend_df=None):
 
 def render_sparklines(trend_df, category_name):
     """
-    Renders a 30-day price trend line chart with per-day point markers.
-    Aggregates to daily average price before plotting.
-    Point markers expose data sparsity: a dot appears only on days where
-    data was actually collected, making pipeline gaps immediately visible.
-    """
-    # Context: expecting a DataFrame with 'extract_dt' and 'Prevailing Price (₱)' columns
+    Renders a 30-day price trend as a layered volatility band chart.
 
+    Layer 1 (bottom): semi-transparent mark_area between the day's min and max
+    price — the volatility band. Width of the band reveals intra-day spread.
+
+    Layer 2 (top): solid mark_line(point=True) showing the daily average.
+    A dot appears only on days where data was collected, exposing pipeline gaps.
+
+    Expects trend_df with columns: 'extract_dt', 'Prevailing Price (₱)'.
+    """
     if trend_df.empty:
-        # Handle empty dataset scenarios gracefully
         st.caption("No recent data found for trend analysis.")
         return
 
     st.markdown(f"**Price Trend (Last 30 Days) - {category_name}**")
 
-    # Aggregate to daily average
-    daily_avg = (
-        trend_df.groupby(trend_df["extract_dt"].dt.date)["Prevailing Price (₱)"]
-        .mean()
-        .reset_index()
-    )
-    daily_avg.columns = ["date", "avg_price"]
-    daily_avg["date"] = pd.to_datetime(daily_avg["date"])
-    
-    # Remove any NaNs
-    daily_avg = daily_avg.dropna()
+    # Aggregate to daily statistics: avg, min, max.
+    grp = trend_df.groupby(trend_df["extract_dt"].dt.date)["Prevailing Price (₱)"]
+    daily = grp.agg(avg_price="mean", min_price="min", max_price="max").reset_index()
+    daily.columns = ["date", "avg_price", "min_price", "max_price"]
+    daily["date"] = pd.to_datetime(daily["date"])
+    daily = daily.dropna()
 
-    if daily_avg.empty:
+    if daily.empty:
         st.caption("No data available for trend chart.")
         return
 
-    # Shared tooltip definition — shown on both line and point marks.
-    tooltips = [
-        alt.Tooltip("date:T", title="Date", format="%b %d, %Y"),
-        alt.Tooltip("avg_price:Q", title="Price (₱)", format=",.2f"),
-    ]
-
-    # Shared X encoding.
+    # Shared encodings.
     x_enc = alt.X(
         "date:T",
         title=None,
         axis=alt.Axis(format="%b %d", labelAngle=-30, tickCount=7),
     )
+    y_scale = alt.Scale(zero=False)
 
-    # Y encoding with zero=False so the axis zooms to the actual price range,
-    # making daily volatility visible instead of a flat line at the top of a
-    # 0-based scale.
-    y_enc = alt.Y(
-        "avg_price:Q",
-        title="Avg Price (₱)",
-        scale=alt.Scale(zero=False),
-    )
+    # Tooltips shown on the line/point layer.
+    tooltips = [
+        alt.Tooltip("date:T", title="Date", format="%b %d, %Y"),
+        alt.Tooltip("avg_price:Q", title="Avg Price (₱)", format=",.2f"),
+        alt.Tooltip("min_price:Q", title="Day Low (₱)", format=",.2f"),
+        alt.Tooltip("max_price:Q", title="Day High (₱)", format=",.2f"),
+    ]
 
-    base = alt.Chart(daily_avg).encode(x=x_enc, y=y_enc, tooltip=tooltips)
+    base = alt.Chart(daily).encode(x=x_enc)
 
-    if len(daily_avg) == 1:
+    if len(daily) == 1:
         # Single data point: render as a labelled dot.
-        point = base.mark_point(filled=True, size=120, color="#2E86AB")
+        point = base.mark_point(filled=True, size=120, color="#2E86AB").encode(
+            y=alt.Y("avg_price:Q", title="Avg Price (₱)", scale=y_scale),
+            tooltip=tooltips,
+        )
         label = base.mark_text(dy=-15, color="#2E86AB").encode(
-            text=alt.Text("avg_price:Q", format=",.2f")
+            y=alt.Y("avg_price:Q", scale=y_scale),
+            text=alt.Text("avg_price:Q", format=",.2f"),
         )
         chart = point + label
     else:
-        # Multi-day view: line with point=True renders a dot on every day that
-        # has data, immediately exposing gaps where the pipeline did not collect.
+        # Layer 1: volatility band (min → max per day), semi-transparent.
+        band = base.mark_area(opacity=0.2, color="#2E86AB", interpolate="monotone").encode(
+            y=alt.Y("min_price:Q", title="Price (₱)", scale=y_scale),
+            y2=alt.Y2("max_price:Q"),
+        )
+
+        # Layer 2: daily average line with point markers.
         line = base.mark_line(
             point=alt.OverlayMarkDef(filled=True, size=60, color="#2E86AB"),
             color="#2E86AB",
             interpolate="monotone",
             strokeWidth=2,
+        ).encode(
+            y=alt.Y("avg_price:Q", title="Price (₱)", scale=y_scale),
+            tooltip=tooltips,
         )
-        chart = line
+
+        chart = band + line
 
     st.altair_chart(chart.properties(height=180), use_container_width=True)
-
 
 
 def render_gouging_alert(df, srp_df):

@@ -177,8 +177,10 @@ with col_bar:
             )
             reg_stats = reg_stats.sort_values("Prevailing Price (₱)", ascending=False)
 
-            # Highlight current region
-            # Enterprise Colors: #2E86AB (Blue) for others, #D64045 (Red) for selected
+            # Identify the region with the absolute lowest average price.
+            min_price_region = reg_stats.loc[
+                reg_stats["Prevailing Price (₱)"].idxmin(), "region_name"
+            ]
 
             chart_reg = (
                 alt.Chart(reg_stats)
@@ -186,13 +188,16 @@ with col_bar:
                 .encode(
                     x=alt.X("Prevailing Price (₱):Q", title="Avg Price (₱)"),
                     y=alt.Y("region_name:N", sort="-x", title=None),
-                    # Precise Enterprise Color Logic
+                    # Green for the cheapest region; neutral blue for all others.
                     color=alt.condition(
-                        alt.datum.region_name == selected_region,
-                        alt.value("#D64045"),  # Red highlight for selected
-                        alt.value("#2E86AB"),  # Slate Blue for all others
+                        alt.datum.region_name == min_price_region,
+                        alt.value("#2ca02c"),   # Best deal: green
+                        alt.value("#1f77b4"),   # All others: neutral blue
                     ),
-                    tooltip=["region_name", "Prevailing Price (₱)"],
+                    tooltip=[
+                        alt.Tooltip("region_name:N", title="Region"),
+                        alt.Tooltip("Prevailing Price (₱):Q", title="Avg Price (₱)", format=",.2f"),
+                    ],
                 )
                 .properties(height=400)
                 .configure_axis(grid=False)
