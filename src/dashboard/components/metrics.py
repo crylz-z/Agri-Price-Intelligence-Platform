@@ -80,7 +80,7 @@ def render_sparklines(trend_df, category_name):
 
     st.markdown(f"**7-Day Price Trend ({category_name})**")
 
-    # Aggregate to daily average — raw data has multiple markets per day
+    # Aggregate to daily average
     daily_avg = (
         trend_df.groupby(trend_df["extract_dt"].dt.date)["Prevailing Price (₱)"]
         .mean()
@@ -88,18 +88,41 @@ def render_sparklines(trend_df, category_name):
     )
     daily_avg.columns = ["date", "avg_price"]
     daily_avg["date"] = pd.to_datetime(daily_avg["date"])
+    
+    # Remove any NaNs just in case
+    daily_avg = daily_avg.dropna()
 
-    if daily_avg.empty or len(daily_avg) < 2:
-        st.caption("Insufficient data for trend chart.")
+    if daily_avg.empty:
+        st.caption("No data available for trend chart.")
         return
 
-    # Explicit domain — area charts fill to domain min, so set it close to data min
-    y_min = float(daily_avg["avg_price"].min()) * 0.90
-    y_max = float(daily_avg["avg_price"].max()) * 1.10
+    # Explicit domain with padding
+    y_vals = daily_avg["avg_price"]
+    y_min = float(y_vals.min()) * 0.95
+    y_max = float(y_vals.max()) * 1.05
+    
+    # If min == max (flat line), add artificial buffer
+    if y_min == y_max:
+        y_min = y_vals.min() - 10
+        y_max = y_vals.max() + 10
 
-    chart = (
-        alt.Chart(daily_avg)
-        .mark_area(
+    # Build Chart
+    base = alt.Chart(daily_avg).encode(
+        alt.X("date:T", title=None, axis=alt.Axis(format="%b %d", labelAngle=0, tickCount=7)),
+        tooltip=[
+            alt.Tooltip("date:T", title="Date", format="%b %d, %Y"),
+            alt.Tooltip("avg_price:Q", title="Avg Price", format="₱,.2f"),
+        ]
+    )
+
+    if len(daily_avg) == 1:
+        # Single point - render as a bar to make it visible
+        chart = base.mark_bar(color="#2E86AB", width=20).encode(
+            alt.Y("avg_price:Q", title="Avg Price (₱)", scale=alt.Scale(domain=[0, y_max]))
+        )
+    else:
+        # Area chart for trends
+        chart = base.mark_area(
             line={"color": "#2E86AB"},
             color=alt.Gradient(
                 gradient="linear",
@@ -107,29 +130,14 @@ def render_sparklines(trend_df, category_name):
                     alt.GradientStop(color="white", offset=0),
                     alt.GradientStop(color="#2E86AB", offset=1),
                 ],
-                x1=1,
-                x2=1,
-                y1=1,
-                y2=0,
+                x1=1, x2=1, y1=1, y2=0,
             ),
             interpolate="monotone",
+        ).encode(
+            alt.Y("avg_price:Q", title="Avg Price (₱)", scale=alt.Scale(domain=[y_min, y_max]))
         )
-        .encode(
-            alt.X("date:T", title=None, axis=alt.Axis(format="%b %d", labelAngle=0)),
-            alt.Y(
-                "avg_price:Q",
-                title="Avg Price (₱)",
-                scale=alt.Scale(domain=[y_min, y_max]),
-            ),
-            tooltip=[
-                alt.Tooltip("date:T", title="Date", format="%b %d, %Y"),
-                alt.Tooltip("avg_price:Q", title="Avg Price", format="₱,.2f"),
-            ],
-        )
-        .properties(height=180)
-    )
 
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(chart.properties(height=180), use_container_width=True)
 
 
 

@@ -11,31 +11,20 @@ def render_market_map(
     Uses Green (Cheap) vs Red (Expensive) logic relative to average.
     """
 
-    # Base Map
+    # Auto-center logic using fit_bounds
+    locations = []
     if not geo_enriched_df.empty:
-        # Auto-center on data
-        center_lat = geo_enriched_df["lat"].mean()
-        center_lon = geo_enriched_df["lon"].mean()
-        zoom = 9
+        # Collect all coordinates
+        locations = geo_enriched_df[["lat", "lon"]].values.tolist()
 
     m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom)
-
-    # If no data (rare due to resilient join), show empty map
-    if geo_enriched_df.empty:
-        st_folium(m, height=400)
-        st.caption("No geographic data available for this selection.")
-        return
 
     avg_price = geo_enriched_df["Prevailing Price (₱)"].mean()
 
     # Add Pins
     for _, row in geo_enriched_df.iterrows():
         price = row["Prevailing Price (₱)"]
-
-        # Color Logic
         color = "green" if price <= avg_price else "red"
-
-        # Tooltip
         tooltip_txt = f"{row['market_name']}: ₱{price:,.2f}"
 
         folium.CircleMarker(
@@ -49,5 +38,9 @@ def render_market_map(
             popup=tooltip_txt,
         ).add_to(m)
 
-    st_folium(m, height=400, returned_objects=[])
+    # Fit bounds if we have locations
+    if locations:
+        m.fit_bounds(locations)
+
+    st_folium(m, height=400, returned_objects=[], use_container_width=True)
     st.caption("Green: Below Average | Red: Above Average")
