@@ -74,3 +74,9 @@ tmp/
 
 # Agent
 .agent/
+
+# dbt
+dbt_packages/
+target/
+logs/
+src/etl/dbt_project/.user.yml
