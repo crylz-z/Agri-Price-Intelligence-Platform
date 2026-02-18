@@ -30,6 +30,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DBT_PROJECT_DIR = ROOT / "src" / "etl" / "dbt_project"
 
+# Always use the same Python interpreter that launched this script.
+# This ensures the correct venv is used in both local and CI contexts.
+PYTHON = sys.executable
+
 
 def _load_dotenv() -> None:
     """Load .env into the current process environment (local dev only)."""
@@ -81,10 +85,11 @@ def main() -> None:
 
     # ------------------------------------------------------------------
     # Step 1 — WRITE: Extract & load Bronze layer via dlt.
-    # Uses 'uv run' to ensure the correct venv is active in any context.
+    # Uses sys.executable so the correct venv is used in all contexts
+    # (local venv, CI system Python, etc.).
     # ------------------------------------------------------------------
     _run(
-        ["uv", "run", "python", "-m", "src.etl.dlt_pipeline.agri_price_pipeline"],
+        [PYTHON, "-m", "src.etl.dlt_pipeline.agri_price_pipeline"],
         cwd=ROOT,
         step_name="dlt Extract & Load (Bronze)",
     )
