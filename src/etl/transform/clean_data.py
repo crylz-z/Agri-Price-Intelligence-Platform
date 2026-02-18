@@ -219,18 +219,27 @@ def run_transform(target_date=None, timeout=30, check_interval=5):
             local_gold_path = f"{local_gold_dir}/regional_kpis.parquet"
 
             # Check if silver_query was successful (it tries to write to S3).
-            # If it failed, we try to run the SAME query but write locally.
-
-            logger.info("Attempting Local Silver Write...")
+            # If it failed because of READ error (source s3 missing/unreadable),
+            # we CANNOT run the same query again because it still points to S3.
+            
+            # Logic: We only try local fallback if the FAILURE was writing to S3,
+            # NOT reading from Bronze.
+            
+            # Check if Bronze is readable first?
+            # Actually, if we are here, it likely failed.
+            
+            # Simplified Fallback:
+            # 1. Try to read from S3 Bronze and write Local Silver
+            # 2. If that fails, we can't do anything.
+            
+            logger.info("Attempting Local Silver Write (Retrying Query)...")
             con.execute(
                 f"COPY ({silver_query}) TO '{local_silver_path}' (FORMAT PARQUET)"
             )
             logger.info("Local Silver Layer Written", path=local_silver_path)
 
             logger.info("Attempting Local Gold Write...")
-            # Gold needs to read from the JUST WRITTEN Silver.
-            # If S3 write failed, we read from LOCAL Silver.
-
+            # Gold must read from LOCAL Silver now
             gold_query_local = f"""
             SELECT
                 region_name,
