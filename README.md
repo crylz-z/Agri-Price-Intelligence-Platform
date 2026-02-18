@@ -2,78 +2,40 @@
 
 ## System Architecture
 
-The platform uses a modern **ELT (Extract, Load, Transform)** architecture orchestrated by GitHub Actions and monitored via Discord.
+The platform uses a modern **ELT (Extract, Load, Transform)** architecture orchestrated by GitHub Actions.
 
-```mermaid
-graph TD
-    subgraph Sources
-        A[DA-AMAS Website]
-    end
+### Architecture Overview
 
-    subgraph "Data Lake (S3)"
-        B[Bronze Layer<br>(Raw Parquet)]
-        C[Silver Layer<br>(Cleaned Parquet)]
-        D[Gold Layer<br>(Aggregated Parquet)]
-    end
-
-    subgraph Processing
-        E[dlt Pipeline<br>(Extract & Load)]
-        F[dbt Core<br>(Transform & Test)]
-    end
-
-    subgraph Consumption
-        G[Streamlit Dashboard]
-        H[Ad-hoc Analysis<br>(DuckDB)]
-    end
-
-    subgraph Orchestration
-        I[GitHub Actions<br>(Daily Schedule)]
-        J[Orchestrator Script<br>(run_pipeline.py)]
-        K[Discord Webhook<br>(Alerting)]
-    end
-
-    I --> J
-    J -->|Step 1: Extract| E
-    E -->|Scrape| A
-    E -->|Write| B
-    
-    J -->|Step 2: Transform| F
-    B -->|Read| F
-    F -->|Materialize| C
-    F -->|Materialize| D
-    
-    C -->|Read| G
-    D -->|Read| G
-    D -->|Read| H
-    
-    J -->|On Success/Fail| K
-```
+1.  **Ingestion:** The **dlt (Data Load Tool)** pipeline scrapes daily price updates from the DA-AMAS website and writes raw data to the **Bronze Layer** (AWS S3) as partitioned Parquet files.
+2.  **Transformation:** **dbt Core** (with DuckDB) reads Bronze data directly from S3, cleans and standardizes it into the **Silver Layer**, and aggregates business metrics into the **Gold Layer**.
+3.  **Consumption:** The **Streamlit Dashboard** queries the Gold Layer Parquet files directly using DuckDB for high-performance OLAP analysis.
+4.  **Orchestration:** A Python script (`run_pipeline.py`) manages the end-to-end flow, enforcing a **WAP (Write-Audit-Publish)** pattern.
 
 ## How It Works
 
 ### 1. Ingestion (EL)
-*   **Tool:** `dlt` (Data Load Tool)
+*   **Tool:** `dlt`
 *   **Source:** `src/etl/dlt_pipeline/`
-*   **Action:** Scrapes daily price updates from the DA-AMAS website.
-*   **Destination:** Writes raw data to AWS S3 (Bronze Layer) as partitioned Parquet files.
-*   **Resilience:** Uses `tenacity` for retries and smart timeouts to handle slow government servers.
+*   **Action:** Scrapes daily price updates.
+*   **Destination:** AWS S3 (Bronze Layer).
+*   **Resilience:** Uses `tenacity` for retries and smart timeouts to handle intermittent server availability.
 
 ### 2. Transformation (T)
 *   **Tool:** `dbt` (Data Build Tool) + DuckDB
 *   **Source:** `src/etl/dbt_project/`
 *   **Action:** 
-    *   Reads Bronze data directly from S3.
-    *   Cleans, dedupes, and standardizes schema (Silver).
-    *   Aggregates metrics for the dashboard (Gold).
+    *   Reads Bronze data from S3.
+    *   Transforms data to Silver and Gold layers.
 *   **Quality Gate:** `dbt test` runs immediately after valid models are built. If any data quality test (e.g., price < 0 or price > 5000) fails, the pipeline stops.
 
 ### 3. Orchestration & Alerting
 *   **Script:** `scripts/run_pipeline.py`
 *   **Pattern:** **WAP (Write-Audit-Publish)**. 
-    1.  **Write:** `dlt` runs.
-    2.  **Audit:** `dbt build` runs (models + tests).
-    3.  **Publish:** If successful, data is ready for the dashboard.
-*   **Alerting:** Sends real-time success/failure notifications to a Discord channel via Webhook.
+    1.  **Preflight:** Verifies S3 connectivity.
+    2.  **Write:** `dlt` runs extraction.
+    3.  **Audit:** `dbt build` runs transformations and tests.
+    4.  **Publish:** Data is ready for consumption.
+*   **Alerting:** Sends real-time success/failure notifications to Discord via Webhook.
 
 ## Folder Structure
 
@@ -118,15 +80,11 @@ DISCORD_WEBHOOK_URL=...
     ```bash
     uv sync
     ```
-2.  **Test connection:**
+2.  **Run full pipeline:**
     ```bash
-    python max scripts/preflight_check.py
+    uv run python scripts/run_pipeline.py
     ```
-3.  **Run full pipeline:**
+3.  **Launch Dashboard:**
     ```bash
-    python scripts/run_pipeline.py
-    ```
-4.  **Launch Dashboard:**
-    ```bash
-    uv run streamlit run src/dashboard/app.py
+    uv run python -m streamlit run src/dashboard/app.py
     ```

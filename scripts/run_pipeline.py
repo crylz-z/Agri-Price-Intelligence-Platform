@@ -110,12 +110,21 @@ def main() -> None:
     if missing:
         msg = f"Missing required environment variables: {', '.join(missing)}"
         logger.critical(msg)
-        send_discord_alert(f"🚨 Pipeline Failed: {msg}")
+        send_discord_alert(f"Pipeline Failed: {msg}")
         sys.exit(1)
 
     logger.info("Starting ELT Pipeline...")
 
     try:
+        # ------------------------------------------------------------------
+        # Step 0 — PREFLIGHT: Verify S3 connectivity.
+        # ------------------------------------------------------------------
+        _run(
+            [PYTHON, "scripts/preflight_check.py"],
+            cwd=ROOT,
+            step_name="Preflight Check (S3 Connectivity)",
+        )
+
         # ------------------------------------------------------------------
         # Step 1 — WRITE: Extract & load Bronze layer via dlt.
         # ------------------------------------------------------------------
@@ -143,12 +152,12 @@ def main() -> None:
 
     except Exception as e:
         logger.critical("Pipeline failed.", error=str(e))
-        send_discord_alert(f"🚨 Pipeline Failed: {str(e)}")
+        send_discord_alert(f"Pipeline Failed: {str(e)}")
         sys.exit(1)
 
     logger.info("ELT Pipeline completed successfully.")
     send_discord_alert(
-        "✅ ELT Pipeline completed successfully. Bronze → Silver → Gold is healthy.",
+        "ELT Pipeline completed successfully. Bronze -> Silver -> Gold is healthy.",
         status="SUCCESS",
     )
 
