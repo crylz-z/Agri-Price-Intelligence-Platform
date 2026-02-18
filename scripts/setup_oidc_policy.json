@@ -8,10 +8,8 @@
             },
             "Action": "sts:AssumeRoleWithWebIdentity",
             "Condition": {
-                "StringLike": {
-                    "token.actions.githubusercontent.com:sub": "repo:cryl-z/Agri-Price-Intelligence-Platform:*"
-                },
                 "StringEquals": {
+                    "token.actions.githubusercontent.com:sub": "repo:cryl-z/Agri-Price-Intelligence-Platform:ref:refs/heads/main",
                     "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
                 }
             }
