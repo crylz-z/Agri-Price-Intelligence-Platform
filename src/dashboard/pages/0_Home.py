@@ -1,27 +1,88 @@
 import streamlit as st
+import sys
+import os
 
-st.write("# Agri-Price Intelligence Platform")
+# Ensure root is in path for imports
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
+from src.dashboard.utils import ui
+
+# Apply Global Styling
+ui.apply_enterprise_styling()
+
+# ==========================================
+# PAGE HEADER
+# ==========================================
 st.markdown(
     """
-    Real-time monitoring of agricultural commodity prices across the Philippines.
-    
-    ### Select a Module from the sidebar to begin
-    
-    **Available Modules:**
-    - **National Market Watch**: Comprehensive dashboard for price monitoring and market analysis
-    - **Historical Trends**: Strategic view for analyzing long-term price trajectories
-    
-    ### System Status
-    - **Data Pipeline**: Active (Daily Updates)
-    - **Coverage**: 17 Regions
-    - **Commodities**: Rice, Corn, Meat, Fish, Vegetables, Fruits
-    - **Data Source**: S3-Based Lakehouse (Silver Layer)
-    """
+    <div style="text-align:center; margin-bottom:1rem;">
+        <h1 style="font-size:2rem; font-weight:700; color:#1e3a5f; margin-bottom:0.1rem;">
+            Agri-Price Intelligence Platform
+        </h1>
+        <p style="color:#6B7280; font-size:0.9rem; margin-top:0;">
+            Real-time agricultural commodity price monitoring across the Philippines
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
+
+# ==========================================
+# SYSTEM STATUS — 3-column KPI grid
+# ==========================================
+st.markdown("#### System Status")
+c1, c2, c3 = st.columns(3)
+with c1:
+    with st.container(border=True):
+        st.metric("Coverage", "17 Regions", delta=None)
+with c2:
+    with st.container(border=True):
+        st.metric("Pipeline", "Active", delta="Daily Updates", delta_color="normal")
+with c3:
+    with st.container(border=True):
+        st.metric("Commodities", "6 Categories", delta=None)
+
+st.markdown("<div style='margin-top:1rem;'></div>", unsafe_allow_html=True)
+
+# ==========================================
+# AVAILABLE MODULES — 2-column portal cards
+# ==========================================
+st.markdown("#### Available Modules")
+m1, m2 = st.columns(2)
+
+with m1:
+    with st.container(border=True):
+        st.markdown(
+            """
+            <h4 style="color:#1e3a5f; margin-bottom:0.25rem;">National Market Watch</h4>
+            <p style="color:#6B7280; font-size:0.88rem; margin-top:0;">
+                Tactical daily price monitoring — identify regional price variations,
+                detect potential price gouging, and pinpoint the best-value markets
+                for any commodity on any given date.
+            </p>
+            """,
+            unsafe_allow_html=True,
+        )
+
+with m2:
+    with st.container(border=True):
+        st.markdown(
+            """
+            <h4 style="color:#1e3a5f; margin-bottom:0.25rem;">Historical Trends</h4>
+            <p style="color:#6B7280; font-size:0.88rem; margin-top:0;">
+                Strategic long-term analysis — track price trajectories over 7, 30,
+                or 90-day windows, measure market volatility, and identify the
+                historically cheapest day of the week to buy.
+            </p>
+            """,
+            unsafe_allow_html=True,
+        )
 
 st.markdown("---")
 
+# ==========================================
+# PLATFORM DOCUMENTATION
+# ==========================================
 with st.expander("Platform Documentation & Terms of Use", expanded=False):
     st.markdown(
         """

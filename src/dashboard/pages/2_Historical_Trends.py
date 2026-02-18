@@ -169,7 +169,29 @@ with m3:
 # Smart Insight banner: compares current price to 30-day average.
 metrics.render_smart_insight(hist_df, selected_commodity)
 
-# CHART 1: PRICE TRAJECTORY (Multi-Line)
+# ==========================================
+# 30-DAY MARKET BRIEFING
+# ==========================================
+
+# Identify the dates of the extreme prices for the narrative.
+_max_price_row = hist_df.loc[hist_df["Prevailing Price (₱)"].idxmax()]
+_min_price_row = hist_df.loc[hist_df["Prevailing Price (₱)"].idxmin()]
+_max_price_date = _max_price_row["extract_dt"].strftime("%b %d, %Y")
+_min_price_date = _min_price_row["extract_dt"].strftime("%b %d, %Y")
+_volatility = max_price_period - min_price_period
+
+with st.expander("30-Day Market Briefing", expanded=True):
+    st.markdown(
+        f"""
+        Over the selected **{days_back}-day** window, **{selected_commodity}** in **{selected_region}** \
+averaged **₱{avg_price_period:,.2f}**. \
+The highest recorded price was **₱{max_price_period:,.2f}** on **{_max_price_date}**, \
+while the lowest was **₱{min_price_period:,.2f}** on **{_min_price_date}**. \
+The overall price spread (volatility) for this period is **₱{_volatility:,.2f}**—\
+{'indicating a stable market with minimal price fluctuation.' if _volatility < 20 else 'suggesting notable price volatility across the period.'}
+        """
+    )
+
 with st.container(border=True):
     st.markdown("#### Price Trajectory by Market")
     st.caption("Tracking daily price movements across different markets in the region.")
