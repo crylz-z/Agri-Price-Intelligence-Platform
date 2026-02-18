@@ -75,6 +75,10 @@ tmp/
 # Agent
 .agent/
 
+# Python bytecode
+__pycache__/
+*.pyc
+
 # dbt
 dbt_packages/
 target/

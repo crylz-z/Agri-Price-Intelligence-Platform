@@ -126,6 +126,12 @@ class DataEngine:
             if "price" in df.columns:
                 df.rename(columns={"price": "Prevailing Price (₱)"}, inplace=True)
 
+            # Filter price outliers (> 3x median) — guards against bad source data
+            if not df.empty and "Prevailing Price (₱)" in df.columns:
+                median_price = df["Prevailing Price (₱)"].median()
+                if median_price > 0:
+                    df = df[df["Prevailing Price (₱)"] <= median_price * 3].copy()
+
             # Calculate days_ago for freshness tracking (LKGV)
             if not df.empty and "extract_dt" in df.columns:
                 df["extract_dt"] = pd.to_datetime(df["extract_dt"])
@@ -174,6 +180,11 @@ class DataEngine:
 
             if not df.empty:
                 df["extract_dt"] = pd.to_datetime(df["extract_dt"])
+                # Filter price outliers (> 3x median)
+                if "Prevailing Price (₱)" in df.columns:
+                    med = df["Prevailing Price (₱)"].median()
+                    if med > 0:
+                        df = df[df["Prevailing Price (₱)"] <= med * 3].copy()
             return df
         except Exception as e:
             print(f"[ERROR] History Engine Error: {e}")

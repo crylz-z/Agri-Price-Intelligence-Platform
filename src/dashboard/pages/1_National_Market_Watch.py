@@ -39,7 +39,7 @@ import altair as alt
 # PAGE HEADER
 # ==========================================
 st.title("National Market Watch")
-st.markdown("### Real-Time Price Monitoring & Intelligence")
+st.markdown("<p style='text-align:center; color:#6B7280; font-size:0.95rem; margin-top:-0.5rem;'>Real-Time Price Monitoring & Intelligence</p>", unsafe_allow_html=True)
 
 
 # ==========================================
@@ -104,7 +104,24 @@ geo_df, srp_df = DataEngine.load_reference_data()
 # ROW 1: EXECUTIVE BRIEF (Commodity Level)
 # ==========================================
 
-st.subheader(f"Executive Brief: {selected_commodity}")
+st.markdown(
+    f"""
+    <div style="
+        background: linear-gradient(135deg, #1e3a5f 0%, #2E86AB 100%);
+        color: white;
+        padding: 0.75rem 1.25rem;
+        border-radius: 10px;
+        margin-bottom: 0.75rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(46, 134, 171, 0.3);
+    ">
+        Executive Brief: {selected_commodity}
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Sparkline (Trend)
 # Sparkline (Trend) - Fetch 7-Day History

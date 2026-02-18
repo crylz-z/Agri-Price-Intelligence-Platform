@@ -72,18 +72,33 @@ def render_kpi_cards(commodity_df, trend_df=None):
 
 def render_sparklines(trend_df, category_name):
     """
-    Renders a clean sparkline area chart for the 7-day trend.
+    Renders a sparkline area chart for the 7-day trend.
+    Aggregates to daily average price before plotting.
     """
     if trend_df.empty:
         return
 
     st.markdown(f"**7-Day Price Trend ({category_name})**")
 
-    min_val = trend_df["Prevailing Price (₱)"].min() * 0.95
-    max_val = trend_df["Prevailing Price (₱)"].max() * 1.05
+    # Aggregate to daily average — raw data has multiple markets per day
+    daily_avg = (
+        trend_df.groupby(trend_df["extract_dt"].dt.date)["Prevailing Price (₱)"]
+        .mean()
+        .reset_index()
+    )
+    daily_avg.columns = ["date", "avg_price"]
+    daily_avg["date"] = pd.to_datetime(daily_avg["date"])
+
+    if daily_avg.empty or len(daily_avg) < 2:
+        st.caption("Insufficient data for trend chart.")
+        return
+
+    # Explicit domain — area charts fill to domain min, so set it close to data min
+    y_min = float(daily_avg["avg_price"].min()) * 0.90
+    y_max = float(daily_avg["avg_price"].max()) * 1.10
 
     chart = (
-        alt.Chart(trend_df)
+        alt.Chart(daily_avg)
         .mark_area(
             line={"color": "#2E86AB"},
             color=alt.Gradient(
@@ -97,20 +112,21 @@ def render_sparklines(trend_df, category_name):
                 y1=1,
                 y2=0,
             ),
+            interpolate="monotone",
         )
         .encode(
-            alt.X("extract_dt:T", title=None, axis=alt.Axis(format="%b %d", labelAngle=0)),
+            alt.X("date:T", title=None, axis=alt.Axis(format="%b %d", labelAngle=0)),
             alt.Y(
-                "Prevailing Price (₱):Q",
-                title=None,
-                scale=alt.Scale(domain=[min_val, max_val]),
+                "avg_price:Q",
+                title="Avg Price (₱)",
+                scale=alt.Scale(domain=[y_min, y_max]),
             ),
             tooltip=[
-                alt.Tooltip("extract_dt:T", title="Date", format="%b %d, %Y"),
-                alt.Tooltip("Prevailing Price (₱):Q", title="Price", format="₱,.2f"),
+                alt.Tooltip("date:T", title="Date", format="%b %d, %Y"),
+                alt.Tooltip("avg_price:Q", title="Avg Price", format="₱,.2f"),
             ],
         )
-        .properties(height=120)
+        .properties(height=180)
     )
 
     st.altair_chart(chart, use_container_width=True)
