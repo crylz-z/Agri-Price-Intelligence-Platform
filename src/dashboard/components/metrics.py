@@ -72,12 +72,10 @@ def render_kpi_cards(commodity_df, trend_df=None):
 
 def render_sparklines(trend_df, category_name):
     """
-    Renders a sparkline area chart for the 7-day trend.
+    Renders a 30-day price trend line chart with per-day point markers.
     Aggregates to daily average price before plotting.
-    """
-    """
-    Renders a sparkline area chart for the 7-day trend.
-    Aggregates to daily average price before plotting.
+    Point markers expose data sparsity: a dot appears only on days where
+    data was actually collected, making pipeline gaps immediately visible.
     """
     # Context: expecting a DataFrame with 'extract_dt' and 'Prevailing Price (₱)' columns
 
@@ -104,56 +102,47 @@ def render_sparklines(trend_df, category_name):
         st.caption("No data available for trend chart.")
         return
 
-    # Configure Y-axis domain with padding for visual clarity
-    y_vals = daily_avg["avg_price"]
-    y_min = float(y_vals.min()) * 0.95
-    y_max = float(y_vals.max()) * 1.05
-    
-    # Adjust domain if values are static to prevent flat lined charts being misleading
-    if y_min == y_max:
-        y_min = y_vals.min() - 10
-        y_max = y_vals.max() + 10
+    # Shared tooltip definition — shown on both line and point marks.
+    tooltips = [
+        alt.Tooltip("date:T", title="Date", format="%b %d, %Y"),
+        alt.Tooltip("avg_price:Q", title="Price (₱)", format=",.2f"),
+    ]
 
-    # Initialize text chart object
-    base = alt.Chart(daily_avg).encode(
-        alt.X("date:T", title=None, axis=alt.Axis(format="%b %d", labelAngle=0, tickCount=7)),
-        tooltip=[
-            alt.Tooltip("date:T", title="Date", format="%b %d, %Y"),
-            alt.Tooltip("avg_price:Q", title="Avg Price", format=",.2f"),
-        ]
+    # Shared X encoding.
+    x_enc = alt.X(
+        "date:T",
+        title=None,
+        axis=alt.Axis(format="%b %d", labelAngle=-30, tickCount=7),
     )
 
+    # Y encoding with zero=False so the axis zooms to the actual price range,
+    # making daily volatility visible instead of a flat line at the top of a
+    # 0-based scale.
+    y_enc = alt.Y(
+        "avg_price:Q",
+        title="Avg Price (₱)",
+        scale=alt.Scale(zero=False),
+    )
+
+    base = alt.Chart(daily_avg).encode(x=x_enc, y=y_enc, tooltip=tooltips)
+
     if len(daily_avg) == 1:
-        # Single point - render as a point + text to make it clearly visible
-        # Also ensure Y domain is padded
-        base = base.encode(
-             alt.X("date:T", title=None, axis=alt.Axis(format="%b %d", labelAngle=0, tickCount=7))
+        # Single data point: render as a labelled dot.
+        point = base.mark_point(filled=True, size=120, color="#2E86AB")
+        label = base.mark_text(dy=-15, color="#2E86AB").encode(
+            text=alt.Text("avg_price:Q", format=",.2f")
         )
-        
-        point = base.mark_point(filled=True, size=100, color="#2E86AB").encode(
-            alt.Y("avg_price:Q", title="Avg Price (₱)", scale=alt.Scale(domain=[y_min, y_max]))
-        )
-        text = base.mark_text(dy=-15, color="#2E86AB").encode(
-            alt.Y("avg_price:Q"),
-            text=alt.Text("avg_price:Q", format=".2f")
-        )
-        chart = point + text
+        chart = point + label
     else:
-        # Area chart for trends
-        chart = base.mark_area(
-            line={"color": "#2E86AB"},
-            color=alt.Gradient(
-                gradient="linear",
-                stops=[
-                    alt.GradientStop(color="white", offset=0),
-                    alt.GradientStop(color="#2E86AB", offset=1),
-                ],
-                x1=1, x2=1, y1=1, y2=0,
-            ),
+        # Multi-day view: line with point=True renders a dot on every day that
+        # has data, immediately exposing gaps where the pipeline did not collect.
+        line = base.mark_line(
+            point=alt.OverlayMarkDef(filled=True, size=60, color="#2E86AB"),
+            color="#2E86AB",
             interpolate="monotone",
-        ).encode(
-            alt.Y("avg_price:Q", title="Avg Price (₱)", scale=alt.Scale(domain=[y_min, y_max]))
+            strokeWidth=2,
         )
+        chart = line
 
     st.altair_chart(chart.properties(height=180), use_container_width=True)
 
