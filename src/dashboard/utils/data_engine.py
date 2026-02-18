@@ -75,6 +75,24 @@ class DataEngine:
         return con
 
     @staticmethod
+    def _get_partition_filters(start_date, end_date):
+        """
+        Generates SQL WHERE clause for partition pruning based on date range.
+        Assumes Hive-style partitioning: year=YYYY/month=MM/day=DD
+        Returns: string like "(year = '2023' AND month = '10' AND day IN ('01', '02')) OR ..."
+        """
+        filters = []
+        current = start_date
+        while current <= end_date:
+            y = str(current.year)
+            m = f"{current.month:02d}"
+            d = f"{current.day:02d}"
+            filters.append(f"(year = '{y}' AND month = '{m}' AND day = '{d}')")
+            current += timedelta(days=1)
+        
+        return " OR ".join(filters) if filters else "1=1"
+
+    @staticmethod
     @st.cache_data(ttl=600)
     def get_market_snapshot(target_date_str, window_days=3):
         """
@@ -87,6 +105,9 @@ class DataEngine:
             target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
             start_date = target_date - timedelta(days=window_days)
             start_date_str = start_date.strftime("%Y-%m-%d")
+            
+            # Generate partition pruning filter
+            partition_filter = DataEngine._get_partition_filters(start_date, target_date)
         except:
             return pd.DataFrame()
 
@@ -99,8 +120,9 @@ class DataEngine:
                 commodity,
                 price,
                 extract_dt
-            FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true)
-            WHERE CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
+            FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true, hive_partitioning=1)
+            WHERE ({partition_filter})
+              AND CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
               AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'
               AND CAST(extract_dt AS DATE) BETWEEN '{start_date_str}' AND '{target_date_str}'
         ),
@@ -168,6 +190,9 @@ class DataEngine:
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days_back)
         start_date_str = start_date.strftime("%Y-%m-%d")
+        
+        # Generator partition pruning filter
+        partition_filter = DataEngine._get_partition_filters(start_date, end_date)
 
         query = f"""
         SELECT
@@ -176,9 +201,10 @@ class DataEngine:
             region_name,
             market_name,
             commodity
-        FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true)
+        FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true, hive_partitioning=1)
         WHERE
-            CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
+            ({partition_filter})
+            AND CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
             AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'
             AND TRY_CAST(extract_dt AS DATE) >= '{start_date_str}'
             AND commodity = '{commodity}'
