@@ -21,6 +21,39 @@ def get_latest_date_str():
     return datetime.now().strftime("%Y-%m-%d")
 
 
+    return datetime.now().strftime("%Y-%m-%d")
+
+
+def wait_for_bronze_data(bucket, year, month, day, timeout=3600, check_interval=300):
+    """
+    Polls S3 for up to `timeout` seconds waiting for Bronze data to appear.
+    """
+    import boto3
+    import time
+
+    prefix = f"bronze/year={year}/month={month}/day={day}/"
+    s3 = boto3.client("s3")
+    
+    start_time = time.time()
+    
+    logger.info(f"Waiting for Bronze data...", prefix=prefix, timeout=f"{timeout}s")
+
+    while True:
+        try:
+            response = s3.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=1)
+            if "Contents" in response:
+                return True
+        except Exception as e:
+            logger.error(f"Error checking Bronze data: {e}")
+
+        elapsed = time.time() - start_time
+        if elapsed > timeout:
+            logger.warning(f"Timeout reached. No data found after {elapsed:.0f}s.")
+            return False
+
+        time.sleep(check_interval)
+
+
 def setup_duckdb(con):
     """Configures DuckDB with AWS credentials and httpfs."""
     aws_key = os.getenv("AWS_ACCESS_KEY_ID")
@@ -41,7 +74,7 @@ def setup_duckdb(con):
     # con.execute("SET s3_url_style='path';")
 
 
-def run_transform(target_date=None):
+def run_transform(target_date=None, timeout=30, check_interval=5):
     """
     Orchestrates the S3-based Lakehouse transformation pipeline.
     Bronze (S3) -> Silver (S3 Parquet) -> Gold (S3 Parquet)
@@ -63,6 +96,11 @@ def run_transform(target_date=None):
     s3_bucket = os.getenv("S3_BUCKET_NAME")
     if not s3_bucket:
         logger.error("S3_BUCKET_NAME not set.")
+        return
+
+    # Check Bronze Availability (Polling)
+    if not wait_for_bronze_data(s3_bucket, year, month, day, timeout=timeout, check_interval=check_interval):
+        logger.warning(f"No Bronze data found for {target_date} after polling. Skipping.")
         return
 
     # Paths (Deep Partitioning)
@@ -313,9 +351,24 @@ def run_backfill():
 if __name__ == "__main__":
     import sys
     
-    if "--backfill" in sys.argv:
+    import sys
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Run ETL Transformation Pipeline")
+    parser.add_argument("--backfill", action="store_true", help="Run in backfill mode")
+    parser.add_argument("--date", type=str, help="Target date (YYYY-MM-DD)")
+    parser.add_argument("--timeout", type=int, default=3600, help="Polling timeout in seconds")
+    parser.add_argument("--interval", type=int, default=300, help="Polling interval in seconds")
+
+    args = parser.parse_args()
+
+    if args.backfill:
         success = run_backfill()
     else:
-        success = run_transform()
-    
-    sys.exit(0 if success else 1)
+        success = run_transform(
+            target_date=args.date, 
+            timeout=args.timeout, 
+            check_interval=args.interval
+        )
+
+    sys.exit(0 if success is not False else 1)

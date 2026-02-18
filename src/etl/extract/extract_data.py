@@ -72,8 +72,8 @@ def send_discord_alert(region_name: str, error_msg: str):
 
 
 @retry(
-    stop=stop_after_attempt(5),
-    wait=wait_exponential(multiplier=1, min=4, max=10),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=10),
     retry=retry_if_exception_type(
         (requests.exceptions.RequestException, requests.exceptions.HTTPError)
     ),
@@ -361,13 +361,13 @@ def process_region(args):
 
 def main():
     logger.info("Starting Extraction Engine V3.2 (Fail-Fast Timeout Constraints)...")
-    logger.info("Configuration", regions=len(REGION_MAP), workers=5, timeout="900s")
+    logger.info("Configuration", regions=len(REGION_MAP), workers=2, timeout="900s")
 
     pipeline_start = time.time()
     results = []
     REGION_TIMEOUT = 900  # 15 minutes per region
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         region_args = [(rid, rname) for rid, rname in REGION_MAP.items()]
         
         # Submit all futures
