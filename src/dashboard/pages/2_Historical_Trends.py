@@ -20,6 +20,7 @@ if (
 
 from src.dashboard.utils.data_engine import DataEngine
 from src.dashboard.utils import ui
+from src.dashboard.components import metrics
 
 # Apply Global Styling
 ui.apply_enterprise_styling()
@@ -29,8 +30,17 @@ ui.apply_enterprise_styling()
 # ==========================================
 # PAGE HEADER
 # ==========================================
-st.title("Strategic Analysis: Historical Trends")
-st.markdown("##### Long-Term Price Trajectory & Volatility")
+st.markdown(
+    """
+    <div style="text-align:center; margin-bottom:0.5rem;">
+        <h1 style="font-size:2rem; font-weight:700; color:#1e3a5f; margin-bottom:0.1rem;">
+            Strategic Analysis: Historical Trends
+        </h1>
+        <p style="color:#6B7280; font-size:0.9rem; margin-top:0;">Long-Term Price Trajectory &amp; Volatility</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # ==========================================
 # CONFIGURATION & FILTERS
@@ -53,7 +63,7 @@ days_back = range_options[selected_range_label]
 # Initialize DataEngine to retrieve the latest available dataset date
 min_date, max_date = DataEngine.get_date_range()
 if not max_date:
-    st.warning("⚠️ No data currently available. Please check back later.")
+    st.warning("No data currently available. Please check back later.")
     st.info("The ETL pipeline runs daily. Data may be temporarily unavailable during processing.")
     st.stop()
 
@@ -61,7 +71,7 @@ latest_date = max_date.strftime("%Y-%m-%d")
 reference_df = DataEngine.get_market_snapshot(latest_date)
 
 if reference_df is None or reference_df.empty:
-    st.warning("⚠️ Unable to load data for {latest_date}.")
+    st.warning(f"Unable to load data for {latest_date}.")
     st.info("Try again later or contact support if the issue persists.")
     st.stop()
 
@@ -156,6 +166,9 @@ with m3:
             delta_color="inverse",
         )
 
+# Smart Insight banner: compares current price to 30-day average.
+metrics.render_smart_insight(hist_df, selected_commodity)
+
 # CHART 1: PRICE TRAJECTORY (Multi-Line)
 with st.container(border=True):
     st.markdown("#### Price Trajectory by Market")
@@ -164,9 +177,9 @@ with st.container(border=True):
     with st.expander("How to Read This Chart", expanded=False):
         st.markdown(
             """
-        *   **↗️ Upward Slope**: Prices are getting more expensive (Inflation).
-        *   **↘️ Downward Slope**: Prices are going down (Supply is stabilizing).
-        *   **High Flyers**: Lines far above the rest might indicate localized shortages.
+        *   **Upward Slope**: Prices are getting more expensive (Inflation).
+        *   **Downward Slope**: Prices are going down (Supply is stabilizing).
+        *   **High Flyers**: Lines far above the rest may indicate localized shortages.
         *   **Tight Cluster**: When lines are close together, prices are consistent across markets.
         """
         )
@@ -244,7 +257,7 @@ with st.container(border=True):
 
 # CHART 3: BEST DAY TO BUY (Day of Week Analysis)
 with st.container(border=True):
-    st.markdown("#### 📅 Best Day to Buy Analysis")
+    st.markdown("#### Best Day to Buy Analysis")
     st.caption("Which day of the week typically offers the lowest prices? Based on historical averages.")
 
     # Prepare Data

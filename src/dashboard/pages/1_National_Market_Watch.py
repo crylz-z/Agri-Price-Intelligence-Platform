@@ -39,8 +39,17 @@ import altair as alt
 # ==========================================
 # PAGE HEADER
 # ==========================================
-st.title("National Market Watch")
-st.markdown("<p style='text-align:center; color:#6B7280; font-size:0.95rem; margin-top:-0.5rem;'>Real-Time Price Monitoring & Intelligence</p>", unsafe_allow_html=True)
+st.markdown(
+    """
+    <div style="text-align:center; margin-bottom:0.5rem;">
+        <h1 style="font-size:2rem; font-weight:700; color:#1e3a5f; margin-bottom:0.1rem;">
+            National Market Watch
+        </h1>
+        <p style="color:#6B7280; font-size:0.9rem; margin-top:0;">Real-Time Price Monitoring &amp; Intelligence</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # ==========================================
@@ -52,7 +61,7 @@ st.sidebar.header("Configuration")
 # 1. Date
 min_date, max_date = DataEngine.get_date_range()
 if not min_date or not max_date:
-    st.warning("⚠️ No data currently available. Please check back later.")
+    st.warning("No data currently available. Please check back later.")
     st.info("The ETL pipeline runs daily. Data may be temporarily unavailable during processing.")
     st.stop()
 
@@ -69,7 +78,7 @@ selected_date = picked_date.strftime("%Y-%m-%d")
 # LOAD DATA (LKGV)
 raw_df = DataEngine.get_market_snapshot(selected_date)
 if raw_df is None or raw_df.empty:
-    st.warning(f"⚠️ No data available for {selected_date}.")
+    st.warning(f"No data available for {selected_date}.")
     st.info("Try selecting a different date or check back later.")
     st.stop()
 
