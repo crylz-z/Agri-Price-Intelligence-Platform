@@ -1,6 +1,7 @@
 import streamlit as st
 import sys
 import os
+import pandas as pd
 from dotenv import load_dotenv
 
 # Load environment variables for S3 access
