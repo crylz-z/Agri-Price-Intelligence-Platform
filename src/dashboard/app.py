@@ -5,10 +5,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 st.set_page_config(
-    page_title="Home",
+    page_title="Agri-Price Intelligence Platform",
     page_icon="🌽",
     layout="wide"
 )
+
+# Override sidebar "app" label to "Home"
+st.html("""
+<script>
+const links = window.parent.document.querySelectorAll('[data-testid="stSidebarNav"] a');
+links.forEach(link => {
+    const span = link.querySelector('span');
+    if (span && span.textContent.trim() === 'app') span.textContent = 'Home';
+});
+</script>
+""")
 
 st.write("# Agri-Price Intelligence Platform")
 

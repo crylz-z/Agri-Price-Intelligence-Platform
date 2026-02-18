@@ -83,7 +83,12 @@ region_df = raw_df[raw_df["region_name"] == selected_region].copy()
 
 # 3. Category
 valid_categories = sorted(region_df["category"].dropna().unique())
-selected_category = st.sidebar.selectbox("Category", valid_categories)
+default_cat_ix = 0
+for i, cat in enumerate(valid_categories):
+    if "FISH" in cat.upper():
+        default_cat_ix = i
+        break
+selected_category = st.sidebar.selectbox("Category", valid_categories, index=default_cat_ix)
 category_df = region_df[region_df["category"] == selected_category].copy()
 
 # 4. Commodity

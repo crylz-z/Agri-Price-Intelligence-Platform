@@ -103,17 +103,29 @@ def render_sparklines(trend_df, category_name):
             ),
         )
         .encode(
-            x=alt.X("extract_dt:T", title=None, axis=None),  # Clean Sparkline
+            x=alt.X(
+                "extract_dt:T",
+                title=None,
+                axis=alt.Axis(
+                    format="%b %d",
+                    labelAngle=0,
+                    labelPadding=4,
+                    tickCount="day",
+                ),
+            ),
             y=alt.Y(
                 "Prevailing Price (₱):Q",
                 title=None,
                 scale=alt.Scale(domain=[min_val, max_val]),
                 axis=None,
             ),
-            tooltip=["extract_dt", "Prevailing Price (₱)"],
+            tooltip=[
+                alt.Tooltip("extract_dt:T", title="Date", format="%b %d, %Y"),
+                alt.Tooltip("Prevailing Price (₱):Q", title="Price", format="₱,.2f"),
+            ],
         )
-        .properties(height=80)
-        .configure_view(strokeWidth=0)  # Remove border
+        .properties(height=120)
+        .configure_view(strokeWidth=0)
         .interactive()
     )
 
