@@ -1,15 +1,11 @@
-name: Daily Price Extraction (Triple Tap)
+name: Daily Price Extraction
 
 on:
   schedule:
-    # Run 3 times a day (UTC times map to PH times: GMT+8)
-    # 02:00 UTC = 10:00 AM PH (Run 1: Early Bird)
-    # 06:00 UTC = 02:00 PM PH (Run 2: Lunch Update)
-    # 10:00 UTC = 06:00 PM PH (Run 3: Final Close)
+    # 02:00 UTC = 10:00 AM PH | 10:00 UTC = 06:00 PM PH
     - cron: '0 2 * * *'
     - cron: '0 10 * * *'
-  
-  # Allow manual trigger from GitHub UI
+
   workflow_dispatch:
 
 concurrency:
@@ -19,66 +15,49 @@ concurrency:
 jobs:
   extract-and-transform:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
-      contents: write  # Critical for committing data back
-      id-token: write  # Required for requesting the OIDC JWT Token
+      contents: write
+      id-token: write
+
+    env:
+      S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+      AWS_DEFAULT_REGION: ap-southeast-2
 
     steps:
-    # 1. Checkout Code
     - name: Checkout Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
-    # 2. Setup Python
     - name: Set up Python 3.12
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.12'
 
-    # 3. Install Dependencies
     - name: Install Dependencies
       run: |
         pip install uv
         uv pip install -e . --system
 
-    # 4. Configure AWS Credentials (OIDC)
-    - name: Configure AWS Credentials
+    - name: Configure AWS Credentials (OIDC)
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-        aws-region: "ap-southeast-2"
+        aws-region: ap-southeast-2
 
-    # 5. Pre-Flight S3 Connection Test
     - name: Pre-Flight S3 Connection Test
       run: python scripts/preflight_check.py
-      env:
-        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-        AWS_DEFAULT_REGION: "ap-southeast-2"
 
-    # 6. Run dlt Pipeline (Extraction)
-    - name: Run dlt Pipeline
+    - name: Run dlt Pipeline (Extract)
       run: python -m src.etl.dlt_pipeline.agri_price_pipeline
-      env:
-        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-        AWS_DEFAULT_REGION: "ap-southeast-2"
-        # DESTINATION__FILESYSTEM__CREDENTIALS are handled by Configure AWS Credentials step via env vars
 
-    # 7. Run dbt (Transformation)
-    - name: Run dbt Build
+    - name: Run dbt Build (Transform)
       run: |
         cd src/etl/dbt_project
         dbt deps
         dbt build --profiles-dir .
-      env:
-        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-        AWS_DEFAULT_REGION: "ap-southeast-2"
-        # validation contract was likely legacy or separate step, removing it from here as it seems misplaced
-        # if needed, add as separate step
 
     - name: Run Data Contract Validation
       run: python -m src.validation.contract
       env:
-        LOG_LEVEL: "INFO"
+        LOG_LEVEL: INFO
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        # AWS Keys are injected by configure-aws-credentials step
-        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-        AWS_DEFAULT_REGION: "ap-southeast-2"
