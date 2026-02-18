@@ -7,7 +7,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 
 from src.core.config import REGION_MAP, CATEGORY_MAP, BASE_URL
 from src.core.http_client import AgriHttpClient
-from src.utils.logger import get_logger
+from src.core.logger import get_logger
 
 logger = get_logger(__name__)
 

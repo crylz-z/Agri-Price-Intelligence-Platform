@@ -24,15 +24,23 @@ import subprocess
 import sys
 from pathlib import Path
 
+import requests
+
+from src.core.logger import get_logger
+
 # ---------------------------------------------------------------------------
-# Paths
+# Globals
 # ---------------------------------------------------------------------------
 ROOT = Path(__file__).resolve().parent.parent
 DBT_PROJECT_DIR = ROOT / "src" / "etl" / "dbt_project"
-
-# Always use the same Python interpreter that launched this script.
 PYTHON = sys.executable
 
+logger = get_logger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def _load_dotenv() -> None:
     """Load .env into the current process environment (local dev only)."""
@@ -51,23 +59,19 @@ def _load_dotenv() -> None:
 def send_discord_alert(message: str, status: str = "ERROR") -> None:
     """
     Posts a pipeline status notification to Discord via webhook.
-    Silently no-ops if DISCORD_WEBHOOK_URL is not set (e.g. local dev
-    without a webhook configured).
+    Silently no-ops if DISCORD_WEBHOOK_URL is not set (e.g. local dev).
+    Never raises — alerting failure must not affect the pipeline exit code.
     """
-    import requests  # stdlib-free import; only needed at alert time.
-
-    webhook_url = os.environ.get("DISCORD_WEBHOOK_URL")
+    webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
     if not webhook_url:
-        print(f"[ALERT] DISCORD_WEBHOOK_URL not set — skipping Discord notification.")
+        logger.warning("DISCORD_WEBHOOK_URL not set — skipping Discord notification.")
         return
 
-    color = 0x2ECC71 if status == "SUCCESS" else 0xE74C3C  # green / red
-    emoji = "✅" if status == "SUCCESS" else "🚨"
-
+    color = 65280 if status == "SUCCESS" else 16711680  # green / red
     payload = {
         "embeds": [
             {
-                "title": f"{emoji} Agri-Price Pipeline — {status}",
+                "title": f"Agri-Price Pipeline — {status}",
                 "description": message,
                 "color": color,
             }
@@ -77,37 +81,27 @@ def send_discord_alert(message: str, status: str = "ERROR") -> None:
     try:
         resp = requests.post(webhook_url, json=payload, timeout=10)
         resp.raise_for_status()
-        print(f"[ALERT] Discord notification sent ({status}).")
-    except Exception as exc:
-        # Never let alerting failure kill the pipeline exit code.
-        print(f"[ALERT] Failed to send Discord notification: {exc}")
+        logger.info("Discord notification sent.", status=status)
+    except requests.exceptions.RequestException as exc:
+        logger.error("Failed to send Discord notification.", error=str(exc))
 
 
 def _run(cmd: list[str], cwd: Path | None = None, step_name: str = "") -> None:
     """
-    Run a subprocess command. Raises SystemExit(1) on non-zero return code.
-    Streams stdout/stderr in real time so CI logs are not buffered.
+    Run a subprocess command with check=True so any non-zero exit raises
+    subprocess.CalledProcessError, which is caught by the outer try/except.
     """
     label = step_name or " ".join(cmd)
-    print(f"\n{'='*60}")
-    print(f"STEP: {label}")
-    print(f"CMD : {' '.join(cmd)}")
-    if cwd:
-        print(f"CWD : {cwd}")
-    print("=" * 60)
+    logger.info("Starting step.", step=label, cmd=" ".join(cmd))
+    subprocess.run(cmd, cwd=cwd, env=os.environ, check=True)
+    logger.info("Step completed.", step=label)
 
-    result = subprocess.run(cmd, cwd=cwd, env=os.environ)
 
-    if result.returncode != 0:
-        raise RuntimeError(
-            f"Step '{label}' failed with exit code {result.returncode}."
-        )
-
-    print(f"\n[OK] Step '{label}' completed successfully.")
-
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 
 def main() -> None:
-    # Load .env for local development. In CI, env vars are injected by the runner.
     _load_dotenv()
 
     # Validate required env vars before doing any work.
@@ -115,53 +109,48 @@ def main() -> None:
     missing = [v for v in required if not os.environ.get(v)]
     if missing:
         msg = f"Missing required environment variables: {', '.join(missing)}"
-        print(f"[FATAL] {msg}")
-        send_discord_alert(msg)
+        logger.critical(msg)
+        send_discord_alert(f"🚨 Pipeline Failed: {msg}")
         sys.exit(1)
 
+    logger.info("Starting ELT Pipeline...")
+
     try:
-        # --------------------------------------------------------------
+        # ------------------------------------------------------------------
         # Step 1 — WRITE: Extract & load Bronze layer via dlt.
-        # --------------------------------------------------------------
+        # ------------------------------------------------------------------
         _run(
             [PYTHON, "-m", "src.etl.dlt_pipeline.agri_price_pipeline"],
             cwd=ROOT,
             step_name="dlt Extract & Load (Bronze)",
         )
 
-        # --------------------------------------------------------------
+        # ------------------------------------------------------------------
         # Step 2 — AUDIT + PUBLISH: dbt build runs models then tests.
-        # A single failing test aborts the build, preventing bad data
-        # from reaching the Gold layer the dashboard reads.
-        # --------------------------------------------------------------
+        # check=True means a failing test raises CalledProcessError here,
+        # preventing bad data from reaching the Gold layer.
+        # ------------------------------------------------------------------
+        os.chdir(DBT_PROJECT_DIR)
+
         _run(
             ["dbt", "deps"],
-            cwd=DBT_PROJECT_DIR,
             step_name="dbt deps",
         )
         _run(
             ["dbt", "build", "--profiles-dir", str(DBT_PROJECT_DIR)],
-            cwd=DBT_PROJECT_DIR,
             step_name="dbt build (Transform + Audit)",
         )
 
-    except Exception as exc:
-        error_msg = str(exc)
-        print(f"\n[FATAL] Pipeline failed: {error_msg}")
-        send_discord_alert(
-            f"**Pipeline halted.** Downstream steps did not execute.\n\n```\n{error_msg}\n```"
-        )
+    except Exception as e:
+        logger.critical("Pipeline failed.", error=str(e))
+        send_discord_alert(f"🚨 Pipeline Failed: {str(e)}")
         sys.exit(1)
 
-    # All steps passed.
+    logger.info("ELT Pipeline completed successfully.")
     send_discord_alert(
-        "All ELT steps completed. Bronze → Silver → Gold pipeline is healthy.",
+        "✅ ELT Pipeline completed successfully. Bronze → Silver → Gold is healthy.",
         status="SUCCESS",
     )
-
-    print("\n" + "=" * 60)
-    print("PIPELINE COMPLETE — All steps passed.")
-    print("=" * 60)
 
 
 if __name__ == "__main__":
