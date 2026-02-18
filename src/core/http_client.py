@@ -1,6 +1,6 @@
 import requests
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
+from urllib3.util.retry import Retry
 from . import config
 
 
@@ -17,14 +17,15 @@ class AgriHttpClient:
 
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("https://", adapter)
-        self.session.mount("https://", adapter)
         self.session.mount("http://", adapter)
         self.session.headers.update(
             {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             }
         )
-        self.timeout = 30  # Strict 30s timeout enforcement
+        # 120s per request. The government server (bantaypresyo.da.gov.ph) is slow;
+        # 30s caused premature ConnectionErrors that triggered retries and compounded total runtime.
+        self.timeout = 120
 
     def get(self, url, params=None, **kwargs):
         try:
@@ -34,10 +35,8 @@ class AgriHttpClient:
             response.raise_for_status()
             return response
         except requests.exceptions.HTTPError as err:
-            # Log error here
             raise err
         except requests.exceptions.RequestException as e:
-            # Log critical failure
             raise e
 
     def post(self, url, data=None, json=None, **kwargs):

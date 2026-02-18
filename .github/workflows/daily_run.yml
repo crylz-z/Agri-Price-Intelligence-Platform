@@ -2,21 +2,21 @@ name: Daily Price Extraction
 
 on:
   schedule:
-    # 02:00 UTC = 10:00 AM PH | 06:00 UTC = 02:00 PM PH | 13:00 UTC = 09:00 PM PH
+    # 02:00 UTC = 10:00 AM PH — Single daily run. Extraction takes 1-2h; multiple schedules risk overlap.
     - cron: '0 2 * * *'
-    - cron: '0 6 * * *'
-    - cron: '0 13 * * *'
 
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Do NOT cancel in-progress runs. Extraction takes 1-2h; a new trigger must not kill a running job.
+  cancel-in-progress: false
 
 jobs:
   extract-and-transform:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 6-hour ceiling. The slowest observed run was ~2h; this provides a safe upper bound.
+    timeout-minutes: 360
     permissions:
       contents: write
       id-token: write

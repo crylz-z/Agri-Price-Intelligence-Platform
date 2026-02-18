@@ -75,14 +75,14 @@ def render_sparklines(trend_df, category_name):
     Renders a sparkline area chart for the 7-day trend.
     Aggregates to daily average price before plotting.
     """
-    # This block is an example of how trend_df might be generated, not part of the function's execution
-    # trend_df = DataEngine.get_historical_trends(
-    #     selected_commodity, selected_region, days_back=30
-    # )
+    """
+    Renders a sparkline area chart for the 7-day trend.
+    Aggregates to daily average price before plotting.
+    """
+    # Context: expecting a DataFrame with 'extract_dt' and 'Prevailing Price (₱)' columns
 
     if trend_df.empty:
-        # Try fall back or just return empty
-        # If empty for 30 days, then truly no data.
+        # Handle empty dataset scenarios gracefully
         st.caption("No recent data found for trend analysis.")
         return
 
@@ -104,22 +104,22 @@ def render_sparklines(trend_df, category_name):
         st.caption("No data available for trend chart.")
         return
 
-    # Explicit domain with padding
+    # Configure Y-axis domain with padding for visual clarity
     y_vals = daily_avg["avg_price"]
     y_min = float(y_vals.min()) * 0.95
     y_max = float(y_vals.max()) * 1.05
     
-    # If min == max (flat line), add artificial buffer
+    # Adjust domain if values are static to prevent flat lined charts being misleading
     if y_min == y_max:
         y_min = y_vals.min() - 10
         y_max = y_vals.max() + 10
 
-    # Build Chart
+    # Initialize text chart object
     base = alt.Chart(daily_avg).encode(
         alt.X("date:T", title=None, axis=alt.Axis(format="%b %d", labelAngle=0, tickCount=7)),
         tooltip=[
             alt.Tooltip("date:T", title="Date", format="%b %d, %Y"),
-            alt.Tooltip("avg_price:Q", title="Avg Price", format="₱,.2f"),
+            alt.Tooltip("avg_price:Q", title="Avg Price", format=",.2f"),
         ]
     )
 

@@ -26,13 +26,13 @@ ui.apply_enterprise_styling()
 
 
 # ==========================================
-# HEADER
+# PAGE HEADER
 # ==========================================
 st.title("Strategic Analysis: Historical Trends")
 st.markdown("### Long-Term Price Trajectory & Volatility")
 
 # ==========================================
-# SIDEBAR FILTERS
+# CONFIGURATION & FILTERS
 # ==========================================
 st.sidebar.header("Configuration")
 
@@ -48,9 +48,8 @@ selected_range_label = st.sidebar.selectbox(
 )
 days_back = range_options[selected_range_label]
 
-# 2. Region & Commodity (We need a reference to populate these, load latest available)
-# We can use the DataEngine to get the latest date to bootstrap the lists
-# We can use the DataEngine to get the latest date to bootstrap the lists
+# 2. Region & Commodity Selection
+# Initialize DataEngine to retrieve the latest available dataset date
 min_date, max_date = DataEngine.get_date_range()
 if not max_date:
     st.warning("⚠️ No data currently available. Please check back later.")
@@ -65,21 +64,21 @@ if reference_df is None or reference_df.empty:
     st.info("Try again later or contact support if the issue persists.")
     st.stop()
 
-# Region
+# Region Selection
 valid_regions = sorted(reference_df["region_name"].dropna().unique())
 default_ix = 0
 if "NCR (NATIONAL CAPITAL REGION)" in valid_regions:
     default_ix = valid_regions.index("NCR (NATIONAL CAPITAL REGION)")
 selected_region = st.sidebar.selectbox("Region", valid_regions, index=default_ix)
 
-# Commodity (Filter by Region first to be helpful)
+# Commodity Selection (Filtered by Region)
 region_ref_df = reference_df[reference_df["region_name"] == selected_region]
 valid_commodities = sorted(region_ref_df["commodity"].dropna().unique())
 selected_commodity = st.sidebar.selectbox("Commodity", valid_commodities)
 
 
 # ==========================================
-# LOAD HISTORICAL DATA
+# DATA INGESTION
 # ==========================================
 with st.spinner(f"Loading {days_back} days of history for {selected_commodity}..."):
     hist_df = DataEngine.get_historical_trends(
@@ -127,8 +126,8 @@ with st.container(border=True):
         """
         )
 
-    # Line Chart: X=Date, Y=Price, Color=Market(distinct)
-    # Enterprise: No Grid, Interactive Tooltips, Distinct Muted Colors
+    # Line Chart: X=Date, Y=Price, Color=Market
+    # Visualization configured for enterprise clarity with interactive tooltips and distinct color schemes
     line_chart = (
         alt.Chart(hist_df)
         .mark_line(point=True)
@@ -139,8 +138,12 @@ with st.container(border=True):
             ),
             color=alt.Color(
                 "market_name:N", title="Market", scale=alt.Scale(scheme="tableau20")
-            ),  # Professional distinct scheme
-            tooltip=["extract_dt", "market_name", "Prevailing Price (₱)"],
+            ),
+            tooltip=[
+                alt.Tooltip("extract_dt", title="Date", format="%b %d, %Y"),
+                alt.Tooltip("market_name", title="Market"),
+                alt.Tooltip("Prevailing Price (₱)", title="Price", format=",.2f")
+            ],
         )
         .properties(height=400)
         .configure_axis(grid=False)
@@ -162,18 +165,23 @@ with st.container(border=True):
     )
     daily_stats["spread"] = daily_stats["max"] - daily_stats["min"]
 
-    # Area Chart for Range
+    # Area Chart for Price Range (Min-Max)
     base = alt.Chart(daily_stats).encode(x=alt.X("extract_dt:T", title="Date"))
 
-    # Enterprise: Muted Blue Range
-    area = base.mark_area(opacity=0.3, color="#2E86AB").encode(  # Slate Blue
+    # Render Range Area (Slate Blue)
+    area = base.mark_area(opacity=0.3, color="#2E86AB").encode(
         y=alt.Y("min:Q", title="Price Range (₱)", scale=alt.Scale(zero=False)),
         y2="max:Q",
-        tooltip=["extract_dt", "min", "max", "mean"],
+        tooltip=[
+            alt.Tooltip("extract_dt", title="Date", format="%b %d, %Y"),
+            alt.Tooltip("min", title="Min Price", format=",.2f"),
+            alt.Tooltip("max", title="Max Price", format=",.2f"),
+            alt.Tooltip("mean", title="Avg Price", format=",.2f")
+        ],
     )
 
-    # Enterprise: Muted Coral Dashed Line
-    line_avg = base.mark_line(color="#D64045", strokeDash=[5, 5]).encode(  # Muted Coral
+    # Render Average Line (Muted Coral, Dashed)
+    line_avg = base.mark_line(color="#D64045", strokeDash=[5, 5]).encode(
         y="mean:Q"
     )
 
@@ -213,23 +221,26 @@ with st.container(border=True):
             best_day = dow_stats.iloc[0]["day_name"]
             dow_stats["is_best"] = dow_stats["day_name"] == best_day
 
-            # Bar Chart: X=Price, Y=Day, Color=Best?
+            # Bar Chart: X=Price, Y=Day, Color=Best Day Highlight
             base = alt.Chart(dow_stats).encode(
                 x=alt.X("Prevailing Price (₱):Q", title="Avg Price (₱)"),
                 y=alt.Y("day_name:N", sort=alt.EncodingSortField(field="Prevailing Price (₱)", order="ascending"), title=None),
-                tooltip=[alt.Tooltip("day_name", title="Day"), alt.Tooltip("Prevailing Price (₱)", format="₱,.2f")]
+                tooltip=[
+                    alt.Tooltip("day_name", title="Day"), 
+                    alt.Tooltip("Prevailing Price (₱)", title="Avg Price", format=",.2f")
+                ]
             )
 
             bars = base.mark_bar().encode(
                 color=alt.condition(
                     alt.datum.day_name == best_day,
-                    alt.value("#00A896"),  # Green for Best
-                    alt.value("#E0E0E0")   # Grey for others
+                    alt.value("#00A896"),  # Highlight Best Day (Green)
+                    alt.value("#E0E0E0")   # Neutral for others
                 )
             )
             
             text = base.mark_text(align='left', dx=2).encode(
-                text=alt.Text("Prevailing Price (₱)", format="₱,.0f")
+                text=alt.Text("Prevailing Price (₱)", format=",.0f")
             )
 
             st.altair_chart((bars + text).properties(height=300), use_container_width=True)
