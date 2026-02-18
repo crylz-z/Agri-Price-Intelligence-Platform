@@ -1,63 +1,132 @@
 # Agri-Price Intelligence Platform
 
-## Architecture Overview
-The Agri-Price Intelligence Platform employs a Medallion Lakehouse architecture to ingest, process, and analyze agricultural commodity price data.
+## System Architecture
 
--   **Bronze Layer**: Raw data ingestion from source APIs (AWS S3).
--   **Silver Layer**: Cleaned, deduplicated, and enriched data (DuckDB + Parquet).
--   **Gold Layer**: Aggregated metrics and business-level analytics (DuckDB + Parquet).
+The platform uses a modern **ELT (Extract, Load, Transform)** architecture orchestrated by GitHub Actions and monitored via Discord.
 
-## Technology Stack
--   **Core Runtime**: Python 3.12
--   **Package Management**: `uv`
--   **Data Processing**: DuckDB (In-process OLAP), `httpfs`
--   **Storage**: AWS S3 (Hive Partitioning)
--   **CI/CD**: GitHub Actions
--   **Orchestration**: Scheduled Workflows (Triple Tap: 02:00, 06:00, 10:00 UTC)
+```mermaid
+graph TD
+    subgraph Sources
+        A[DA-AMAS Website]
+    end
+
+    subgraph "Data Lake (S3)"
+        B[Bronze Layer<br>(Raw Parquet)]
+        C[Silver Layer<br>(Cleaned Parquet)]
+        D[Gold Layer<br>(Aggregated Parquet)]
+    end
+
+    subgraph Processing
+        E[dlt Pipeline<br>(Extract & Load)]
+        F[dbt Core<br>(Transform & Test)]
+    end
+
+    subgraph Consumption
+        G[Streamlit Dashboard]
+        H[Ad-hoc Analysis<br>(DuckDB)]
+    end
+
+    subgraph Orchestration
+        I[GitHub Actions<br>(Daily Schedule)]
+        J[Orchestrator Script<br>(run_pipeline.py)]
+        K[Discord Webhook<br>(Alerting)]
+    end
+
+    I --> J
+    J -->|Step 1: Extract| E
+    E -->|Scrape| A
+    E -->|Write| B
+    
+    J -->|Step 2: Transform| F
+    B -->|Read| F
+    F -->|Materialize| C
+    F -->|Materialize| D
+    
+    C -->|Read| G
+    D -->|Read| G
+    D -->|Read| H
+    
+    J -->|On Success/Fail| K
+```
+
+## How It Works
+
+### 1. Ingestion (EL)
+*   **Tool:** `dlt` (Data Load Tool)
+*   **Source:** `src/etl/dlt_pipeline/`
+*   **Action:** Scrapes daily price updates from the DA-AMAS website.
+*   **Destination:** Writes raw data to AWS S3 (Bronze Layer) as partitioned Parquet files.
+*   **Resilience:** Uses `tenacity` for retries and smart timeouts to handle slow government servers.
+
+### 2. Transformation (T)
+*   **Tool:** `dbt` (Data Build Tool) + DuckDB
+*   **Source:** `src/etl/dbt_project/`
+*   **Action:** 
+    *   Reads Bronze data directly from S3.
+    *   Cleans, dedupes, and standardizes schema (Silver).
+    *   Aggregates metrics for the dashboard (Gold).
+*   **Quality Gate:** `dbt test` runs immediately after valid models are built. If any data quality test (e.g., price < 0 or price > 5000) fails, the pipeline stops.
+
+### 3. Orchestration & Alerting
+*   **Script:** `scripts/run_pipeline.py`
+*   **Pattern:** **WAP (Write-Audit-Publish)**. 
+    1.  **Write:** `dlt` runs.
+    2.  **Audit:** `dbt build` runs (models + tests).
+    3.  **Publish:** If successful, data is ready for the dashboard.
+*   **Alerting:** Sends real-time success/failure notifications to a Discord channel via Webhook.
 
 ## Folder Structure
+
 ```
-├── config/             # Environment and application configuration
-├── data/               # Local data storage (mapped to S3 structure)
-├── docs/               # Project documentation
-├── scripts/            # Utility and backfill scripts
+├── .github/workflows/    # CI/CD: Daily ingestion schedule (daily_run.yml)
+├── script/               # Orchestration & Utility scripts
+│   ├── run_pipeline.py   # Main entry point for ELT
+│   ├── preflight_check.py# Verifies S3 connectivity
+│   └── rebuild_lakehouse.py # Manual backfill tool
 ├── src/
-│   ├── core/           # Shared utilities (logging, http_client)
-│   ├── etl/            # Extract-Transform-Load pipelines
-│   └── visualization/  # Dashboard and reporting components
-├── tests/              # Unit and integration tests
-├── .github/            # CI/CD workflow definitions
-├── .agent/             # AI Agent context and artifacts
-└── pyproject.toml      # Dependency and project metadata
+│   ├── core/             # Shared utilities (logging, config)
+│   ├── dashboard/        # Streamlit Application
+│   │   ├── components/   # UI widgets (charts, filters)
+│   │   └── utils/        # Data Engine (DuckDB S3 connector)
+│   ├── etl/
+│   │   ├── dlt_pipeline/ # Extraction logic (scrapers)
+│   │   └── dbt_project/  # Transformation logic (SQL models)
+└── .env                  # Local secrets (Not committed)
 ```
 
-## Local Setup
+## Setup & Configuration
 
 ### Prerequisites
--   Python 3.12+
--   `uv` package manager
+*   Python 3.12+
+*   `uv` package manager
 
-### Installation
-1.  Clone the repository:
-    ```bash
-    git clone <repository-url>
-    cd agri-price-intelligence-platform
-    ```
+### Environment Variables (.env)
+Create a `.env` file in the root directory:
+```properties
+# AWS Credentials (for S3 access)
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_DEFAULT_REGION=ap-southeast-2
+S3_BUCKET_NAME=apip-data-lake-2026-crylz
 
-2.  Install dependencies:
+# Alerting
+DISCORD_WEBHOOK_URL=...
+```
+
+### Running Locally
+1.  **Install dependencies:**
     ```bash
     uv sync
     ```
-
-3.  Configure Environment:
-    Copy `.env.example` to `.env` and populate AWS credentials.
+2.  **Test connection:**
     ```bash
-    cp .env.example .env
+    python max scripts/preflight_check.py
     ```
-
-### Execution
-Run the full ETL pipeline locally:
-```bash
-python -m src.etl.extract.extract_data
-python -m src.etl.transform.clean_data
-```
+3.  **Run full pipeline:**
+    ```bash
+    python scripts/run_pipeline.py
+    ```
+4.  **Launch Dashboard:**
+    ```bash
+    uv run streamlit run src/dashboard/app.py
+    ```
