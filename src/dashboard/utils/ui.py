@@ -4,7 +4,7 @@ import streamlit as st
 def apply_enterprise_styling():
     """
     Injects global CSS for Enterprise/Bloomberg Aesthetics.
-    - Card Shadows
+    - Prominent Card Shadows
     - Rounded Corners
     - Consistent Spacing
     """
@@ -14,21 +14,27 @@ def apply_enterprise_styling():
         /* Card Styling for st.container(border=True) */
         [data-testid="stVerticalBlockBorderWrapper"] {
             border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-                        0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12),
+                        0 1px 4px rgba(0, 0, 0, 0.08);
             background-color: #FFFFFF;
             padding: 1rem;
             margin-bottom: 1rem;
-            height: 100%; /* Try to fill parent */
+            transition: box-shadow 0.2s ease;
+        }
+
+        [data-testid="stVerticalBlockBorderWrapper"]:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16),
+                        0 2px 8px rgba(0, 0, 0, 0.10);
         }
 
         /* Metric Card Alignment */
         div[data-testid="stMetric"] {
-            min-height: 120px; /* Force taller fixed height to match multi-line text */
+            min-height: 120px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            align-items: center; /* Center metric content too */
+            align-items: center;
             text-align: center;
         }
 
@@ -46,6 +52,12 @@ def apply_enterprise_styling():
         .block-container {
             padding-top: 2rem;
             padding-bottom: 2rem;
+        }
+
+        /* Sidebar styling */
+        [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {
+            box-shadow: none;
+            border: none;
         }
         </style>
     """,

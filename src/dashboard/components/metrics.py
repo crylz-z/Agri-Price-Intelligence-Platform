@@ -73,28 +73,24 @@ def render_kpi_cards(commodity_df, trend_df=None):
 def render_sparklines(trend_df, category_name):
     """
     Renders a clean sparkline area chart for the 7-day trend.
-    Enterprise Aesthetic: Clean, no-axis, properly scaled.
     """
     if trend_df.empty:
         return
 
     st.markdown(f"**7-Day Price Trend ({category_name})**")
 
-    # Determine Scale Domain to avoid flat lines
-    # Add 5% buffer
     min_val = trend_df["Prevailing Price (₱)"].min() * 0.95
     max_val = trend_df["Prevailing Price (₱)"].max() * 1.05
 
-    # Enterprise Gradient Area Chart
     chart = (
         alt.Chart(trend_df)
         .mark_area(
-            line={"color": "#2E86AB"},  # Slate Blue
+            line={"color": "#2E86AB"},
             color=alt.Gradient(
                 gradient="linear",
                 stops=[
-                    alt.GradientStop(color="#2E86AB", offset=0),
-                    alt.GradientStop(color="white", offset=1),
+                    alt.GradientStop(color="white", offset=0),
+                    alt.GradientStop(color="#2E86AB", offset=1),
                 ],
                 x1=1,
                 x2=1,
@@ -103,21 +99,11 @@ def render_sparklines(trend_df, category_name):
             ),
         )
         .encode(
-            x=alt.X(
-                "extract_dt:T",
-                title=None,
-                axis=alt.Axis(
-                    format="%b %d",
-                    labelAngle=0,
-                    labelPadding=4,
-                    tickCount="day",
-                ),
-            ),
-            y=alt.Y(
+            alt.X("extract_dt:T", title=None, axis=alt.Axis(format="%b %d", labelAngle=0)),
+            alt.Y(
                 "Prevailing Price (₱):Q",
                 title=None,
                 scale=alt.Scale(domain=[min_val, max_val]),
-                axis=None,
             ),
             tooltip=[
                 alt.Tooltip("extract_dt:T", title="Date", format="%b %d, %Y"),
@@ -125,11 +111,10 @@ def render_sparklines(trend_df, category_name):
             ],
         )
         .properties(height=120)
-        .configure_view(strokeWidth=0)
-        .interactive()
     )
 
     st.altair_chart(chart, use_container_width=True)
+
 
 
 def render_gouging_alert(df, srp_df):

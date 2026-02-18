@@ -33,7 +33,7 @@ from src.dashboard.components import metrics, spatial
 ui.apply_enterprise_styling()
 import altair as alt
 
-st.set_page_config(layout="wide", page_title="National Market Watch", page_icon="🌽")
+
 
 # ==========================================
 # PAGE HEADER

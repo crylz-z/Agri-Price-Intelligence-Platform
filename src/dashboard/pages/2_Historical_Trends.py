@@ -23,7 +23,7 @@ from src.dashboard.utils import ui
 # Apply Global Styling
 ui.apply_enterprise_styling()
 
-st.set_page_config(layout="wide", page_title="Historical Trends", page_icon="🌽")
+
 
 # ==========================================
 # HEADER
