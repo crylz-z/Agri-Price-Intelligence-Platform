@@ -13,10 +13,14 @@ models:
         description: "Price of the commodity"
         data_tests:
           - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0.0
+              max_value: 20000.0
       - name: region_name
         description: "Name of the region"
         data_tests:
           - not_null
+          - is_valid_region_name
       - name: commodity_name
         description: "Name of the commodity including specifications"
         data_tests:
