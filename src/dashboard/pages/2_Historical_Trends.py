@@ -166,8 +166,8 @@ with m3:
             delta_color="inverse",
         )
 
-# Smart Insight banner: compares current price to 30-day average.
-metrics.render_smart_insight(hist_df, selected_commodity)
+# Historical insight: price spread over the period + best day of week to buy.
+metrics.render_historical_insight(hist_df, selected_commodity)
 
 # ==========================================
 # 30-DAY MARKET BRIEFING

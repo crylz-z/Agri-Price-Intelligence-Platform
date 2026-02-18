@@ -159,12 +159,6 @@ def render_gouging_alert(df, srp_df):
     if df.empty:
         return
 
-    # Prepare Data
-    merged = df.copy()
-    # If using SRP, we need to join. For simplification, let's look at relative outliers first
-    # Or strict SRP check if SRP exists for commodity.
-
-    # Let's perform a lightweight check against SRP if available
     alerts = []
 
     # Group by commodity to check
@@ -221,8 +215,6 @@ def render_zscore_chart(df, height=400):
 
     st.markdown("**Price Fairness Index (Green = Cheaper, Red = More Expensive)**")
 
-    # Diverging Scale: Blue (Cheap) -> White (Avg) -> Red (Expensive)
-    # We clamp the domain visualization to -2 to +2 usually
     chart = (
         alt.Chart(df)
         .mark_bar()
@@ -243,64 +235,90 @@ def render_zscore_chart(df, height=400):
     st.altair_chart(chart, use_container_width=True)
 
 
-def render_smart_insight(df, commodity: str) -> None:
+def render_national_insight(df, commodity: str) -> None:
     """
-    Calculates a natural-language price insight and renders it as a Streamlit
-    banner. Compares the current snapshot price against the 30-day average
-    derived from `df`.
+    Renders a snapshot-focused insight banner for the National Market Watch page.
+    Compares the current day's price against the 30-day average and names the
+    single cheapest market available today.
 
     Parameters
     ----------
     df : pd.DataFrame
-        Historical trend DataFrame. Expected columns:
-        - 'extract_dt'        : datetime, the observation date.
-        - 'Prevailing Price (\u20b1)' : float, the market price.
-        - 'market_name'       : str, the market identifier.
+        Historical trend DataFrame with columns: 'extract_dt',
+        'Prevailing Price (₱)', 'market_name'.
     commodity : str
-        Human-readable commodity name used in the insight text.
-
-    Renders
-    -------
-    st.success  when the current price is below the 30-day average (good deal).
-    st.info     when the current price is at or above the 30-day average.
-    st.warning  when there is insufficient data to compute a meaningful insight.
+        Human-readable commodity name.
     """
-    required_cols = {"extract_dt", "Prevailing Price (\u20b1)", "market_name"}
+    required_cols = {"extract_dt", "Prevailing Price (₱)", "market_name"}
     if df is None or df.empty or not required_cols.issubset(df.columns):
         st.warning(f"Insufficient data to generate an insight for {commodity}.")
         return
 
-    # 30-day rolling average across all markets.
-    avg_30d = df["Prevailing Price (\u20b1)"].mean()
-
-    # Current price = mean of the most recent extraction date.
+    avg_30d = df["Prevailing Price (₱)"].mean()
     latest_date = df["extract_dt"].max()
     current_df = df[df["extract_dt"] == latest_date]
-    current_price = current_df["Prevailing Price (\u20b1)"].mean()
+    current_price = current_df["Prevailing Price (₱)"].mean()
 
     if pd.isna(avg_30d) or pd.isna(current_price) or avg_30d == 0:
         st.warning(f"Insufficient data to generate an insight for {commodity}.")
         return
 
-    # Percentage deviation from the 30-day average.
     pct_diff = ((current_price - avg_30d) / avg_30d) * 100
     direction = "cheaper" if pct_diff < 0 else "more expensive"
     abs_pct = abs(pct_diff)
 
-    # Best market = the market with the lowest price on the latest date.
-    best_market_row = current_df.loc[
-        current_df["Prevailing Price (\u20b1)"].idxmin()
-    ]
+    best_market_row = current_df.loc[current_df["Prevailing Price (₱)"].idxmin()]
     best_market = best_market_row["market_name"]
-    best_price = best_market_row["Prevailing Price (\u20b1)"]
+    best_price = best_market_row["Prevailing Price (₱)"]
 
     insight_text = (
         f"**Insight:** {commodity} is currently **{abs_pct:.1f}% {direction}** "
-        f"than the 30-day average (\u20b1{avg_30d:,.2f}). "
-        f"The best place to buy is **{best_market}** at \u20b1{best_price:,.2f}."
+        f"than the 30-day average (₱{avg_30d:,.2f}). "
+        f"The absolute best deal today is at **{best_market}** at ₱{best_price:,.2f}."
     )
 
     if pct_diff < 0:
         st.success(insight_text)
     else:
         st.info(insight_text)
+
+
+def render_historical_insight(df, commodity: str) -> None:
+    """
+    Renders a long-term volatility insight banner for the Historical Trends page.
+    Reports the price spread over the full period and identifies the statistically
+    cheapest day of the week to buy based on historical averages.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Historical trend DataFrame with columns: 'extract_dt',
+        'Prevailing Price (₱)'.
+    commodity : str
+        Human-readable commodity name.
+    """
+    required_cols = {"extract_dt", "Prevailing Price (₱)"}
+    if df is None or df.empty or not required_cols.issubset(df.columns):
+        st.warning(f"Insufficient data to generate a historical insight for {commodity}.")
+        return
+
+    price_spread = df["Prevailing Price (₱)"].max() - df["Prevailing Price (₱)"].min()
+
+    # Day-of-week analysis: find the cheapest day on average.
+    dow_df = df.copy()
+    dow_df["day_name"] = dow_df["extract_dt"].dt.day_name()
+    dow_avg = dow_df.groupby("day_name")["Prevailing Price (₱)"].mean()
+
+    if dow_avg.empty:
+        st.warning(f"Insufficient data to generate a historical insight for {commodity}.")
+        return
+
+    best_day = dow_avg.idxmin()
+
+    insight_text = (
+        f"**Insight:** Over the selected period, **{commodity}** prices have fluctuated "
+        f"by **₱{price_spread:,.2f}**. "
+        f"Historical data suggests **{best_day}** is statistically the best day of the week to buy."
+    )
+
+    st.info(insight_text)

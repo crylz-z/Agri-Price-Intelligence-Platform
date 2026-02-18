@@ -148,8 +148,8 @@ metrics.render_kpi_cards(commodity_df, trend_df)
 with st.container(border=True):
     metrics.render_sparklines(trend_df, selected_commodity)
 
-# Smart Insight banner: compares current price to 30-day average.
-metrics.render_smart_insight(trend_df, selected_commodity)
+# National insight: today's price vs 30-day average + best deal market.
+metrics.render_national_insight(trend_df, selected_commodity)
 
 # ==========================================
 # EXECUTIVE SUMMARY
@@ -263,28 +263,15 @@ with col_top5:
                     ["region_name", "market_name", "Prevailing Price (₱)"]
                 ].reset_index(drop=True)
 
-                # Truncate long strings to prevent horizontal scrollbar.
-                top5_high = top5_high.copy()
-                top5_high["region_name"] = top5_high["region_name"].str[:28]
-                top5_high["market_name"] = top5_high["market_name"].str[:28]
-
-                st.dataframe(
-                    top5_high,
-                    column_config={
-                        "region_name": st.column_config.TextColumn(
-                            "Region", width="large"
-                        ),
-                        "market_name": st.column_config.TextColumn(
-                            "Market", width="large"
-                        ),
-                        "Prevailing Price (₱)": st.column_config.NumberColumn(
-                            "Price", format="₱%.2f", width="small"
-                        ),
-                    },
-                    hide_index=True,
-                    use_container_width=True,
-                    height=350,
-                )
+                # Rename columns for display and render as a static HTML table
+                # (no horizontal scrollbar, 100% container width).
+                top5_high = top5_high.rename(columns={
+                    "region_name": "Region",
+                    "market_name": "Market",
+                    "Prevailing Price (₱)": "Price (₱)",
+                })
+                top5_high["Price (₱)"] = top5_high["Price (₱)"].map("₱{:,.2f}".format)
+                st.table(top5_high)
             else:
                 st.info("No data available.")
 
@@ -296,28 +283,15 @@ with col_top5:
                     ["region_name", "market_name", "Prevailing Price (₱)"]
                 ].reset_index(drop=True)
 
-                # Truncate long strings to prevent horizontal scrollbar.
-                top5_low = top5_low.copy()
-                top5_low["region_name"] = top5_low["region_name"].str[:28]
-                top5_low["market_name"] = top5_low["market_name"].str[:28]
-
-                st.dataframe(
-                    top5_low,
-                    column_config={
-                        "region_name": st.column_config.TextColumn(
-                            "Region", width="large"
-                        ),
-                        "market_name": st.column_config.TextColumn(
-                            "Market", width="large"
-                        ),
-                        "Prevailing Price (₱)": st.column_config.NumberColumn(
-                            "Price", format="₱%.2f", width="small"
-                        ),
-                    },
-                    hide_index=True,
-                    use_container_width=True,
-                    height=350,
-                )
+                # Rename columns for display and render as a static HTML table
+                # (no horizontal scrollbar, 100% container width).
+                top5_low = top5_low.rename(columns={
+                    "region_name": "Region",
+                    "market_name": "Market",
+                    "Prevailing Price (₱)": "Price (₱)",
+                })
+                top5_low["Price (₱)"] = top5_low["Price (₱)"].map("₱{:,.2f}".format)
+                st.table(top5_low)
             else:
                 st.info("No data available.")
 
