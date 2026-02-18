@@ -139,6 +139,9 @@ metrics.render_kpi_cards(commodity_df, trend_df)
 with st.container(border=True):
     metrics.render_sparklines(trend_df, selected_commodity)
 
+# Smart Insight banner: compares current price to 30-day average.
+metrics.render_smart_insight(trend_df, selected_commodity)
+
 # ==========================================
 
 # ==========================================
@@ -199,7 +202,7 @@ with col_bar:
                         alt.Tooltip("Prevailing Price (₱):Q", title="Avg Price (₱)", format=",.2f"),
                     ],
                 )
-                .properties(height=400)
+                .properties(height=350)
                 .configure_axis(grid=False)
             )
             st.altair_chart(chart_reg, use_container_width=True)
@@ -222,6 +225,11 @@ with col_top5:
                 top5_high = cross_region_df.nlargest(5, "Prevailing Price (₱)")[
                     ["region_name", "market_name", "Prevailing Price (₱)"]
                 ].reset_index(drop=True)
+
+                # Truncate long strings to prevent horizontal scrollbar.
+                top5_high = top5_high.copy()
+                top5_high["region_name"] = top5_high["region_name"].str[:28]
+                top5_high["market_name"] = top5_high["market_name"].str[:28]
 
                 st.dataframe(
                     top5_high,
@@ -250,6 +258,11 @@ with col_top5:
                 top5_low = cross_region_df.nsmallest(5, "Prevailing Price (₱)")[
                     ["region_name", "market_name", "Prevailing Price (₱)"]
                 ].reset_index(drop=True)
+
+                # Truncate long strings to prevent horizontal scrollbar.
+                top5_low = top5_low.copy()
+                top5_low["region_name"] = top5_low["region_name"].str[:28]
+                top5_low["market_name"] = top5_low["market_name"].str[:28]
 
                 st.dataframe(
                     top5_low,

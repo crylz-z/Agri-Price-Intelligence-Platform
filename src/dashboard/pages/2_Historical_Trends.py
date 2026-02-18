@@ -1,6 +1,7 @@
 import streamlit as st
 import sys
 import os
+import pandas as pd
 import altair as alt
 from datetime import datetime
 from dotenv import load_dotenv
@@ -29,7 +30,7 @@ ui.apply_enterprise_styling()
 # PAGE HEADER
 # ==========================================
 st.title("Strategic Analysis: Historical Trends")
-st.markdown("### Long-Term Price Trajectory & Volatility")
+st.markdown("##### Long-Term Price Trajectory & Volatility")
 
 # ==========================================
 # CONFIGURATION & FILTERS
@@ -100,16 +101,60 @@ avg_price_period = hist_df["Prevailing Price (₱)"].mean()
 min_price_period = hist_df["Prevailing Price (₱)"].min()
 max_price_period = hist_df["Prevailing Price (₱)"].max()
 
+# Fetch the prior equivalent period to compute meaningful deltas.
+# E.g. for 'Last 30 Days', fetch the 60 days before today and take the
+# first 30 days as the baseline. Falls back gracefully if no prior data.
+prior_df = DataEngine.get_historical_trends(
+    selected_commodity, selected_region, days_back=days_back * 2
+)
+# Isolate only the older half (the prior period).
+if not prior_df.empty:
+    cutoff = prior_df["extract_dt"].max() - pd.Timedelta(days=days_back)
+    prior_window = prior_df[prior_df["extract_dt"] <= cutoff]
+    avg_prior = prior_window["Prevailing Price (₱)"].mean() if not prior_window.empty else None
+else:
+    avg_prior = None
+
+# Delta for Period Average: % change vs prior period.
+if avg_prior and avg_prior != 0:
+    avg_delta_pct = ((avg_price_period - avg_prior) / avg_prior) * 100
+    avg_delta_str = f"{avg_delta_pct:+.1f}% vs prior {days_back}d"
+else:
+    avg_delta_str = None
+
+# Delta for Period Low: deviation below the period average (always negative or zero).
+low_delta_pct = ((min_price_period - avg_price_period) / avg_price_period) * 100 if avg_price_period else None
+low_delta_str = f"{low_delta_pct:+.1f}% vs avg" if low_delta_pct is not None else None
+
+# Delta for Period High: deviation above the period average (always positive or zero).
+high_delta_pct = ((max_price_period - avg_price_period) / avg_price_period) * 100 if avg_price_period else None
+high_delta_str = f"{high_delta_pct:+.1f}% vs avg" if high_delta_pct is not None else None
+
 m1, m2, m3 = st.columns(3)
 with m1:
     with st.container(border=True):
-        st.metric("Period Average", f"₱{avg_price_period:,.2f}")
+        st.metric(
+            "Period Average",
+            f"₱{avg_price_period:,.2f}",
+            delta=avg_delta_str,
+            delta_color="inverse",  # Red = price up (bad), green = price down (good).
+        )
 with m2:
     with st.container(border=True):
-        st.metric("Period Low", f"₱{min_price_period:,.2f}")
+        st.metric(
+            "Period Low",
+            f"₱{min_price_period:,.2f}",
+            delta=low_delta_str,
+            delta_color="inverse",
+        )
 with m3:
     with st.container(border=True):
-        st.metric("Period High", f"₱{max_price_period:,.2f}")
+        st.metric(
+            "Period High",
+            f"₱{max_price_period:,.2f}",
+            delta=high_delta_str,
+            delta_color="inverse",
+        )
 
 # CHART 1: PRICE TRAJECTORY (Multi-Line)
 with st.container(border=True):
