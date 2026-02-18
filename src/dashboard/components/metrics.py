@@ -75,10 +75,18 @@ def render_sparklines(trend_df, category_name):
     Renders a sparkline area chart for the 7-day trend.
     Aggregates to daily average price before plotting.
     """
+    # This block is an example of how trend_df might be generated, not part of the function's execution
+    # trend_df = DataEngine.get_historical_trends(
+    #     selected_commodity, selected_region, days_back=30
+    # )
+
     if trend_df.empty:
+        # Try fall back or just return empty
+        # If empty for 30 days, then truly no data.
+        st.caption("No recent data found for trend analysis.")
         return
 
-    st.markdown(f"**7-Day Price Trend ({category_name})**")
+    st.markdown(f"**Price Trend (Last 30 Days) - {category_name}**")
 
     # Aggregate to daily average
     daily_avg = (
@@ -89,7 +97,7 @@ def render_sparklines(trend_df, category_name):
     daily_avg.columns = ["date", "avg_price"]
     daily_avg["date"] = pd.to_datetime(daily_avg["date"])
     
-    # Remove any NaNs just in case
+    # Remove any NaNs
     daily_avg = daily_avg.dropna()
 
     if daily_avg.empty:
@@ -116,10 +124,20 @@ def render_sparklines(trend_df, category_name):
     )
 
     if len(daily_avg) == 1:
-        # Single point - render as a bar to make it visible
-        chart = base.mark_bar(color="#2E86AB", width=20).encode(
-            alt.Y("avg_price:Q", title="Avg Price (₱)", scale=alt.Scale(domain=[0, y_max]))
+        # Single point - render as a point + text to make it clearly visible
+        # Also ensure Y domain is padded
+        base = base.encode(
+             alt.X("date:T", title=None, axis=alt.Axis(format="%b %d", labelAngle=0, tickCount=7))
         )
+        
+        point = base.mark_point(filled=True, size=100, color="#2E86AB").encode(
+            alt.Y("avg_price:Q", title="Avg Price (₱)", scale=alt.Scale(domain=[y_min, y_max]))
+        )
+        text = base.mark_text(dy=-15, color="#2E86AB").encode(
+            alt.Y("avg_price:Q"),
+            text=alt.Text("avg_price:Q", format=".2f")
+        )
+        chart = point + text
     else:
         # Area chart for trends
         chart = base.mark_area(

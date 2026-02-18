@@ -180,7 +180,7 @@ class DataEngine:
         WHERE
             CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
             AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'
-            AND CAST(extract_dt AS DATE) >= '{start_date_str}'
+            AND TRY_CAST(extract_dt AS DATE) >= '{start_date_str}'
             AND commodity = '{commodity}'
             AND region_name = '{region}'
         ORDER BY extract_dt ASC

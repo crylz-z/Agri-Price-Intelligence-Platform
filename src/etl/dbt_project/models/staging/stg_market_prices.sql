@@ -19,3 +19,9 @@ renamed as (
 )
 
 select * from renamed
+where 
+    -- Sanity Check: Price (Agri prices > 20,000 are errors)
+    price <= 20000
+    and price >= 0
+    -- Sanity Check: Region Name (Filter out "1000000", "400000.0" etc)
+    and not regexp_matches(region_name, '^[0-9.]+$')

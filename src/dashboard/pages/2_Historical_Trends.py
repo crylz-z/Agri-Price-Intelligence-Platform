@@ -189,6 +189,52 @@ with st.container(border=True):
         "Blue Area = Price Range (Low to High). Red Dashed Line = Market Average."
     )
 
+# CHART 3: BEST DAY TO BUY (Day of Week Analysis)
+with st.container(border=True):
+    st.markdown("#### 📅 Best Day to Buy Analysis")
+    st.caption("Which day of the week typically offers the lowest prices? Based on historical averages.")
+
+    # Prepare Data
+    if "extract_dt" in hist_df.columns and not hist_df.empty:
+        dow_df = hist_df.copy()
+        dow_df["day_name"] = dow_df["extract_dt"].dt.day_name()
+        
+        # Aggregate
+        dow_stats = (
+            dow_df.groupby("day_name")["Prevailing Price (₱)"]
+            .mean()
+            .reset_index()
+        )
+        # Sort by Price (Cheapest first) for the chart
+        dow_stats = dow_stats.sort_values("Prevailing Price (₱)")
+        
+        # Highlight the BEST day (First row after sort)
+        if not dow_stats.empty:
+            best_day = dow_stats.iloc[0]["day_name"]
+            dow_stats["is_best"] = dow_stats["day_name"] == best_day
+
+            # Bar Chart: X=Price, Y=Day, Color=Best?
+            base = alt.Chart(dow_stats).encode(
+                x=alt.X("Prevailing Price (₱):Q", title="Avg Price (₱)"),
+                y=alt.Y("day_name:N", sort=alt.EncodingSortField(field="Prevailing Price (₱)", order="ascending"), title=None),
+                tooltip=[alt.Tooltip("day_name", title="Day"), alt.Tooltip("Prevailing Price (₱)", format="₱,.2f")]
+            )
+
+            bars = base.mark_bar().encode(
+                color=alt.condition(
+                    alt.datum.day_name == best_day,
+                    alt.value("#00A896"),  # Green for Best
+                    alt.value("#E0E0E0")   # Grey for others
+                )
+            )
+            
+            text = base.mark_text(align='left', dx=2).encode(
+                text=alt.Text("Prevailing Price (₱)", format="₱,.0f")
+            )
+
+            st.altair_chart((bars + text).properties(height=300), use_container_width=True)
+            st.success(f"**Insight:** Historical data suggests **{best_day}** is generally the best day to buy.")
+
 # ==========================================
 # FOOTER
 # ==========================================

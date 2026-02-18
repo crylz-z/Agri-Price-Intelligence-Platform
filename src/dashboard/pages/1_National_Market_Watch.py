@@ -129,7 +129,7 @@ st.markdown(
 # Previously we tried to derive this from the snapshot, but that only has 1 date.
 # We must explicitly fetch history for this specific commodity/region.
 trend_df = DataEngine.get_historical_trends(
-    selected_commodity, selected_region, days_back=7
+    selected_commodity, selected_region, days_back=30
 )
 
 # FIX: Passed commodity_df instead of category_df per user request
@@ -203,33 +203,64 @@ with col_bar:
 
 with col_top5:
     with st.container(border=True):
-        st.markdown("#### Top 5 Most Expensive Markets")
-        if not cross_region_df.empty:
-            top5 = cross_region_df.nlargest(5, "Prevailing Price (₱)")[
-                ["region_name", "market_name", "Prevailing Price (₱)"]
-            ].reset_index(drop=True)
+        # Use Tabs for cleaner UI
+        tab_high, tab_low = st.tabs(["Most Expensive", "Best Deals"])
+        
+        # Define shared formatting function (nested to keep scope context or move out)
+        def alternating_rows(row):
+            color = "#F0F2F6" if row.name % 2 != 0 else "#FAFAFA"
+            return ["background-color: {}".format(color) for _ in row]
 
-            # Apply Alternating Colors (Professional Look)
-            # Dirty White (#FAFAFA) and Light Gray (#F0F2F6)
-            def alternating_rows(row):
-                color = "#F0F2F6" if row.name % 2 != 0 else "#FAFAFA"
-                return ["background-color: {}".format(color) for _ in row]
+        with tab_high:
+            st.markdown("#### Top 5 Most Expensive")
+            if not cross_region_df.empty:
+                top5_high = cross_region_df.nlargest(5, "Prevailing Price (₱)")[
+                    ["region_name", "market_name", "Prevailing Price (₱)"]
+                ].reset_index(drop=True)
 
-            st.dataframe(
-                top5.style.apply(alternating_rows, axis=1).format(
-                    {"Prevailing Price (₱)": "₱{:.2f}"}
-                ),
-                column_config={
-                    "region_name": "Region",
-                    "market_name": "Market",
-                    "Prevailing Price (₱)": st.column_config.NumberColumn(
-                        "Price", format="₱%.2f"
+                st.dataframe(
+                    top5_high.style.apply(alternating_rows, axis=1).format(
+                        {"Prevailing Price (₱)": "₱{:.2f}"}
                     ),
-                },
-                hide_index=True,
-                use_container_width=True,
-                height=400,
-            )
+                    column_config={
+                        "region_name": "Region",
+                        "market_name": "Market",
+                        "Prevailing Price (₱)": st.column_config.NumberColumn(
+                            "Price", format="₱%.2f"
+                        ),
+                    },
+                    hide_index=True,
+                    use_container_width=True,
+                    height=350,
+                )
+            else:
+                st.info("No data available.")
+
+        with tab_low:
+            st.markdown("#### Top 5 Best Deals")
+            if not cross_region_df.empty:
+                # Smallest prices (Cheapest)
+                top5_low = cross_region_df.nsmallest(5, "Prevailing Price (₱)")[
+                    ["region_name", "market_name", "Prevailing Price (₱)"]
+                ].reset_index(drop=True)
+
+                st.dataframe(
+                    top5_low.style.apply(alternating_rows, axis=1).format(
+                        {"Prevailing Price (₱)": "₱{:.2f}"}
+                    ),
+                    column_config={
+                        "region_name": "Region",
+                        "market_name": "Market",
+                        "Prevailing Price (₱)": st.column_config.NumberColumn(
+                            "Price", format="₱%.2f"
+                        ),
+                    },
+                    hide_index=True,
+                    use_container_width=True,
+                    height=350,
+                )
+            else:
+                st.info("No data available.")
 
 # ==========================================
 # FOOTER
