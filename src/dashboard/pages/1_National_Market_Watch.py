@@ -160,12 +160,6 @@ with col_bar:
         cross_region_df = raw_df[raw_df["commodity"] == selected_commodity].copy()
 
         if not cross_region_df.empty and "Prevailing Price (₱)" in cross_region_df.columns:
-            # Force numeric (in case of object type)
-            cross_region_df["Prevailing Price (₱)"] = pd.to_numeric(cross_region_df["Prevailing Price (₱)"], errors="coerce")
-            
-            # 1. Hard Sanity Check (Agri prices > 20,000/kg are impossible errors)
-            cross_region_df = cross_region_df[cross_region_df["Prevailing Price (₱)"] <= 20000]
-            
             # 2. IQR Filter (Statistical Outlier Removal)
             if not cross_region_df.empty:
                 Q1 = cross_region_df["Prevailing Price (₱)"].quantile(0.25)

@@ -126,11 +126,24 @@ class DataEngine:
             if "price" in df.columns:
                 df.rename(columns={"price": "Prevailing Price (₱)"}, inplace=True)
 
-            # Filter price outliers (> 3x median) — guards against bad source data
+            # 1. Sanitize Region Names (Remove "1000000", "400000")
+            if "region_name" in df.columns:
+                 # Ensure string type then regex (Catch "1000", "1000.0", "40.0")
+                 # We filter out anything that looks purely numeric (digits and dots)
+                 df = df[~df["region_name"].astype(str).str.match(r'^[0-9\.]+$')]
+
+            # 2. Filter price outliers (> 5x median + Hard Cap)
             if not df.empty and "Prevailing Price (₱)" in df.columns:
-                median_price = df["Prevailing Price (₱)"].median()
-                if median_price > 0:
-                    df = df[df["Prevailing Price (₱)"] <= median_price * 3].copy()
+                # Force numeric
+                df["Prevailing Price (₱)"] = pd.to_numeric(df["Prevailing Price (₱)"], errors="coerce")
+                
+                # Hard Cap 20k
+                df = df[df["Prevailing Price (₱)"] <= 20000]
+                
+                if not df.empty:
+                    median_price = df["Prevailing Price (₱)"].median()
+                    if median_price > 0:
+                        df = df[df["Prevailing Price (₱)"] <= median_price * 5]
 
             # Calculate days_ago for freshness tracking (LKGV)
             if not df.empty and "extract_dt" in df.columns:
@@ -180,11 +193,16 @@ class DataEngine:
 
             if not df.empty:
                 df["extract_dt"] = pd.to_datetime(df["extract_dt"])
-                # Filter price outliers (> 3x median)
+                
                 if "Prevailing Price (₱)" in df.columns:
-                    med = df["Prevailing Price (₱)"].median()
-                    if med > 0:
-                        df = df[df["Prevailing Price (₱)"] <= med * 3].copy()
+                     # Force numeric + Hard Cap 20k
+                     df["Prevailing Price (₱)"] = pd.to_numeric(df["Prevailing Price (₱)"], errors="coerce")
+                     df = df[df["Prevailing Price (₱)"] <= 20000]
+                     
+                     if not df.empty:
+                        med = df["Prevailing Price (₱)"].median()
+                        if med > 0:
+                            df = df[df["Prevailing Price (₱)"] <= med * 5]
             return df
         except Exception as e:
             print(f"[ERROR] History Engine Error: {e}")
