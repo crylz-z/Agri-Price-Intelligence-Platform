@@ -54,12 +54,28 @@ jobs:
         S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
         AWS_DEFAULT_REGION: "ap-southeast-2"
 
-    # 6. Run Lakehouse ETL Pipeline (Extract -> Transform -> Audit)
-    - name: Run Lakehouse ETL Pipeline
+    # 6. Run dlt Pipeline (Extraction)
+    - name: Run dlt Pipeline
+      run: python -m src.etl.dlt_pipeline.agri_price_pipeline
+      env:
+        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+        AWS_DEFAULT_REGION: "ap-southeast-2"
+        # DESTINATION__FILESYSTEM__CREDENTIALS are handled by Configure AWS Credentials step via env vars
+
+    # 7. Run dbt (Transformation)
+    - name: Run dbt Build
       run: |
-        python -m src.etl.extract.extract_data
-        python -m src.etl.transform.clean_data
-        python -m src.validation.contract
+        cd src/etl/dbt_project
+        dbt deps
+        dbt build --profiles-dir .
+      env:
+        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+        AWS_DEFAULT_REGION: "ap-southeast-2"
+        # validation contract was likely legacy or separate step, removing it from here as it seems misplaced
+        # if needed, add as separate step
+
+    - name: Run Data Contract Validation
+      run: python -m src.validation.contract
       env:
         LOG_LEVEL: "INFO"
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}

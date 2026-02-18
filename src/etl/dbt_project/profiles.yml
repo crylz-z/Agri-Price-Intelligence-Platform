@@ -1,0 +1,19 @@
+
+agri_price_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: ':memory:'
+      extensions:
+        - httpfs
+        - aws
+        - parquet
+      settings:
+        s3_region: ap-southeast-2
+        s3_access_key_id: "{{ env_var('AWS_ACCESS_KEY_ID') }}"
+        s3_secret_access_key: "{{ env_var('AWS_SECRET_ACCESS_KEY') }}"
+      # For local dev, credentials will be picked up from env vars if AWS CLI is configured or env vars are set.
+      # dbt-duckdb uses standard boto3 chain if not specified, 
+      # but we might need explicit keys if using httpfs directly without 'aws' extension fully configured?
+      # 'aws' extension handles credential loading.

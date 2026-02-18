@@ -1,0 +1,13 @@
+
+version: 2
+
+sources:
+  - name: agri_prices_bronze
+    description: "Raw data loaded by dlt into S3"
+    tables:
+      - name: market_prices
+        description: "Raw price data with HTML parsing"
+        external:
+          location: "s3://{{ env_var('S3_BUCKET_NAME') }}/bronze/dlt/market_data/agri_price_resource/*.parquet"
+          options:
+            hive_partitioning: 0 # or 1 if dlt partitions by date? dlt default is not hive partitioned unless configured.
