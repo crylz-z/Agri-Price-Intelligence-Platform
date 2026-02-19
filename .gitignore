@@ -71,6 +71,8 @@ data/clean/
 sandbox/
 tmp/
 *.tmp
+audit_log.txt
+pre_commit_output.txt
 
 # Agent
 .agent/
