@@ -8,7 +8,8 @@
 
 with source as (
     select * from read_parquet(
-        's3://{{ env_var("S3_BUCKET_NAME") }}/bronze/dlt/market_data/agri_price_resource/**/*.parquet'
+        's3://{{ env_var("S3_BUCKET_NAME") }}/bronze/dlt/market_data/agri_price_resource/**/*.parquet',
+        union_by_name=true
     )
 ),
 
@@ -20,7 +21,7 @@ renamed as (
         market_name,
         commodity_group,
         commodity_name,
-        specifications,
+        -- specifications, (Removed as column is missing in source)
         try_cast(price as double) as price,
         raw_date_text,
         _dlt_load_id
