@@ -88,3 +88,24 @@ DISCORD_WEBHOOK_URL=...
     ```bash
     uv run python -m streamlit run src/dashboard/app.py
     ```
+
+## Development Workflow
+
+We use **pre-commit hooks** to ensure code quality and security.
+
+1.  **Install hooks:**
+    ```bash
+    uv run pre-commit install
+    ```
+2.  **Commit changes:**
+    When you commit, hooks will run automatically:
+    *   **Ruff**: Lints and formats Python code.
+    *   **Gitleaks**: Scans for secrets.
+    *   **Fixers**: Trims whitespace, fixes EOF.
+
+    If a hook fails (e.g., auto-formatting occurred), simply **stage the changes** (`git add .`) and commit again.
+
+3.  **Run manually:**
+    ```bash
+    uv run pre-commit run --all-files
+    ```
