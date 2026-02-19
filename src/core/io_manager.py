@@ -57,3 +57,15 @@ class IOManager:
             return pd.read_csv(filepath)
         else:
             raise ValueError(f"Unsupported format: {file_format}")
+
+    @staticmethod
+    def append_metric_row(filepath: str, row_dict: dict):
+        """
+        Appends a single row of metrics to a CSV file.
+        Handles creating the file with headers if it doesn't exist.
+        """
+        IOManager.ensure_directory(filepath)
+        df = pd.DataFrame([row_dict])
+        
+        header = not IOManager.check_file_exists(filepath)
+        df.to_csv(filepath, mode='a', header=header, index=False)

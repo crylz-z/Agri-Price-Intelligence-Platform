@@ -1,11 +1,36 @@
-name: Daily Price Extraction
+name: Daily Price Extraction (Adaptive)
 
 on:
   schedule:
-    # 02:00 UTC = 10:00 AM PH — Single daily run. Extraction takes 1-2h; multiple schedules risk overlap.
-    - cron: '0 2 * * *'
-
+    # scout 1: 12:00 PM PHT = 04:00 UTC
+    - cron: '0 4 * * *'
+    # scout 2: 05:00 PM PHT = 09:00 UTC
+    - cron: '0 9 * * *'
+    # harvester 1: 08:30 PM PHT = 12:30 UTC
+    - cron: '30 12 * * *'
+    # harvester 2: 11:30 PM PHT = 15:30 UTC
+    - cron: '30 15 * * *'
+  
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Execution Mode'
+        required: true
+        default: 'scout'
+        type: choice
+        options:
+        - scout
+        - harvester
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Execution Mode'
+        required: true
+        default: 'scout'
+        type: choice
+        options:
+        - scout
+        - harvester
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -43,6 +68,48 @@ jobs:
 
     - name: Pre-Flight S3 Connection Test
       run: python scripts/preflight_check.py
+      env:
+        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+
+    # Run Pipeline (Adaptive Mode)
+    - name: Run Extraction Engine
+      run: |
+        # Determine Mode
+        MODE="${{ inputs.mode }}"
+        
+        if [ -z "$MODE" ]; then
+          # Automatic Schedule Logic (UTC)
+          HOUR=$(date -u +%H)
+          if [ "$HOUR" -ge 12 ]; then
+            MODE="harvester"
+          else
+            MODE="scout"
+          fi
+          echo "⏰ Scheduled Run detected. Time: $(date -u). Selected Mode: $MODE"
+        else
+          echo "👤 Manual Run detected. User selected: $MODE"
+        fi
+        
+        # Execute
+        python -m src.etl.extract.extract_data --mode $MODE
+      env:
+        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+
+    # Commit and Push Data (Fallback/Reference)
+    - name: Commit and Push Changes
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Add Data & logs
+        git add data/
+        if [ -f "logs/audit_log.txt" ]; then git add "logs/audit_log.txt"; fi
+        
+        # Commit if there are changes
+        git commit -m "Auto-update: $(date +'%Y-%m-%d') Data Refresh ($MODE Mode)" || echo "No changes to commit"
+        
+        # Push to main branch
+        git push origin main
       env:
         S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
