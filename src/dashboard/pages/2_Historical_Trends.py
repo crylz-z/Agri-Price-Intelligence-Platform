@@ -200,7 +200,7 @@ averaged **₱{avg_price_period:,.2f}**. \
 The highest recorded price was **₱{max_price_period:,.2f}** on **{_max_price_date}**, \
 while the lowest was **₱{min_price_period:,.2f}** on **{_min_price_date}**. \
 The overall price spread (volatility) for this period is **₱{_volatility:,.2f}**—\
-{'indicating a stable market with minimal price fluctuation.' if _volatility < 20 else 'suggesting notable price volatility across the period.'}
+{"indicating a stable market with minimal price fluctuation." if _volatility < 20 else "suggesting notable price volatility across the period."}
         """
     )
 

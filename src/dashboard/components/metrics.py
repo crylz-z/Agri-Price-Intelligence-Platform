@@ -190,7 +190,7 @@ def render_gouging_alert(df, srp_df):
             for a in alerts[:5]:  # Show top 5 to avoid flooding
                 st.markdown(f"- {a}")
             if len(alerts) > 5:
-                st.caption(f"...and {len(alerts)-5} more.")
+                st.caption(f"...and {len(alerts) - 5} more.")
     else:
         st.success("No Price Gouging Detected (All markets within 15% of SRP).")
 

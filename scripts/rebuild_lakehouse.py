@@ -37,7 +37,7 @@ def _load_dotenv() -> None:
 
 def _run(cmd: list[str], cwd: Path | None = None, step_name: str = "") -> None:
     label = step_name or " ".join(cmd)
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"STEP: {label}")
     print(f"CMD : {' '.join(cmd)}")
     if cwd:
