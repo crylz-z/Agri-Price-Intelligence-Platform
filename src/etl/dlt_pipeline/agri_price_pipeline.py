@@ -20,7 +20,10 @@ def load():
 
     pipeline = dlt.pipeline(
         pipeline_name="agri_price",
-        destination=dlt.destinations.filesystem(destination_bucket_url),
+        destination=dlt.destinations.filesystem(
+            destination_bucket_url,
+            credentials={"region_name": os.getenv("AWS_REGION", "ap-southeast-2")},
+        ),
         dataset_name="market_data",
     )
 

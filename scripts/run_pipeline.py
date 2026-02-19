@@ -116,6 +116,7 @@ def main() -> None:
         sys.exit(1)
 
     logger.info("Starting ELT Pipeline...")
+    send_discord_alert("Starting ELT Pipeline...", status="INFO")
 
     try:
         # ------------------------------------------------------------------
