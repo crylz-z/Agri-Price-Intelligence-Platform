@@ -22,7 +22,6 @@ dependencies = [
     "python-dotenv",
     "tenacity",
     "boto3",
-    "pre-commit",
     "dbt-core>=1.11.0",
     "dbt-duckdb>=1.9.0",
     "dlt[s3]>=1.22.0",
@@ -37,5 +36,6 @@ packages = ["src"]
 
 [dependency-groups]
 dev = [
+  "pre-commit>=4.5.1",
   "pytest",
 ]
