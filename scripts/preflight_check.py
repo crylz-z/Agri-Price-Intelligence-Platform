@@ -8,7 +8,8 @@ from botocore.exceptions import ClientError, NoCredentialsError
 
 def main() -> None:
     bucket_name = os.getenv("S3_BUCKET_NAME")
-    configured_region = os.getenv("AWS_DEFAULT_REGION", "ap-southeast-2")
+    # If env var is empty string or None, fallback to default.
+    configured_region = os.getenv("AWS_DEFAULT_REGION") or "ap-southeast-2"
 
     if not bucket_name:
         print("[FAIL] S3_BUCKET_NAME not set.")

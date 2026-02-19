@@ -63,6 +63,7 @@ jobs:
       run: python scripts/preflight_check.py
       env:
         S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+        AWS_DEFAULT_REGION: ${{ vars.AWS_DEFAULT_REGION }}
 
     - name: Run ELT Lakehouse Pipeline
       # run_pipeline.py enforces WAP order: dlt → dbt deps → dbt build.
