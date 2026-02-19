@@ -8,7 +8,27 @@
 
 with source as (
     select * from read_parquet(
-        's3://{{ env_var("S3_BUCKET_NAME") }}/bronze/dlt/market_data/**/*.parquet'
+        's3://{{ env_var("S3_BUCKET_NAME") }}/bronze/dlt/market_data/**/*.parquet',
+        filename=true,
+        hive_partitioning=1
+    )
+    union all
+    select
+        extract_dt,
+        cast(region_id as VARCHAR) as region_id,
+        NULL as region_name, -- Not in CSV, will be inferable if needed
+        market_name,
+        category as commodity_group,
+        commodity as commodity_name,
+        NULL as specifications,
+        price,
+        NULL as raw_date_text,
+        NULL as _dlt_load_id,
+        filename
+    from read_csv(
+        's3://{{ env_var("S3_BUCKET_NAME") }}/bronze/year=*/month=*/day=*/*.csv',
+        auto_detect=true,
+        hive_partitioning=1
     )
 ),
 
