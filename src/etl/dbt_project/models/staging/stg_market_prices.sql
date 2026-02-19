@@ -8,7 +8,7 @@
 
 with source as (
     select * from read_parquet(
-        's3://{{ env_var("S3_BUCKET_NAME") }}/bronze/dlt/market_data/agri_price_resource/*.parquet'
+        's3://{{ env_var("S3_BUCKET_NAME") }}/bronze/dlt/market_data/**/*.parquet'
     )
 ),
 

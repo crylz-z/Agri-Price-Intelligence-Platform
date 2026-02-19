@@ -14,8 +14,9 @@ models:
         data_tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0.0
-              max_value: 5000.0
+              arguments:
+                min_value: 0.0
+                max_value: 5000.0
       - name: region_name
         description: "Name of the region"
         data_tests:
