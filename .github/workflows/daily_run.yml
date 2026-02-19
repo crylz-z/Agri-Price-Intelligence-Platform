@@ -50,6 +50,9 @@ jobs:
         pip install uv
         uv pip install -e . --system
 
+    - name: Run Core Unit Tests (Pytest)
+      run: uv run pytest tests/ -v
+
     - name: Configure AWS Credentials (OIDC)
       uses: aws-actions/configure-aws-credentials@v4
       with:
