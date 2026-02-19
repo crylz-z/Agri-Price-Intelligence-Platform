@@ -1,6 +1,5 @@
 import pandas as pd
 import os
-import glob
 import duckdb
 import streamlit as st
 from datetime import datetime, timedelta
@@ -89,7 +88,7 @@ class DataEngine:
             d = f"{current.day:02d}"
             filters.append(f"(year = '{y}' AND month = '{m}' AND day = '{d}')")
             current += timedelta(days=1)
-        
+
         return " OR ".join(filters) if filters else "1=1"
 
     @staticmethod
@@ -105,15 +104,17 @@ class DataEngine:
             target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
             start_date = target_date - timedelta(days=window_days)
             start_date_str = start_date.strftime("%Y-%m-%d")
-            
+
             # Generate partition pruning filter
-            partition_filter = DataEngine._get_partition_filters(start_date, target_date)
-        except:
+            partition_filter = DataEngine._get_partition_filters(
+                start_date, target_date
+            )
+        except Exception:
             return pd.DataFrame()
 
         query = f"""
         WITH windowed_data AS (
-            SELECT 
+            SELECT
                 region_name,
                 market_name,
                 category,
@@ -127,10 +128,10 @@ class DataEngine:
               AND CAST(extract_dt AS DATE) BETWEEN '{start_date_str}' AND '{target_date_str}'
         ),
         ranked AS (
-            SELECT 
+            SELECT
                 *,
                 ROW_NUMBER() OVER (
-                    PARTITION BY region_name, market_name, commodity 
+                    PARTITION BY region_name, market_name, commodity
                     ORDER BY extract_dt DESC
                 ) as rn
             FROM windowed_data
@@ -150,18 +151,20 @@ class DataEngine:
 
             # 1. Sanitize Region Names (Remove "1000000", "400000")
             if "region_name" in df.columns:
-                 # Ensure string type then regex (Catch "1000", "1000.0", "40.0")
-                 # We filter out anything that looks purely numeric (digits and dots)
-                 df = df[~df["region_name"].astype(str).str.match(r'^[0-9\.]+$')]
+                # Ensure string type then regex (Catch "1000", "1000.0", "40.0")
+                # We filter out anything that looks purely numeric (digits and dots)
+                df = df[~df["region_name"].astype(str).str.match(r"^[0-9\.]+$")]
 
             # 2. Filter price outliers (> 5x median + Hard Cap)
             if not df.empty and "Prevailing Price (₱)" in df.columns:
                 # Force numeric
-                df["Prevailing Price (₱)"] = pd.to_numeric(df["Prevailing Price (₱)"], errors="coerce")
-                
+                df["Prevailing Price (₱)"] = pd.to_numeric(
+                    df["Prevailing Price (₱)"], errors="coerce"
+                )
+
                 # Hard Cap 20k
                 df = df[df["Prevailing Price (₱)"] <= 20000]
-                
+
                 if not df.empty:
                     median_price = df["Prevailing Price (₱)"].median()
                     if median_price > 0:
@@ -190,7 +193,7 @@ class DataEngine:
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days_back)
         start_date_str = start_date.strftime("%Y-%m-%d")
-        
+
         # Generator partition pruning filter
         partition_filter = DataEngine._get_partition_filters(start_date, end_date)
 
@@ -219,13 +222,15 @@ class DataEngine:
 
             if not df.empty:
                 df["extract_dt"] = pd.to_datetime(df["extract_dt"])
-                
+
                 if "Prevailing Price (₱)" in df.columns:
-                     # Force numeric + Hard Cap 20k
-                     df["Prevailing Price (₱)"] = pd.to_numeric(df["Prevailing Price (₱)"], errors="coerce")
-                     df = df[df["Prevailing Price (₱)"] <= 20000]
-                     
-                     if not df.empty:
+                    # Force numeric + Hard Cap 20k
+                    df["Prevailing Price (₱)"] = pd.to_numeric(
+                        df["Prevailing Price (₱)"], errors="coerce"
+                    )
+                    df = df[df["Prevailing Price (₱)"] <= 20000]
+
+                    if not df.empty:
                         med = df["Prevailing Price (₱)"].median()
                         if med > 0:
                             df = df[df["Prevailing Price (₱)"] <= med * 5]

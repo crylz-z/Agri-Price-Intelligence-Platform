@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-from . import config
 
 
 class IOManager:
@@ -66,6 +65,6 @@ class IOManager:
         """
         IOManager.ensure_directory(filepath)
         df = pd.DataFrame([row_dict])
-        
+
         header = not IOManager.check_file_exists(filepath)
-        df.to_csv(filepath, mode='a', header=header, index=False)
+        df.to_csv(filepath, mode="a", header=header, index=False)

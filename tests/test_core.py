@@ -1,7 +1,7 @@
-
 import os
 import sys
 import requests
+import pytest
 from unittest.mock import patch
 
 # Adjust path to allow importing from scripts module at project root
@@ -10,10 +10,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.core.logger import get_logger
 from scripts.run_pipeline import send_discord_alert
 
+
 def test_logger_initialization():
     """Verify that a logger instance is correctly initialized."""
     logger = get_logger("test")
     assert logger is not None
+
 
 @patch("os.getenv")
 def test_discord_alert_missing_webhook(mock_getenv):
@@ -27,7 +29,10 @@ def test_discord_alert_missing_webhook(mock_getenv):
     try:
         send_discord_alert("Test message")
     except Exception as e:
-        pytest.fail(f"send_discord_alert raised {e} unexpectedly when webhook is missing")
+        pytest.fail(
+            f"send_discord_alert raised {e} unexpectedly when webhook is missing"
+        )
+
 
 @patch("requests.post")
 @patch("os.getenv")

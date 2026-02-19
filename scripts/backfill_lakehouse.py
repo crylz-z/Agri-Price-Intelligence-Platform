@@ -42,7 +42,7 @@ def run_backfill():
         # Silver Layer Logic
         silver_query = f"""
         WITH raw_data AS (
-            SELECT 
+            SELECT
                 extract_dt,
                 region_id as region_id_raw,
                 market_name,
@@ -54,24 +54,24 @@ def run_backfill():
             WHERE TRY_CAST(price AS DOUBLE) IS NOT NULL
         ),
         enriched AS (
-            SELECT 
+            SELECT
                 r.*,
                 -- Simple region lookup or passthrough if Map absent
-                r.region_id_raw as region_name, 
+                r.region_id_raw as region_name,
                 md5(concat(extract_dt, region_id_raw, commodity, market_name)) as record_id
             FROM raw_data r
         ),
         deduped AS (
-            SELECT * 
+            SELECT *
             FROM (
-                SELECT 
+                SELECT
                     *,
                     row_number() OVER (PARTITION BY record_id ORDER BY extract_dt DESC) as rn
                 FROM enriched
             )
             WHERE rn = 1
         )
-        SELECT 
+        SELECT
             extract_dt,
             region_name,
             market_name,
@@ -88,8 +88,8 @@ def run_backfill():
         print("[INFO] processing Silver Layer...")
         con.execute(
             f"""
-            COPY ({silver_query}) 
-            TO '{silver_path}' 
+            COPY ({silver_query})
+            TO '{silver_path}'
             (FORMAT PARQUET, PARTITION_BY (year, month, day), OVERWRITE_OR_IGNORE true)
         """
         )
@@ -98,7 +98,7 @@ def run_backfill():
         # Gold Query (Aggregates)
         # Read from the JUST WRITTEN Silver files
         gold_query = f"""
-        SELECT 
+        SELECT
             region_name,
             commodity,
             AVG(price) as avg_price,
@@ -115,8 +115,8 @@ def run_backfill():
         print("[INFO] processing Gold Layer...")
         con.execute(
             f"""
-            COPY ({gold_query}) 
-            TO '{gold_path}' 
+            COPY ({gold_query})
+            TO '{gold_path}'
             (FORMAT PARQUET, PARTITION_BY (year, month, day), OVERWRITE_OR_IGNORE true)
         """
         )

@@ -130,7 +130,9 @@ def render_sparklines(trend_df, category_name):
         chart = point + label
     else:
         # Layer 1: volatility band (min → max per day), semi-transparent.
-        band = base.mark_area(opacity=0.2, color="#2E86AB", interpolate="monotone").encode(
+        band = base.mark_area(
+            opacity=0.2, color="#2E86AB", interpolate="monotone"
+        ).encode(
             y=alt.Y("min_price:Q", title="Price (₱)", scale=y_scale),
             y2=alt.Y2("max_price:Q"),
         )
@@ -299,7 +301,9 @@ def render_historical_insight(df, commodity: str) -> None:
     """
     required_cols = {"extract_dt", "Prevailing Price (₱)"}
     if df is None or df.empty or not required_cols.issubset(df.columns):
-        st.warning(f"Insufficient data to generate a historical insight for {commodity}.")
+        st.warning(
+            f"Insufficient data to generate a historical insight for {commodity}."
+        )
         return
 
     price_spread = df["Prevailing Price (₱)"].max() - df["Prevailing Price (₱)"].min()
@@ -310,7 +314,9 @@ def render_historical_insight(df, commodity: str) -> None:
     dow_avg = dow_df.groupby("day_name")["Prevailing Price (₱)"].mean()
 
     if dow_avg.empty:
-        st.warning(f"Insufficient data to generate a historical insight for {commodity}.")
+        st.warning(
+            f"Insufficient data to generate a historical insight for {commodity}."
+        )
         return
 
     best_day = dow_avg.idxmin()

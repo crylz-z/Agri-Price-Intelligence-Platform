@@ -42,6 +42,7 @@ logger = get_logger(__name__)
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _load_dotenv() -> None:
     """Load .env into the current process environment (local dev only)."""
     env_file = ROOT / ".env"
@@ -100,6 +101,7 @@ def _run(cmd: list[str], cwd: Path | None = None, step_name: str = "") -> None:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     _load_dotenv()

@@ -3,7 +3,12 @@ import requests
 from datetime import datetime
 from typing import Iterator, Dict, Any, List, Optional
 from bs4 import BeautifulSoup
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+)
 
 from src.core.config import REGION_MAP, CATEGORY_MAP, BASE_URL
 from src.core.http_client import AgriHttpClient
@@ -16,6 +21,7 @@ URL_DATE = f"{BASE_URL}/tbl_price_get_date_rice.php"
 URL_HEADER = f"{BASE_URL}/tbl_price_get_comm_header.php"
 URL_PRICE = f"{BASE_URL}/tbl_price_get_comm_price.php"
 
+
 @dlt.source
 def agri_price_source(limit: Optional[int] = None):
     """
@@ -23,6 +29,7 @@ def agri_price_source(limit: Optional[int] = None):
     The `limit` parameter is used for testing to restrict the number of region/category combinations.
     """
     return agri_price_resource(limit=limit)
+
 
 @dlt.resource(write_disposition="append")
 def agri_price_resource(limit: Optional[int] = None) -> Iterator[Dict[str, Any]]:
@@ -43,7 +50,9 @@ def agri_price_resource(limit: Optional[int] = None) -> Iterator[Dict[str, Any]]
             logger.info(f"Extracting: {region_name} - {category_name}")
 
             try:
-                data = fetch_category_data(http_client, region_id, category_id, category_name)
+                data = fetch_category_data(
+                    http_client, region_id, category_id, category_name
+                )
                 if data:
                     yield from data
                     count += 1
@@ -52,9 +61,10 @@ def agri_price_resource(limit: Optional[int] = None) -> Iterator[Dict[str, Any]]
                 # abort the entire pipeline run; partial data is preferable to no data.
                 logger.error(
                     f"Skipping {region_name} - {category_name} after all retries exhausted",
-                    error=str(e)
+                    error=str(e),
                 )
                 continue
+
 
 @retry(
     # 5 attempts with exponential backoff capped at 60s.
@@ -67,7 +77,9 @@ def agri_price_resource(limit: Optional[int] = None) -> Iterator[Dict[str, Any]]
         (requests.exceptions.RequestException, requests.exceptions.HTTPError)
     ),
 )
-def fetch_category_data(http_client, region_id, category_id, category_name) -> Optional[List[Dict[str, Any]]]:
+def fetch_category_data(
+    http_client, region_id, category_id, category_name
+) -> Optional[List[Dict[str, Any]]]:
     """
     Fetches and parses price data for a single region/category combination.
     Executes three sequential HTTP POST requests against the DA Bantay Presyo API:
@@ -105,6 +117,7 @@ def fetch_category_data(http_client, region_id, category_id, category_name) -> O
     prices_html = response.text
 
     return parse_price_rows(prices_html, markets, region_id, category_name, date_text)
+
 
 def parse_price_rows(html_rows, market_list, region_id, category_name, payload_date):
     """

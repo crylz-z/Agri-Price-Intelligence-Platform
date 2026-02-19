@@ -1,7 +1,7 @@
 import streamlit as st
 import sys
 import os
-import pandas as pd
+import altair as alt
 from dotenv import load_dotenv
 
 # Load environment variables for S3 access
@@ -26,14 +26,12 @@ if (
         os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
     )
 
-from src.dashboard.utils.data_engine import DataEngine
-from src.dashboard.utils import ui
-from src.dashboard.components import metrics, spatial
+from src.dashboard.utils.data_engine import DataEngine  # noqa: E402
+from src.dashboard.utils import ui  # noqa: E402
+from src.dashboard.components import metrics, spatial  # noqa: E402
 
 # Apply Global Styling
 ui.apply_enterprise_styling()
-import altair as alt
-
 
 
 # ==========================================
@@ -62,7 +60,9 @@ st.sidebar.header("Configuration")
 min_date, max_date = DataEngine.get_date_range()
 if not min_date or not max_date:
     st.warning("No data currently available. Please check back later.")
-    st.info("The ETL pipeline runs daily. Data may be temporarily unavailable during processing.")
+    st.info(
+        "The ETL pipeline runs daily. Data may be temporarily unavailable during processing."
+    )
     st.stop()
 
 # Calendar Picker
@@ -98,7 +98,9 @@ for i, cat in enumerate(valid_categories):
     if "FISH" in cat.upper():
         default_cat_ix = i
         break
-selected_category = st.sidebar.selectbox("Category", valid_categories, index=default_cat_ix)
+selected_category = st.sidebar.selectbox(
+    "Category", valid_categories, index=default_cat_ix
+)
 category_df = region_df[region_df["category"] == selected_category].copy()
 
 # 4. Commodity
@@ -157,13 +159,16 @@ metrics.render_national_insight(trend_df, selected_commodity)
 
 # Compute summary statistics from the current snapshot.
 _national_df = raw_df[raw_df["commodity"] == selected_commodity].copy()
-_national_avg = _national_df["Prevailing Price (₱)"].mean() if not _national_df.empty else None
+_national_avg = (
+    _national_df["Prevailing Price (₱)"].mean() if not _national_df.empty else None
+)
 _market_count = commodity_df["market_name"].nunique()
 
 # Best deal: cheapest market in the current region for the selected commodity.
 _best_row = (
     commodity_df.loc[commodity_df["Prevailing Price (₱)"].idxmin()]
-    if not commodity_df.empty else None
+    if not commodity_df.empty
+    else None
 )
 _best_market = _best_row["market_name"] if _best_row is not None else "N/A"
 _best_price = _best_row["Prevailing Price (₱)"] if _best_row is not None else None
@@ -199,7 +204,10 @@ with col_bar:
         # Filter raw_df for the selected commodity across ALL regions
         cross_region_df = raw_df[raw_df["commodity"] == selected_commodity].copy()
 
-        if not cross_region_df.empty and "Prevailing Price (₱)" in cross_region_df.columns:
+        if (
+            not cross_region_df.empty
+            and "Prevailing Price (₱)" in cross_region_df.columns
+        ):
             # 2. IQR Filter (Statistical Outlier Removal)
             if not cross_region_df.empty:
                 Q1 = cross_region_df["Prevailing Price (₱)"].quantile(0.25)
@@ -207,7 +215,9 @@ with col_bar:
                 IQR = Q3 - Q1
                 if IQR > 0:
                     upper_bound = Q3 + 3 * IQR
-                    cross_region_df = cross_region_df[cross_region_df["Prevailing Price (₱)"] <= upper_bound]
+                    cross_region_df = cross_region_df[
+                        cross_region_df["Prevailing Price (₱)"] <= upper_bound
+                    ]
 
         if not cross_region_df.empty:
             reg_stats = (
@@ -231,12 +241,16 @@ with col_bar:
                     # Green for the cheapest region; neutral blue for all others.
                     color=alt.condition(
                         alt.datum.region_name == min_price_region,
-                        alt.value("#2ca02c"),   # Best deal: green
-                        alt.value("#1f77b4"),   # All others: neutral blue
+                        alt.value("#2ca02c"),  # Best deal: green
+                        alt.value("#1f77b4"),  # All others: neutral blue
                     ),
                     tooltip=[
                         alt.Tooltip("region_name:N", title="Region"),
-                        alt.Tooltip("Prevailing Price (₱):Q", title="Avg Price (₱)", format=",.2f"),
+                        alt.Tooltip(
+                            "Prevailing Price (₱):Q",
+                            title="Avg Price (₱)",
+                            format=",.2f",
+                        ),
                     ],
                 )
                 .properties(height=350)
@@ -250,7 +264,7 @@ with col_top5:
     with st.container(border=True):
         # Use Tabs for cleaner UI
         tab_high, tab_low = st.tabs(["Most Expensive", "Best Deals"])
-        
+
         # Define shared formatting function (nested to keep scope context or move out)
         def alternating_rows(row):
             color = "#F0F2F6" if row.name % 2 != 0 else "#FAFAFA"
@@ -265,11 +279,13 @@ with col_top5:
 
                 # Rename columns for display and render as a static HTML table
                 # (no horizontal scrollbar, 100% container width).
-                top5_high = top5_high.rename(columns={
-                    "region_name": "Region",
-                    "market_name": "Market",
-                    "Prevailing Price (₱)": "Price (₱)",
-                })
+                top5_high = top5_high.rename(
+                    columns={
+                        "region_name": "Region",
+                        "market_name": "Market",
+                        "Prevailing Price (₱)": "Price (₱)",
+                    }
+                )
                 top5_high["Price (₱)"] = top5_high["Price (₱)"].map("₱{:,.2f}".format)
                 st.table(top5_high)
             else:
@@ -285,11 +301,13 @@ with col_top5:
 
                 # Rename columns for display and render as a static HTML table
                 # (no horizontal scrollbar, 100% container width).
-                top5_low = top5_low.rename(columns={
-                    "region_name": "Region",
-                    "market_name": "Market",
-                    "Prevailing Price (₱)": "Price (₱)",
-                })
+                top5_low = top5_low.rename(
+                    columns={
+                        "region_name": "Region",
+                        "market_name": "Market",
+                        "Prevailing Price (₱)": "Price (₱)",
+                    }
+                )
                 top5_low["Price (₱)"] = top5_low["Price (₱)"].map("₱{:,.2f}".format)
                 st.table(top5_low)
             else:
@@ -309,7 +327,7 @@ col_map, col_alert = st.columns(2)
 
 with col_map:
     with st.container(border=True):
-        st.markdown(f"#### Market Locations")
+        st.markdown("#### Market Locations")
         # Enhance specific commodity data with Geo
         # This uses the Resilient Geo-Join from Data Engine
         geo_enriched = DataEngine.enrich_with_geo(commodity_df, geo_df)

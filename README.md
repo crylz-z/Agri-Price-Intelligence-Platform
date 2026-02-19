@@ -23,14 +23,14 @@ The platform uses a modern **ELT (Extract, Load, Transform)** architecture orche
 ### 2. Transformation (T)
 *   **Tool:** `dbt` (Data Build Tool) + DuckDB
 *   **Source:** `src/etl/dbt_project/`
-*   **Action:** 
+*   **Action:**
     *   Reads Bronze data from S3.
     *   Transforms data to Silver and Gold layers.
 *   **Quality Gate:** `dbt test` runs immediately after valid models are built. If any data quality test (e.g., price < 0 or price > 5000) fails, the pipeline stops.
 
 ### 3. Orchestration & Alerting
 *   **Script:** `scripts/run_pipeline.py`
-*   **Pattern:** **WAP (Write-Audit-Publish)**. 
+*   **Pattern:** **WAP (Write-Audit-Publish)**.
     1.  **Preflight:** Verifies S3 connectivity.
     2.  **Write:** `dlt` runs extraction.
     3.  **Audit:** `dbt build` runs transformations and tests.

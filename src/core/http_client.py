@@ -29,15 +29,11 @@ class AgriHttpClient:
 
     def get(self, url, params=None, timeout=None, **kwargs):
         try:
-<<<<<<< HEAD
-            response = self.session.get(
-                url, params=params, timeout=self.timeout, **kwargs
-            )
-=======
             # Use provided timeout or default
             req_timeout = timeout if timeout is not None else self.timeout
-            response = self.session.get(url, params=params, timeout=req_timeout, **kwargs)
->>>>>>> temp_fix
+            response = self.session.get(
+                url, params=params, timeout=req_timeout, **kwargs
+            )
             response.raise_for_status()
             return response
         except requests.exceptions.HTTPError as err:
@@ -47,14 +43,10 @@ class AgriHttpClient:
 
     def post(self, url, data=None, json=None, timeout=None, **kwargs):
         try:
-<<<<<<< HEAD
-            response = self.session.post(
-                url, data=data, json=json, timeout=self.timeout, **kwargs
-            )
-=======
             req_timeout = timeout if timeout is not None else self.timeout
-            response = self.session.post(url, data=data, json=json, timeout=req_timeout, **kwargs)
->>>>>>> temp_fix
+            response = self.session.post(
+                url, data=data, json=json, timeout=req_timeout, **kwargs
+            )
             response.raise_for_status()
             return response
         except requests.exceptions.RequestException as e:

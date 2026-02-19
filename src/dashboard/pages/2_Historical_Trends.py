@@ -3,7 +3,6 @@ import sys
 import os
 import pandas as pd
 import altair as alt
-from datetime import datetime
 from dotenv import load_dotenv
 
 # Load environment variables for S3 access
@@ -18,13 +17,12 @@ if (
         os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
     )
 
-from src.dashboard.utils.data_engine import DataEngine
-from src.dashboard.utils import ui
-from src.dashboard.components import metrics
+from src.dashboard.utils.data_engine import DataEngine  # noqa: E402
+from src.dashboard.utils import ui  # noqa: E402
+from src.dashboard.components import metrics  # noqa: E402
 
 # Apply Global Styling
 ui.apply_enterprise_styling()
-
 
 
 # ==========================================
@@ -64,7 +62,9 @@ days_back = range_options[selected_range_label]
 min_date, max_date = DataEngine.get_date_range()
 if not max_date:
     st.warning("No data currently available. Please check back later.")
-    st.info("The ETL pipeline runs daily. Data may be temporarily unavailable during processing.")
+    st.info(
+        "The ETL pipeline runs daily. Data may be temporarily unavailable during processing."
+    )
     st.stop()
 
 latest_date = max_date.strftime("%Y-%m-%d")
@@ -121,7 +121,9 @@ prior_df = DataEngine.get_historical_trends(
 if not prior_df.empty:
     cutoff = prior_df["extract_dt"].max() - pd.Timedelta(days=days_back)
     prior_window = prior_df[prior_df["extract_dt"] <= cutoff]
-    avg_prior = prior_window["Prevailing Price (₱)"].mean() if not prior_window.empty else None
+    avg_prior = (
+        prior_window["Prevailing Price (₱)"].mean() if not prior_window.empty else None
+    )
 else:
     avg_prior = None
 
@@ -133,12 +135,22 @@ else:
     avg_delta_str = None
 
 # Delta for Period Low: deviation below the period average (always negative or zero).
-low_delta_pct = ((min_price_period - avg_price_period) / avg_price_period) * 100 if avg_price_period else None
+low_delta_pct = (
+    ((min_price_period - avg_price_period) / avg_price_period) * 100
+    if avg_price_period
+    else None
+)
 low_delta_str = f"{low_delta_pct:+.1f}% vs avg" if low_delta_pct is not None else None
 
 # Delta for Period High: deviation above the period average (always positive or zero).
-high_delta_pct = ((max_price_period - avg_price_period) / avg_price_period) * 100 if avg_price_period else None
-high_delta_str = f"{high_delta_pct:+.1f}% vs avg" if high_delta_pct is not None else None
+high_delta_pct = (
+    ((max_price_period - avg_price_period) / avg_price_period) * 100
+    if avg_price_period
+    else None
+)
+high_delta_str = (
+    f"{high_delta_pct:+.1f}% vs avg" if high_delta_pct is not None else None
+)
 
 m1, m2, m3 = st.columns(3)
 with m1:
@@ -222,7 +234,7 @@ with st.container(border=True):
             tooltip=[
                 alt.Tooltip("extract_dt", title="Date", format="%b %d, %Y"),
                 alt.Tooltip("market_name", title="Market"),
-                alt.Tooltip("Prevailing Price (₱)", title="Price", format=",.2f")
+                alt.Tooltip("Prevailing Price (₱)", title="Price", format=",.2f"),
             ],
         )
         .properties(height=400)
@@ -256,14 +268,12 @@ with st.container(border=True):
             alt.Tooltip("extract_dt", title="Date", format="%b %d, %Y"),
             alt.Tooltip("min", title="Min Price", format=",.2f"),
             alt.Tooltip("max", title="Max Price", format=",.2f"),
-            alt.Tooltip("mean", title="Avg Price", format=",.2f")
+            alt.Tooltip("mean", title="Avg Price", format=",.2f"),
         ],
     )
 
     # Render Average Line (Muted Coral, Dashed)
-    line_avg = base.mark_line(color="#D64045", strokeDash=[5, 5]).encode(
-        y="mean:Q"
-    )
+    line_avg = base.mark_line(color="#D64045", strokeDash=[5, 5]).encode(y="mean:Q")
 
     combined = (
         (area + line_avg)
@@ -280,22 +290,22 @@ with st.container(border=True):
 # CHART 3: BEST DAY TO BUY (Day of Week Analysis)
 with st.container(border=True):
     st.markdown("#### Best Day to Buy Analysis")
-    st.caption("Which day of the week typically offers the lowest prices? Based on historical averages.")
+    st.caption(
+        "Which day of the week typically offers the lowest prices? Based on historical averages."
+    )
 
     # Prepare Data
     if "extract_dt" in hist_df.columns and not hist_df.empty:
         dow_df = hist_df.copy()
         dow_df["day_name"] = dow_df["extract_dt"].dt.day_name()
-        
+
         # Aggregate
         dow_stats = (
-            dow_df.groupby("day_name")["Prevailing Price (₱)"]
-            .mean()
-            .reset_index()
+            dow_df.groupby("day_name")["Prevailing Price (₱)"].mean().reset_index()
         )
         # Sort by Price (Cheapest first) for the chart
         dow_stats = dow_stats.sort_values("Prevailing Price (₱)")
-        
+
         # Highlight the BEST day (First row after sort)
         if not dow_stats.empty:
             best_day = dow_stats.iloc[0]["day_name"]
@@ -304,18 +314,28 @@ with st.container(border=True):
             # Bar Chart: X=Price, Y=Day, Color=Best Day Highlight
             base = alt.Chart(dow_stats).encode(
                 x=alt.X("Prevailing Price (₱):Q", title="Avg Price (₱)"),
-                y=alt.Y("day_name:N", sort=alt.EncodingSortField(field="Prevailing Price (₱)", order="ascending"), title=None),
+                y=alt.Y(
+                    "day_name:N",
+                    sort=alt.EncodingSortField(
+                        field="Prevailing Price (₱)", order="ascending"
+                    ),
+                    title=None,
+                ),
                 tooltip=[
-                    alt.Tooltip("day_name", title="Day"), 
-                    alt.Tooltip("Prevailing Price (₱)", title="Avg Price", format=",.2f")
-                ]
+                    alt.Tooltip("day_name", title="Day"),
+                    alt.Tooltip(
+                        "Prevailing Price (₱)", title="Avg Price", format=",.2f"
+                    ),
+                ],
             )
 
             bars = base.mark_bar().encode(
                 color=alt.condition(
                     alt.datum.day_name == best_day,
-                    alt.value("#2ca02c"),   # Best day: green (consistent with regional bar chart)
-                    alt.value("#d3d3d3"),   # All others: muted gray
+                    alt.value(
+                        "#2ca02c"
+                    ),  # Best day: green (consistent with regional bar chart)
+                    alt.value("#d3d3d3"),  # All others: muted gray
                 )
             )
 
@@ -339,7 +359,9 @@ with st.container(border=True):
                 .properties(height=300)
             )
             st.altair_chart(chart, use_container_width=True)
-            st.success(f"**Insight:** Historical data suggests **{best_day}** is generally the best day to buy.")
+            st.success(
+                f"**Insight:** Historical data suggests **{best_day}** is generally the best day to buy."
+            )
 
 # ==========================================
 # FOOTER
