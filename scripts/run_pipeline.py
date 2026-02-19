@@ -68,7 +68,7 @@ def send_discord_alert(message: str, status: str = "ERROR") -> None:
         logger.warning("DISCORD_WEBHOOK_URL not set — skipping Discord notification.")
         return
 
-    color = 65280 if status == "SUCCESS" else 16711680  # green / red
+    color = 65280 if status in ["SUCCESS", "INFO"] else 16711680  # green / red
     payload = {
         "embeds": [
             {
