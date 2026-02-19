@@ -73,4 +73,5 @@ jobs:
       env:
         S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
         AWS_DEFAULT_REGION: ${{ vars.AWS_DEFAULT_REGION }}
+        AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
