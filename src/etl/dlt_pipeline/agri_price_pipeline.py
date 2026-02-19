@@ -27,7 +27,9 @@ def load():
         dataset_name="market_data",
     )
 
-    load_info = pipeline.run(agri_price_source())
+    # NOTE: Legacy .jsonl files in S3 (from before this fix) must be manually purged
+    # to prevent schema conflicts. DLT will now strictly output Parquet.
+    load_info = pipeline.run(agri_price_source(), loader_file_format="parquet")
     print(load_info)
 
 
