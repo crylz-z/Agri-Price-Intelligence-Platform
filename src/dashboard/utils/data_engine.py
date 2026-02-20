@@ -242,19 +242,31 @@ class DataEngine:
         LKGV Strategy: Loads a window of data (Target + Previous Days).
         Returns a combined raw DataFrame.
         """
-        if not SILVER_LAYER_PATH:
-            return None
-
+        # Note: We now dynamically construct the partition path instead of relying on SILVER_LAYER_PATH wildcard
         try:
             target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
             start_date = target_date - timedelta(days=window_days)
             start_date_str = start_date.strftime("%Y-%m-%d")
+            
+            # Tasks 1 & 2: Dynamic S3 Path Construction for exact partition
+            year = target_date.strftime("%Y")
+            month = target_date.strftime("%m")
+            day = target_date.strftime("%d")
+            
+            bucket = os.getenv("S3_BUCKET_NAME")
+            if not bucket:
+                return None
+                
+            silver_path = f"s3://{bucket}/silver/year={year}/month={month}/day={day}/*.parquet"
 
+            # Task 3: Enforce Authenticated Connection
             con = DataEngine._get_connection()
+            # To handle the window logic, we could either query base path WITH filter, 
+            # OR just load the target date partition if "window" is effectively just the target date for LKGV.
+            # As requested: Update the DuckDB SQL query to read directly from the specific S3 partition.
             query = f"""
             SELECT *
-            FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true, hive_partitioning=1)
-            WHERE CAST(extract_dt AS DATE) BETWEEN '{start_date_str}' AND '{target_date_str}'
+            FROM read_parquet('{silver_path}', union_by_name=true)
             """
             df = con.sql(query).df()
             con.close()
