@@ -67,12 +67,8 @@ def agri_price_resource(limit: Optional[int] = None) -> Iterator[Dict[str, Any]]
 
 
 @retry(
-    # 5 attempts with exponential backoff capped at 60s.
-    # The government server can be unresponsive for extended periods;
-    # a higher attempt count and longer backoff ceiling improves resilience
-    # without burning retries on transient fast failures.
-    stop=stop_after_attempt(5),
-    wait=wait_exponential(multiplier=2, min=2, max=60),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
     retry=retry_if_exception_type(
         (requests.exceptions.RequestException, requests.exceptions.HTTPError)
     ),
@@ -91,11 +87,11 @@ def fetch_category_data(
     payload_base = {"region": region_id, "commodity": category_id}
 
     # Step 1: Retrieve the publication date for this region/category combination.
-    response = http_client.post(URL_DATE, data=payload_base)
+    response = http_client.post(URL_DATE, data=payload_base, timeout=15)
     date_text = response.text
 
     # Step 2: Retrieve market column headers to determine which markets are reporting.
-    response = http_client.post(URL_HEADER, data=payload_base)
+    response = http_client.post(URL_HEADER, data=payload_base, timeout=15)
     headers_html = response.text
 
     soup = BeautifulSoup(headers_html, "html.parser")
@@ -113,7 +109,7 @@ def fetch_category_data(
     payload_price = payload_base.copy()
     payload_price["count"] = str(len(markets))
 
-    response = http_client.post(URL_PRICE, data=payload_price)
+    response = http_client.post(URL_PRICE, data=payload_price, timeout=15)
     prices_html = response.text
 
     return parse_price_rows(prices_html, markets, region_id, category_name, date_text)

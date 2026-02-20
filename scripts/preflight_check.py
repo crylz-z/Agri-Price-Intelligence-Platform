@@ -44,15 +44,20 @@ def check_source() -> None:
         response = requests.get(BASE_URL, timeout=10)
         if response.status_code == 200:
             logger.info("Data source is reachable.", status_code=response.status_code)
+        elif response.status_code >= 500:
+            logger.error(
+                "Data source returned 500-level error. Failing fast.",
+                status_code=response.status_code,
+            )
+            sys.exit(1)
         else:
             logger.warning(
                 "Data source returned unexpected status code.",
                 status_code=response.status_code,
             )
     except requests.exceptions.RequestException as e:
-        logger.warning(
-            "Data source is currently unreachable or degraded.", error=str(e)
-        )
+        logger.error("Data source is currently unreachable or degraded.", error=str(e))
+        sys.exit(1)
 
 
 def check_s3() -> None:
