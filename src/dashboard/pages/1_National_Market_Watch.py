@@ -53,16 +53,20 @@ st.markdown(
 # ==========================================
 # SIDEBAR FILTERS
 # ==========================================
-st.sidebar.header("Configuration")
+st.sidebar.markdown("### Configuration")
 
-# 1. Date (Global Configuration overrides)
-selected_date = st.session_state.get("global_date")
+default_date_str = st.session_state.get("global_date")
+from datetime import datetime
 
-if not selected_date:
-    st.warning(
-        "No date selected. Please select a date from the Global Configuration sidebar."
-    )
-    st.stop()
+default_date = (
+    datetime.strptime(default_date_str, "%Y-%m-%d").date()
+    if default_date_str
+    else datetime.today().date()
+)
+
+picked_date = st.sidebar.date_input("Date", value=default_date)
+selected_date = picked_date.strftime("%Y-%m-%d")
+st.session_state["global_date"] = selected_date
 
 # LOAD DATA (LKGV)
 raw_df = DataEngine.get_market_snapshot(selected_date)

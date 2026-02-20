@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime
 from dotenv import load_dotenv
 from src.core import config
+from src.dashboard.utils.data_engine import DataEngine
 
 load_dotenv()
 
@@ -22,11 +23,6 @@ REF_DATA_DIR = os.path.join(config.DATA_DIR, "reference")
 
 # ==========================================
 # DATA ENGINE & GLOBAL SIDEBAR
-# ==========================================
-from src.dashboard.utils.data_engine import DataEngine
-
-st.sidebar.header("Global Configuration")
-
 # Task 1: Dynamically scan Silver directory on every reload
 try:
     con = DataEngine._get_connection()
@@ -49,9 +45,9 @@ except Exception as e:
     print(f"Max date calculation failed: {e}")
     latest_date = datetime.today().date()
 
-# explicitly apply max_value=latest_date
-picked_date = st.sidebar.date_input("Date", value=latest_date, max_value=latest_date)
-st.session_state["global_date"] = picked_date.strftime("%Y-%m-%d")
+# Initialize global date state silently
+if "global_date" not in st.session_state:
+    st.session_state["global_date"] = latest_date.strftime("%Y-%m-%d")
 
 # --- Multipage Navigation (st.Page API) ---
 home = st.Page("pages/0_Home.py", title="Home", icon=":material/home:", default=True)
