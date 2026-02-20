@@ -24,6 +24,9 @@ URL_DATE = f"{BASE_URL}/tbl_price_get_date_rice.php"
 URL_HEADER = f"{BASE_URL}/tbl_price_get_comm_header.php"
 URL_PRICE = f"{BASE_URL}/tbl_price_get_comm_price.php"
 
+REGION_FAILURES = {}
+REGION_STATS = {}
+
 
 @dlt.source
 def agri_price_source(limit: Optional[int] = None):
@@ -43,33 +46,60 @@ def agri_price_resource(limit: Optional[int] = None) -> Iterator[Dict[str, Any]]
     """
     http_client = AgriHttpClient()
     count = 0
-    futures = []
+    futures = {}
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         for region_id, region_name in REGION_MAP.items():
+            if region_name not in REGION_STATS:
+                REGION_STATS[region_name] = {"rows": 0, "status": "OK"}
+
+            if REGION_FAILURES.get(region_name, 0) >= 2:
+                REGION_STATS[region_name]["status"] = "SKIPPED (DEGRADED)"
+                continue
+
             for category_id, category_name in CATEGORY_MAP.items():
                 if limit and len(futures) >= limit:
                     break
-                futures.append(
-                    executor.submit(
-                        fetch_single_category,
-                        http_client,
-                        region_id,
-                        region_name,
-                        category_id,
-                        category_name,
-                    )
+                future = executor.submit(
+                    fetch_single_category,
+                    http_client,
+                    region_id,
+                    region_name,
+                    category_id,
+                    category_name,
                 )
+                futures[future] = region_name
             if limit and len(futures) >= limit:
                 break
 
         for future in concurrent.futures.as_completed(futures):
-            # Errors are gracefully caught inside fetch_single_category,
-            # so data will be None if exhaustive retries failed.
-            data = future.result()
-            if data:
-                yield from data
-                count += 1
+            region_name = futures[future]
+            try:
+                data = future.result()
+                if data:
+                    REGION_FAILURES[region_name] = 0
+                    REGION_STATS[region_name]["rows"] += len(data)
+                    yield from data
+                    count += 1
+            except Exception as e:
+                logger.error(f"Task failed for {region_name}: {e}")
+                REGION_FAILURES[region_name] = REGION_FAILURES.get(region_name, 0) + 1
+
+    summary_lines = [
+        "=" * 50,
+        "EXTRACTION SUMMARY REPORT",
+        "=" * 50,
+        f"{'REGION':<25} | {'STATUS':<18} | ROWS",
+        "-" * 50,
+    ]
+    for reg, stats in REGION_STATS.items():
+        reg_trunc = reg[:22] + "..." if len(reg) > 25 else reg
+        summary_lines.append(
+            f"{reg_trunc:<25} | {stats['status']:<18} | {stats['rows']}"
+        )
+    summary_lines.append("=" * 50)
+
+    logger.info("\n" + "\n".join(summary_lines))
 
 
 def fetch_single_category(
@@ -77,14 +107,7 @@ def fetch_single_category(
 ) -> Optional[List[Dict[str, Any]]]:
     """Helper function to execute HTTP fetches and handle specific combination logging."""
     logger.info(f"Extracting: {region_name} - {category_name}")
-    try:
-        return fetch_category_data(http_client, region_id, category_id, category_name)
-    except Exception as e:
-        logger.error(
-            f"Skipping {region_name} - {category_name} after all retries exhausted",
-            error=str(e),
-        )
-        return None
+    return fetch_category_data(http_client, region_id, category_id, category_name)
 
 
 @retry(
@@ -112,17 +135,21 @@ def fetch_category_data(
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.5",
         "Connection": "keep-alive",
-        "Referer": "http://www.bantaypresyo.da.gov.ph/"
+        "Referer": "http://www.bantaypresyo.da.gov.ph/",
     }
 
     time.sleep(random.uniform(0.5, 2.0))
 
     # Step 1: Retrieve the publication date for this region/category combination.
-    response = http_client.post(URL_DATE, data=payload_base, headers=headers, timeout=15)
+    response = http_client.post(
+        URL_DATE, data=payload_base, headers=headers, timeout=15
+    )
     date_text = response.text
 
     # Step 2: Retrieve market column headers to determine which markets are reporting.
-    response = http_client.post(URL_HEADER, data=payload_base, headers=headers, timeout=15)
+    response = http_client.post(
+        URL_HEADER, data=payload_base, headers=headers, timeout=15
+    )
     headers_html = response.text
 
     soup = BeautifulSoup(headers_html, "html.parser")
@@ -140,7 +167,9 @@ def fetch_category_data(
     payload_price = payload_base.copy()
     payload_price["count"] = str(len(markets))
 
-    response = http_client.post(URL_PRICE, data=payload_price, headers=headers, timeout=15)
+    response = http_client.post(
+        URL_PRICE, data=payload_price, headers=headers, timeout=15
+    )
     prices_html = response.text
 
     return parse_price_rows(prices_html, markets, region_id, category_name, date_text)
