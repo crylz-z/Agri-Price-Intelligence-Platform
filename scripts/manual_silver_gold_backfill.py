@@ -17,10 +17,9 @@ def get_duckdb_con():
         con.execute(f"SET s3_secret_access_key='{aws_secret}';")
     return con
 
-def backfill_gold(target_dates):
+def backfill_silver_gold(target_dates):
     """
-    Backfills the Gold layer for the provided target dates.
-    Reads from the Silver layer, aggregates to regional KPIs, and writes to Gold.
+    Backfills the Silver and Gold layers strictly following Medallion architecture.
     """
     load_dotenv()
     bucket = os.getenv("S3_BUCKET_NAME")
@@ -32,45 +31,59 @@ def backfill_gold(target_dates):
     con = get_duckdb_con()
 
     for date_str in target_dates:
-        print(f"Starting Gold backfill for {date_str}...")
+        print(f"==================================================")
+        print(f"Starting pipeline backfill for {date_str}...")
         try:
             target_date = datetime.strptime(date_str, "%Y-%m-%d")
             year = target_date.strftime("%Y")
             month = target_date.strftime("%m")
             day = target_date.strftime("%d")
 
-            # Data stranded in Bronze/Silver -> Read from complete bronze layer
             bronze_path = f"s3://{bucket}/bronze/dlt/market_data/agri_price_resource/**/*.parquet"
+            silver_dir = f"s3://{bucket}/silver/year={year}/month={month}/day={day}"
+            silver_path = f"{silver_dir}/clean_prices.parquet"
+            
             gold_dir = f"s3://{bucket}/gold/year={year}/month={month}/day={day}"
             gold_path = f"{gold_dir}/regional_kpis.parquet"
 
-            query = f"""
+            # STEP A: MATERIALIZE SILVER
+            print(f"-> Step A: Materializing Silver layer to {silver_path}...")
+            
+            # Note: The raw data contains extract_dt and commodity_group, commodity_name.
+            # We map commodity_group -> category and commodity_name -> commodity
+            # to meet Streamlit's expectations.
+            silver_query = f"""
             COPY (
                 WITH source as (
                     SELECT * FROM read_parquet('{bronze_path}', union_by_name=true)
                 ),
                 silver as (
                     SELECT
-                        try_cast(extract_dt as timestamp) as extract_ts,
-                        region_id,
                         region_name,
                         market_name,
-                        commodity_group,
-                        commodity_name,
+                        commodity_group as category,
+                        commodity_name as commodity,
                         try_cast(price as double) as price,
-                        raw_date_text,
-                        _dlt_load_id
+                        try_cast(extract_dt as timestamp) as extract_dt
                     FROM source
                     WHERE CAST(extract_dt AS DATE) = '{date_str}'
-                ),
-                clean_silver as (
-                    SELECT * FROM silver
-                    WHERE price <= 20000 AND price >= 0
-                    AND not regexp_matches(CAST(region_name AS VARCHAR), '^[0-9.]+$')
                 )
+                SELECT * FROM silver
+                WHERE price <= 20000 AND price >= 0
+                AND not regexp_matches(CAST(region_name AS VARCHAR), '^[0-9.]+$')
+            ) TO '{silver_path}' (FORMAT 'parquet', OVERWRITE_OR_IGNORE true);
+            """
+            
+            con.execute(silver_query)
+            print(f"   [SUCCESS] Silver materialized for {date_str}.")
+
+            # STEP B: MATERIALIZE GOLD
+            print(f"-> Step B: Materializing Gold layer to {gold_path} from Silver data...")
+            gold_query = f"""
+            COPY (
                 SELECT 
                     region_name,
-                    commodity_name as commodity,
+                    commodity,
                     AVG(price) as avg_price,
                     MIN(price) as min_price,
                     MAX(price) as max_price,
@@ -78,25 +91,24 @@ def backfill_gold(target_dates):
                         WHEN AVG(price) > 0 THEN ((MAX(price) - MIN(price)) / AVG(price)) * 100 
                         ELSE 0 
                     END as price_volatility,
-                    MAX(extract_ts) as latest_date,
+                    MAX(extract_dt) as latest_date,
                     0 as days_ago
-                FROM clean_silver
-                WHERE region_name IS NOT NULL AND commodity_name IS NOT NULL
-                GROUP BY region_name, commodity_name
+                FROM read_parquet('{silver_path}')
+                WHERE region_name IS NOT NULL AND commodity IS NOT NULL
+                GROUP BY region_name, commodity
             ) TO '{gold_path}' (FORMAT 'parquet', OVERWRITE_OR_IGNORE true);
             """
             
-            print(f"Executing aggregation and writing to {gold_path}...")
-            con.execute(query)
-            print(f"Successfully backfilled Gold layer for {date_str}.")
+            con.execute(gold_query)
+            print(f"   [SUCCESS] Gold materialized for {date_str}.")
 
         except Exception as e:
             print(f"[ERROR] Failed to process {date_str}: {e}")
 
     con.close()
+    print("==================================================")
     print("Backfill process complete.")
 
 if __name__ == "__main__":
-    # Task 2: Hardcode target dates
     target_dates = ['2026-02-18', '2026-02-19']
-    backfill_gold(target_dates)
+    backfill_silver_gold(target_dates)
