@@ -17,6 +17,19 @@ st.set_page_config(
     page_icon="🇵🇭",
 )
 
+st.markdown(
+    """
+    <style>
+    /* Force selectbox dropdown items to wrap text */
+    div[data-baseweb="select"] ul li {
+        white-space: normal !important;
+        word-wrap: break-word !important;
+    }
+    </style>
+""",
+    unsafe_allow_html=True,
+)
+
 CLEAN_DATA_DIR = os.path.join(config.DATA_DIR, "clean")
 REF_DATA_DIR = os.path.join(config.DATA_DIR, "reference")
 

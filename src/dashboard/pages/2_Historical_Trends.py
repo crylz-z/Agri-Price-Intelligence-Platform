@@ -95,7 +95,10 @@ selected_commodity = st.sidebar.selectbox("Commodity", valid_commodities)
 # ==========================================
 with st.spinner(f"Loading {days_back} days of history for {selected_commodity}..."):
     hist_df = DataEngine.get_historical_trends(
-        selected_commodity, selected_region, days_back=days_back
+        selected_commodity,
+        selected_region,
+        days_back=days_back,
+        end_date_str=latest_date,
     )
 
 if hist_df.empty:
@@ -117,7 +120,10 @@ max_price_period = hist_df["Prevailing Price (₱)"].max()
 # E.g. for 'Last 30 Days', fetch the 60 days before today and take the
 # first 30 days as the baseline. Falls back gracefully if no prior data.
 prior_df = DataEngine.get_historical_trends(
-    selected_commodity, selected_region, days_back=days_back * 2
+    selected_commodity,
+    selected_region,
+    days_back=days_back * 2,
+    end_date_str=latest_date,
 )
 # Isolate only the older half (the prior period).
 if not prior_df.empty:
@@ -207,7 +213,9 @@ The overall price spread (volatility) for this period is **₱{_volatility:,.2f}
     )
 
 with st.container(border=True):
-    st.markdown("#### Price Trajectory by Market")
+    st.markdown(
+        f"#### Price Trend (Last {days_back} Days) - {selected_commodity} ({selected_region})"
+    )
     st.caption("Tracking daily price movements across different markets in the region.")
 
     with st.expander("How to Read This Chart", expanded=False):
@@ -224,14 +232,14 @@ with st.container(border=True):
     # Visualization configured for enterprise clarity with interactive tooltips and distinct color schemes
     line_chart = (
         alt.Chart(hist_df)
-        .mark_line(point=True)
+        .mark_line(point=True, strokeWidth=3)
         .encode(
             x=alt.X("extract_dt:T", title="Date", axis=alt.Axis(format="%b %d")),
             y=alt.Y(
                 "Prevailing Price (₱):Q", title="Price (₱)", scale=alt.Scale(zero=False)
             ),
             color=alt.Color(
-                "market_name:N", title="Market", scale=alt.Scale(scheme="tableau20")
+                "market_name:N", title="Market", scale=alt.Scale(scheme="tealblues")
             ),
             tooltip=[
                 alt.Tooltip("extract_dt", title="Date", format="%b %d, %Y"),
@@ -241,6 +249,7 @@ with st.container(border=True):
         )
         .properties(height=400)
         .configure_axis(grid=False)
+        .configure_view(strokeOpacity=0)
         .interactive()
     )
 
@@ -262,8 +271,8 @@ with st.container(border=True):
     # Area Chart for Price Range (Min-Max)
     base = alt.Chart(daily_stats).encode(x=alt.X("extract_dt:T", title="Date"))
 
-    # Render Range Area (Slate Blue)
-    area = base.mark_area(opacity=0.3, color="#2E86AB").encode(
+    # Render Range Area (Teal)
+    area = base.mark_area(opacity=0.3, color="#1f77b4").encode(
         y=alt.Y("min:Q", title="Price Range (₱)", scale=alt.Scale(zero=False)),
         y2="max:Q",
         tooltip=[

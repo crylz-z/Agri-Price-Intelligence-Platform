@@ -87,7 +87,12 @@ selected_region = st.sidebar.selectbox("Region", valid_regions, index=default_ix
 region_df = raw_df[raw_df["region_name"] == selected_region].copy()
 
 # 3. Category
-valid_categories = sorted(region_df["category"].dropna().unique())
+valid_categories = sorted(region_df["category"].dropna().unique().tolist())
+if "OTHER COMMODITIES" in [c.upper() for c in valid_categories]:
+    actual = next(c for c in valid_categories if c.upper() == "OTHER COMMODITIES")
+    valid_categories.remove(actual)
+    valid_categories.append(actual)
+
 default_cat_ix = 0
 for i, cat in enumerate(valid_categories):
     if "RICE" in cat.upper():
@@ -135,7 +140,7 @@ st.markdown(
 # Previously we tried to derive this from the snapshot, but that only has 1 date.
 # We must explicitly fetch history for this specific commodity/region.
 trend_df = DataEngine.get_historical_trends(
-    selected_commodity, selected_region, days_back=30
+    selected_commodity, selected_region, days_back=30, end_date_str=selected_date
 )
 
 # FIX: Passed commodity_df instead of category_df per user request
@@ -143,7 +148,7 @@ trend_df = DataEngine.get_historical_trends(
 metrics.render_kpi_cards(commodity_df, trend_df)
 
 with st.container(border=True):
-    metrics.render_sparklines(trend_df, selected_commodity)
+    metrics.render_sparklines(trend_df, selected_commodity, selected_region)
 
 # National insight: today's price vs 30-day average + best deal market.
 metrics.render_national_insight(trend_df, selected_commodity)

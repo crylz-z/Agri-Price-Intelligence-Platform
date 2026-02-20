@@ -70,7 +70,7 @@ def render_kpi_cards(commodity_df, trend_df=None):
             )
 
 
-def render_sparklines(trend_df, category_name):
+def render_sparklines(trend_df, category_name, region_name):
     """
     Renders a 30-day price trend as a layered volatility band chart.
 
@@ -86,7 +86,7 @@ def render_sparklines(trend_df, category_name):
         st.caption("No recent data found for trend analysis.")
         return
 
-    st.markdown(f"**Price Trend (Last 30 Days) - {category_name}**")
+    st.markdown(f"**Price Trend (Last 30 Days) - {category_name} ({region_name})**")
 
     # Aggregate to daily statistics: avg, min, max.
     grp = trend_df.groupby(trend_df["extract_dt"].dt.date)["Prevailing Price (₱)"]
@@ -119,11 +119,11 @@ def render_sparklines(trend_df, category_name):
 
     if len(daily) == 1:
         # Single data point: render as a labelled dot.
-        point = base.mark_point(filled=True, size=120, color="#2E86AB").encode(
+        point = base.mark_point(filled=True, size=120, color="#1f77b4").encode(
             y=alt.Y("avg_price:Q", title="Avg Price (₱)", scale=y_scale),
             tooltip=tooltips,
         )
-        label = base.mark_text(dy=-15, color="#2E86AB").encode(
+        label = base.mark_text(dy=-15, color="#1f77b4").encode(
             y=alt.Y("avg_price:Q", scale=y_scale),
             text=alt.Text("avg_price:Q", format=",.2f"),
         )
@@ -131,7 +131,7 @@ def render_sparklines(trend_df, category_name):
     else:
         # Layer 1: volatility band (min → max per day), semi-transparent.
         band = base.mark_area(
-            opacity=0.2, color="#2E86AB", interpolate="monotone"
+            opacity=0.2, color="#1f77b4", interpolate="monotone"
         ).encode(
             y=alt.Y("min_price:Q", title="Price (₱)", scale=y_scale),
             y2=alt.Y2("max_price:Q"),
@@ -139,10 +139,10 @@ def render_sparklines(trend_df, category_name):
 
         # Layer 2: daily average line with point markers.
         line = base.mark_line(
-            point=alt.OverlayMarkDef(filled=True, size=60, color="#2E86AB"),
-            color="#2E86AB",
+            point=alt.OverlayMarkDef(filled=True, size=60, color="#1f77b4"),
+            color="#1f77b4",
             interpolate="monotone",
-            strokeWidth=2,
+            strokeWidth=3,
         ).encode(
             y=alt.Y("avg_price:Q", title="Price (₱)", scale=y_scale),
             tooltip=tooltips,

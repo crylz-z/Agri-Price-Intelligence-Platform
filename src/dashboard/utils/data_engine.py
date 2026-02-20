@@ -179,7 +179,9 @@ class DataEngine:
 
     @staticmethod
     @st.cache_data(ttl=3600)
-    def get_historical_trends(commodity, region, days_back=30, _cache_buster=1):
+    def get_historical_trends(
+        commodity, region, days_back=30, end_date_str=None, _cache_buster=1
+    ):
         """
         Fetches time-series data for a commodity/region pair from S3 Silver layer.
         """
@@ -189,9 +191,17 @@ class DataEngine:
 
         silver_path = f"s3://{bucket}/silver/year=*/month=*/day=*/*.parquet"
 
-        end_date = datetime.now()
+        if end_date_str:
+            try:
+                end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+            except Exception:
+                end_date = datetime.now()
+        else:
+            end_date = datetime.now()
+
         start_date = end_date - timedelta(days=days_back)
         start_date_str = start_date.strftime("%Y-%m-%d")
+        end_date_formatted = end_date.strftime("%Y-%m-%d")
 
         # Generator partition pruning filter
         partition_filter = DataEngine._get_partition_filters(start_date, end_date)
@@ -209,6 +219,7 @@ class DataEngine:
             AND CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
             AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'
             AND TRY_CAST(extract_dt AS DATE) >= '{start_date_str}'
+            AND TRY_CAST(extract_dt AS DATE) <= '{end_date_formatted}'
             AND commodity = '{commodity}'
             AND region_name = '{region}'
         ORDER BY extract_dt ASC
