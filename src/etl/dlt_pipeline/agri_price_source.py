@@ -99,7 +99,8 @@ def agri_price_resource(limit: Optional[int] = None) -> Iterator[Dict[str, Any]]
         )
     summary_lines.append("=" * 50)
 
-    logger.info("\n" + "\n".join(summary_lines))
+    summary_report = "\n" + "\n".join(summary_lines)
+    print(summary_report)
 
 
 def fetch_single_category(
