@@ -106,6 +106,8 @@ def fetch_single_category(
     http_client, region_id, region_name, category_id, category_name
 ) -> Optional[List[Dict[str, Any]]]:
     """Helper function to execute HTTP fetches and handle specific combination logging."""
+    if REGION_FAILURES.get(region_name, 0) >= 2:
+        return [] # Instantly abort queued tasks for degraded regions
     logger.info(f"Extracting: {region_name} - {category_name}")
     return fetch_category_data(http_client, region_id, category_id, category_name)
 
