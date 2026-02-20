@@ -303,11 +303,6 @@ with col_top5:
                 st.info("No data available.")
 
 # ==========================================
-# FOOTER
-# ==========================================
-
-
-# ==========================================
 # ROW 2: VISUAL INTELLIGENCE
 # ==========================================
 
@@ -365,9 +360,7 @@ st.dataframe(
     hide_index=True,
 )
 
-# ==========================================
-# FOOTER
-# ==========================================
+
 
 st.caption(
     "Data Source: [Department of Agriculture - Bantay Presyo](http://www.bantaypresyo.da.gov.ph/) | © 2026 Agri-Price Intelligence Platform"
