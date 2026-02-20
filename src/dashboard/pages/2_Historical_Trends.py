@@ -60,7 +60,9 @@ days_back = range_options[selected_range_label]
 # Use the global date as the anchor for historical analysis
 latest_date = st.session_state.get("global_date")
 if not latest_date:
-    st.warning("No date selected. Please select a date from the Global Configuration sidebar.")
+    st.warning(
+        "No date selected. Please select a date from the Global Configuration sidebar."
+    )
     st.stop()
 reference_df = DataEngine.get_market_snapshot(latest_date)
 

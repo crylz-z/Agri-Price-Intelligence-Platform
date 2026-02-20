@@ -59,7 +59,9 @@ st.sidebar.header("Configuration")
 selected_date = st.session_state.get("global_date")
 
 if not selected_date:
-    st.warning("No date selected. Please select a date from the Global Configuration sidebar.")
+    st.warning(
+        "No date selected. Please select a date from the Global Configuration sidebar."
+    )
     st.stop()
 
 # LOAD DATA (LKGV)

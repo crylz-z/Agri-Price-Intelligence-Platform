@@ -65,7 +65,6 @@ pg = st.navigation([home, market, trends])
 pg.run()
 
 
-
 @st.cache_data(ttl=600)
 def load_data_window(target_date_str, window_days=3):
     """
@@ -73,6 +72,7 @@ def load_data_window(target_date_str, window_days=3):
     Returns a combined raw DataFrame.
     """
     from src.dashboard.utils.data_engine import DataEngine, SILVER_LAYER_PATH
+
     if not SILVER_LAYER_PATH:
         return None
 
@@ -80,19 +80,19 @@ def load_data_window(target_date_str, window_days=3):
         target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
         start_date = target_date - timedelta(days=window_days)
         start_date_str = start_date.strftime("%Y-%m-%d")
-        
+
         con = DataEngine._get_connection()
         query = f"""
-        SELECT * 
+        SELECT *
         FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true, hive_partitioning=1)
         WHERE CAST(extract_dt AS DATE) BETWEEN '{start_date_str}' AND '{target_date_str}'
         """
         df = con.sql(query).df()
         con.close()
-        
+
         if "extract_dt" in df.columns:
             df["extract_dt"] = pd.to_datetime(df["extract_dt"])
-            
+
         return df if not df.empty else None
     except Exception as e:
         print(f"Error loading local silver dbt paths: {e}")
@@ -141,5 +141,3 @@ def get_available_dates():
 # ==========================================
 # MAIN APPLICATION
 # ==========================================
-
-

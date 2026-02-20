@@ -1,4 +1,3 @@
-
 import pandas as pd
 import folium
 import plotly.express as px
@@ -124,13 +123,17 @@ def main():
     # SIDEBAR: HIERARCHY
     # ---------------------------
     # The Global Date is now handled above pg.run() and stored in session state
-    selected_date = st.session_state.get("global_date", datetime.today().strftime("%Y-%m-%d"))
+    selected_date = st.session_state.get(
+        "global_date", datetime.today().strftime("%Y-%m-%d")
+    )
 
     # LOAD DATA (LKGV)
     raw_df = load_data_window(selected_date)
 
     if raw_df is None or raw_df.empty:
-        st.error(f"System Offline: Unable to load data window from Silver layer for {selected_date}.")
+        st.error(
+            f"System Offline: Unable to load data window from Silver layer for {selected_date}."
+        )
         return
 
     # COALESCE (The "Squash" Operation)
