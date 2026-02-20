@@ -1,6 +1,7 @@
 import dlt
 import os
 from dotenv import load_dotenv
+from dlt.destinations import filesystem
 from src.etl.dlt_pipeline.agri_price_source import agri_price_source
 
 load_dotenv()
@@ -16,14 +17,20 @@ def load():
     if not bucket_name:
         raise ValueError("S3_BUCKET_NAME environment variable is not set.")
 
-    destination_bucket_url = f"s3://{bucket_name}/bronze/dlt"
+    s3_region = os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "ap-southeast-2"))
+
+    destination = filesystem(
+        bucket_url=f"s3://{bucket_name}/bronze/dlt",
+        credentials={
+            "aws_access_key_id": os.getenv("AWS_ACCESS_KEY_ID"),
+            "aws_secret_access_key": os.getenv("AWS_SECRET_ACCESS_KEY"),
+            "region_name": s3_region
+        }
+    )
 
     pipeline = dlt.pipeline(
         pipeline_name="agri_price",
-        destination=dlt.destinations.filesystem(
-            destination_bucket_url,
-            credentials={"region_name": os.getenv("AWS_REGION", "ap-southeast-2")},
-        ),
+        destination=destination,
         dataset_name="market_data",
     )
 

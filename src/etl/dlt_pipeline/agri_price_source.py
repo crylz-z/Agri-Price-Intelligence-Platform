@@ -1,6 +1,8 @@
 import dlt
 import requests
 import concurrent.futures
+import time
+import random
 from datetime import datetime
 from typing import Iterator, Dict, Any, List, Optional
 from bs4 import BeautifulSoup
@@ -105,12 +107,22 @@ def fetch_category_data(
     """
     payload_base = {"region": region_id, "commodity": category_id}
 
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Connection": "keep-alive",
+        "Referer": "http://www.bantaypresyo.da.gov.ph/"
+    }
+
+    time.sleep(random.uniform(0.5, 2.0))
+
     # Step 1: Retrieve the publication date for this region/category combination.
-    response = http_client.post(URL_DATE, data=payload_base, timeout=15)
+    response = http_client.post(URL_DATE, data=payload_base, headers=headers, timeout=15)
     date_text = response.text
 
     # Step 2: Retrieve market column headers to determine which markets are reporting.
-    response = http_client.post(URL_HEADER, data=payload_base, timeout=15)
+    response = http_client.post(URL_HEADER, data=payload_base, headers=headers, timeout=15)
     headers_html = response.text
 
     soup = BeautifulSoup(headers_html, "html.parser")
@@ -128,7 +140,7 @@ def fetch_category_data(
     payload_price = payload_base.copy()
     payload_price["count"] = str(len(markets))
 
-    response = http_client.post(URL_PRICE, data=payload_price, timeout=15)
+    response = http_client.post(URL_PRICE, data=payload_price, headers=headers, timeout=15)
     prices_html = response.text
 
     return parse_price_rows(prices_html, markets, region_id, category_name, date_text)
