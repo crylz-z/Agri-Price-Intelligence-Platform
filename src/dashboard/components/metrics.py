@@ -150,7 +150,7 @@ def render_sparklines(trend_df, category_name, region_name):
 
         chart = band + line
 
-    st.altair_chart(chart.properties(height=180), use_container_width=True)
+    st.altair_chart(chart.properties(height=180), use_container_width=True, theme=None)
 
 
 def render_gouging_alert(df, srp_df):
@@ -234,7 +234,7 @@ def render_zscore_chart(df, height=400):
         .interactive()
     )
 
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(chart, use_container_width=True, theme=None)
 
 
 def render_national_insight(df, commodity: str) -> None:

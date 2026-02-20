@@ -59,6 +59,13 @@ def apply_enterprise_styling():
             box-shadow: none;
             border: none;
         }
+
+        /* Target the dropdown popover portal */
+        div[data-baseweb="popover"] ul li, 
+        div[data-baseweb="select"] * {
+            white-space: normal !important;
+            word-wrap: break-word !important;
+        }
         </style>
     """,
         unsafe_allow_html=True,

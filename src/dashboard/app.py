@@ -44,7 +44,7 @@ try:
         y = datetime.today().strftime("%Y")
         m = datetime.today().strftime("%m")
         fast_silver_path = f"s3://{bucket}/silver/year={y}/month={m}/*/*.parquet"
-        query = f"SELECT MAX(extract_dt) as max_date FROM read_parquet('{fast_silver_path}', union_by_name=true) WHERE CAST(extract_dt AS DATE) <= CURRENT_DATE"
+        query = f"SELECT MAX(extract_dt) as max_date FROM read_parquet('{fast_silver_path}', union_by_name=true) WHERE CAST(extract_dt AS DATE) <= CURRENT_DATE()"
         max_date_df = con.sql(query).df()
     else:
         max_date_df = pd.DataFrame()
