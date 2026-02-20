@@ -33,3 +33,7 @@ preflight:
 # Run pipeline. Executes the full ELT pipeline: dlt extraction, dbt transformation, and audit gate.
 run:
 	uv run python scripts/run_pipeline.py
+
+# Run Streamlit dashboard. Starts the local server for the web application.
+ui:
+	uv run streamlit run src/dashboard/app.py
