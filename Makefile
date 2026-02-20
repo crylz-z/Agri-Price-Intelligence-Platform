@@ -1,10 +1,10 @@
-.PHONY: install lint test run preflight
+.PHONY: install lint test preflight run
 
 # ==============================================================================
 # Dependency Management
 # ==============================================================================
 
-# Syncs the local virtual environment with uv.lock. Run this after pulling new changes.
+# Setup environment. Syncs the local virtual environment with uv.lock. Run this after pulling new changes.
 install:
 	uv sync
 
@@ -12,13 +12,13 @@ install:
 # Quality Assurance
 # ==============================================================================
 
-# Runs the formatter, linter, and all pre-commit hooks to ensure code quality.
+# Formatting/Hygiene. Runs the formatter, linter, and all pre-commit hooks to ensure code quality.
 lint:
 	uv run ruff format
 	uv run ruff check . --fix
 	uv run pre-commit run --all-files
 
-# Executes the Pytest suite (unit and integration tests).
+# Run pytest tests. Executes the Pytest suite (unit and integration tests).
 test:
 	uv run pytest tests/
 
@@ -26,10 +26,10 @@ test:
 # Execution & Operations
 # ==============================================================================
 
-# Executes the full ELT pipeline: dlt extraction, dbt transformation, and audit gate.
-run:
-	uv run python scripts/run_pipeline.py
-
-# Verifies S3 connection and Discord alerting health before running a pipeline.
+# Run preflight tests. Verifies S3 connection and Discord alerting health before running a pipeline.
 preflight:
 	uv run python scripts/preflight_check.py
+
+# Run pipeline. Executes the full ELT pipeline: dlt extraction, dbt transformation, and audit gate.
+run:
+	uv run python scripts/run_pipeline.py
