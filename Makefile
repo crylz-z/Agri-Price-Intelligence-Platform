@@ -1,4 +1,4 @@
-.PHONY: install lint test run preflight rebuild backfill
+.PHONY: install lint test run preflight
 
 # ==============================================================================
 # Dependency Management
@@ -33,12 +33,3 @@ run:
 # Verifies S3 connection and Discord alerting health before running a pipeline.
 preflight:
 	uv run python scripts/preflight_check.py
-
-# Skips the extraction (dlt) phase and triggers dbt to rebuild Silver and Gold layers.
-# Useful if the pipeline failed downstream or for regenerating analytical logic.
-rebuild:
-	uv run python scripts/rebuild_lakehouse.py
-
-# Triggers a manual bypass operation to inject Bronze historic CSVs directly into Parquet.
-backfill:
-	uv run python scripts/backfill_lakehouse.py
