@@ -1,5 +1,4 @@
 import pandas as pd
-import folium
 from datetime import datetime
 
 import streamlit as st
@@ -149,72 +148,18 @@ def main():
     df["days_ago"] = (target_dt - df["extract_dt"]).dt.days
     df["days_ago"] = df["days_ago"].fillna(0).astype(int)
 
-    # LEVEL 2: REGION (Global)
-    if "region_name" not in df.columns:
-        st.error("Data integrity error: 'region_name' column missing.")
-        return
-
-    valid_regions = sorted(df["region_name"].dropna().unique())
-    selected_region = st.sidebar.selectbox("Region", valid_regions)
-
-    # FILTER STEP 1
-    region_df = df[df["region_name"] == selected_region].copy()
-
-    # LEVEL 3: CATEGORY (Primary Filter)
-    if "category" not in region_df.columns:
-        st.error("Data integrity error: 'category' column missing.")
-        return
-
-    valid_categories = sorted(region_df["category"].dropna().unique())
-    selected_category = st.sidebar.selectbox("Category", valid_categories)
-
-    # FILTER STEP 2
-    category_df = region_df[region_df["category"] == selected_category].copy()
-
-
     # LOAD REFERENCE
     geo_df, srp_df = DataEngine.load_reference_data()
 
     # ==========================================
-    # ZONE A: EXECUTIVE BRIEF (Category Level)
-    # ==========================================
-    st.subheader(f"Executive Brief: {selected_category} in {selected_region}")
-
-    # Category Stats
-    avg_price = category_df["price"].mean()
-    min_price = category_df["price"].min()
-    max_price = category_df["price"].max()
-    volatility = ((max_price - min_price) / avg_price) * 100 if avg_price > 0 else 0
-
-    # Status Banner
-    if volatility > 20:
-        st.warning(
-            f"⚠️ **High Volatility Detected**: Prices in this category vary by {volatility:.0f}%. Check for outliers."
-        )
-    elif volatility < 10:
-        st.success(
-            f"✅ **Stable Market**: Price variance is low ({volatility:.0f}%) across commodities."
-        )
-    else:
-        st.info("ℹ️ **Moderate Activity**: Standard price fluctuations observed.")
-
-    # KPI Cards
-    k1, k2, k3 = st.columns(3)
-    k1.metric("Markets Reporting", category_df["market_name"].nunique())
-    k2.metric("Category Avg Price", f"₱{avg_price:,.2f}")
-    k3.metric("Commodities Tracked", category_df["commodity"].nunique())
-
-    st.markdown("---")
-
-    # ==========================================
     # ZONE B: OFFICIAL PRICE BULLETIN (The Hero)
     # ==========================================
-    st.subheader("📢 Official Price Bulletin")
+    st.subheader(f"📢 National Price Bulletin ({selected_date})")
 
-    # Aggregate Live Data by Commodity
-    # We aggregate Price (mean) and Days Ago (max - being conservative, showing staleness if any)
+    # Aggregate Live Data nationally by Category and Commodity
+    # We aggregate Price (mean) and Days Ago (max - being conservative)
     bulletin_df = (
-        category_df.groupby("commodity")
+        df.groupby(["category", "commodity"])
         .agg(
             {
                 "price": "mean",
@@ -280,8 +225,17 @@ def main():
         .format(
             {"Live Avg": format_currency, "srp": format_currency, "Diff": format_diff}
         ),
-        column_order=["commodity", "srp", "Live Avg", "Diff", "Status", "Data As Of"],
+        column_order=[
+            "category",
+            "commodity",
+            "srp",
+            "Live Avg",
+            "Diff",
+            "Status",
+            "Data As Of",
+        ],
         column_config={
+            "category": "Category",
             "commodity": "Commodity",
             "srp": "Prevailing Price (SRP)",
             "Live Avg": "Current Avg Price",
@@ -291,8 +245,6 @@ def main():
         use_container_width=True,
         hide_index=True,
     )
-
-
 
 
 main()

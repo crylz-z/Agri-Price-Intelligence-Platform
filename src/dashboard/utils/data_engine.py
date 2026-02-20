@@ -13,13 +13,7 @@ load_dotenv()
 # ==========================================
 # CONFIGURATION
 # ==========================================
-S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
-# Dashboard needs market-level detail, use Silver layer instead of Gold
-SILVER_LAYER_PATH = (
-    f"s3://{S3_BUCKET_NAME}/silver/year=*/month=*/day=*/*.parquet"
-    if S3_BUCKET_NAME
-    else None
-)
+
 
 # REGION CENTERS (Approximate Lat/Lon)
 REGION_CENTERS = {
@@ -54,7 +48,8 @@ class DataEngine:
         """Returns a DuckDB connection configured for S3 access."""
         con = duckdb.connect(database=":memory:")
 
-        if not S3_BUCKET_NAME:
+        bucket = os.getenv("S3_BUCKET_NAME")
+        if not bucket:
             print("[ERROR] Missing S3_BUCKET_NAME in environment.")
             return con
 
@@ -89,12 +84,15 @@ class DataEngine:
 
     @staticmethod
     @st.cache_data(ttl=600)
-    def get_market_snapshot(target_date_str, window_days=3):
+    def get_market_snapshot(target_date_str, window_days=3, _cache_buster=2):
         """
         Loads the 'Last Known Good Value' (LKGV) snapshot for a specific date from S3 Silver layer.
         """
-        if not SILVER_LAYER_PATH:
+        bucket = os.getenv("S3_BUCKET_NAME")
+        if not bucket:
             return pd.DataFrame()
+
+        silver_path = f"s3://{bucket}/silver/year=*/month=*/day=*/*.parquet"
 
         try:
             target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
@@ -105,7 +103,8 @@ class DataEngine:
             partition_filter = DataEngine._get_partition_filters(
                 start_date, target_date
             )
-        except Exception:
+        except Exception as e:
+            print(f"[PREAMBLE ERROR] {e}")
             return pd.DataFrame()
 
         query = f"""
@@ -117,7 +116,7 @@ class DataEngine:
                 commodity,
                 price,
                 extract_dt
-            FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true, hive_partitioning=1)
+            FROM read_parquet('{silver_path}', union_by_name=true, hive_partitioning=1)
             WHERE ({partition_filter})
               AND CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
               AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'
@@ -145,12 +144,6 @@ class DataEngine:
             if "price" in df.columns:
                 df.rename(columns={"price": "Prevailing Price (₱)"}, inplace=True)
 
-            # 1. Sanitize Region Names (Remove "1000000", "400000")
-            if "region_name" in df.columns:
-                # Ensure string type then regex (Catch "1000", "1000.0", "40.0")
-                # We filter out anything that looks purely numeric (digits and dots)
-                df = df[~df["region_name"].astype(str).str.match(r"^[0-9\.]+$")]
-
             # 2. Filter price outliers (> 5x median + Hard Cap)
             if not df.empty and "Prevailing Price (₱)" in df.columns:
                 # Force numeric
@@ -168,23 +161,33 @@ class DataEngine:
 
             # Calculate days_ago for freshness tracking (LKGV)
             if not df.empty and "extract_dt" in df.columns:
-                df["extract_dt"] = pd.to_datetime(df["extract_dt"])
+                df["extract_dt"] = pd.to_datetime(
+                    df["extract_dt"], format="mixed", errors="coerce"
+                )
                 target_dt = pd.to_datetime(target_date_str)
                 df["days_ago"] = (target_dt - df["extract_dt"]).dt.days
+
+            # Prevent caching of empty dataframes upon silent DuckDB failures
+            if df.empty:
+                st.cache_data.clear()
 
             return df
         except Exception as e:
             print(f"[ERROR] Engine Error: {e}")
+            st.cache_data.clear()
             return pd.DataFrame()
 
     @staticmethod
     @st.cache_data(ttl=3600)
-    def get_historical_trends(commodity, region, days_back=30):
+    def get_historical_trends(commodity, region, days_back=30, _cache_buster=1):
         """
         Fetches time-series data for a commodity/region pair from S3 Silver layer.
         """
-        if not SILVER_LAYER_PATH:
+        bucket = os.getenv("S3_BUCKET_NAME")
+        if not bucket:
             return pd.DataFrame()
+
+        silver_path = f"s3://{bucket}/silver/year=*/month=*/day=*/*.parquet"
 
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days_back)
@@ -200,7 +203,7 @@ class DataEngine:
             region_name,
             market_name,
             commodity
-        FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true, hive_partitioning=1)
+        FROM read_parquet('{silver_path}', union_by_name=true, hive_partitioning=1)
         WHERE
             ({partition_filter})
             AND CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
@@ -217,7 +220,9 @@ class DataEngine:
             con.close()
 
             if not df.empty:
-                df["extract_dt"] = pd.to_datetime(df["extract_dt"])
+                df["extract_dt"] = pd.to_datetime(
+                    df["extract_dt"], format="mixed", errors="coerce"
+                )
 
                 if "Prevailing Price (₱)" in df.columns:
                     # Force numeric + Hard Cap 20k
@@ -230,9 +235,12 @@ class DataEngine:
                         med = df["Prevailing Price (₱)"].median()
                         if med > 0:
                             df = df[df["Prevailing Price (₱)"] <= med * 5]
+            if df.empty:
+                st.cache_data.clear()
             return df
         except Exception as e:
             print(f"[ERROR] History Engine Error: {e}")
+            st.cache_data.clear()
             return pd.DataFrame()
 
     @staticmethod
@@ -247,21 +255,23 @@ class DataEngine:
             target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
             start_date = target_date - timedelta(days=window_days)
             start_date_str = start_date.strftime("%Y-%m-%d")
-            
+
             # Tasks 1 & 2: Dynamic S3 Path Construction for exact partition
             year = target_date.strftime("%Y")
             month = target_date.strftime("%m")
             day = target_date.strftime("%d")
-            
+
             bucket = os.getenv("S3_BUCKET_NAME")
             if not bucket:
                 return None
-                
-            silver_path = f"s3://{bucket}/silver/year={year}/month={month}/day={day}/*.parquet"
+
+            silver_path = (
+                f"s3://{bucket}/silver/year={year}/month={month}/day={day}/*.parquet"
+            )
 
             # Task 3: Enforce Authenticated Connection
             con = DataEngine._get_connection()
-            # To handle the window logic, we could either query base path WITH filter, 
+            # To handle the window logic, we could either query base path WITH filter,
             # OR just load the target date partition if "window" is effectively just the target date for LKGV.
             # As requested: Update the DuckDB SQL query to read directly from the specific S3 partition.
             query = f"""
@@ -272,11 +282,16 @@ class DataEngine:
             con.close()
 
             if "extract_dt" in df.columns:
-                df["extract_dt"] = pd.to_datetime(df["extract_dt"])
+                df["extract_dt"] = pd.to_datetime(
+                    df["extract_dt"], format="mixed", errors="coerce"
+                )
 
+            if df.empty:
+                st.cache_data.clear()
             return df if not df.empty else None
         except Exception as e:
-            print(f"Error loading local silver dbt paths: {e}")
+            print(f"[ERROR] load_data_window Error: {e}")
+            st.cache_data.clear()
             return None
 
     @staticmethod

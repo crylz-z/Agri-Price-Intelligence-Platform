@@ -23,22 +23,30 @@ REF_DATA_DIR = os.path.join(config.DATA_DIR, "reference")
 # ==========================================
 # DATA ENGINE & GLOBAL SIDEBAR
 # ==========================================
-from src.dashboard.utils.data_engine import DataEngine, SILVER_LAYER_PATH
+from src.dashboard.utils.data_engine import DataEngine
 
 st.sidebar.header("Global Configuration")
 
 # Task 1: Dynamically scan Silver directory on every reload
 try:
     con = DataEngine._get_connection()
-    query = f"SELECT MAX(extract_dt) as max_date FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true)"
-    max_date_df = con.sql(query).df()
+    bucket = os.getenv("S3_BUCKET_NAME")
+    if bucket:
+        y = datetime.today().strftime("%Y")
+        m = datetime.today().strftime("%m")
+        fast_silver_path = f"s3://{bucket}/silver/year={y}/month={m}/*/*.parquet"
+        query = f"SELECT MAX(extract_dt) as max_date FROM read_parquet('{fast_silver_path}', union_by_name=true)"
+        max_date_df = con.sql(query).df()
+    else:
+        max_date_df = pd.DataFrame()
     latest_date = (
         pd.to_datetime(max_date_df.iloc[0]["max_date"]).date()
         if not max_date_df.empty and pd.notnull(max_date_df.iloc[0]["max_date"])
         else datetime.today().date()
     )
     con.close()
-except Exception:
+except Exception as e:
+    print(f"Max date calculation failed: {e}")
     latest_date = datetime.today().date()
 
 # explicitly apply max_value=latest_date
@@ -60,6 +68,3 @@ trends = st.Page(
 
 pg = st.navigation([home, market, trends])
 pg.run()
-
-
-

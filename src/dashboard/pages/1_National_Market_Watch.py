@@ -361,7 +361,6 @@ st.dataframe(
 )
 
 
-
 st.caption(
     "Data Source: [Department of Agriculture - Bantay Presyo](http://www.bantaypresyo.da.gov.ph/) | © 2026 Agri-Price Intelligence Platform"
 )
