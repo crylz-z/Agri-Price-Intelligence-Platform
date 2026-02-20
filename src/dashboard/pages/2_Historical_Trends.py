@@ -57,17 +57,11 @@ selected_range_label = st.sidebar.selectbox(
 )
 days_back = range_options[selected_range_label]
 
-# 2. Region & Commodity Selection
-# Initialize DataEngine to retrieve the latest available dataset date
-min_date, max_date = DataEngine.get_date_range()
-if not max_date:
-    st.warning("No data currently available. Please check back later.")
-    st.info(
-        "The ETL pipeline runs daily. Data may be temporarily unavailable during processing."
-    )
+# Use the global date as the anchor for historical analysis
+latest_date = st.session_state.get("global_date")
+if not latest_date:
+    st.warning("No date selected. Please select a date from the Global Configuration sidebar.")
     st.stop()
-
-latest_date = max_date.strftime("%Y-%m-%d")
 reference_df = DataEngine.get_market_snapshot(latest_date)
 
 if reference_df is None or reference_df.empty:

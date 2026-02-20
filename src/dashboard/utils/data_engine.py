@@ -258,7 +258,6 @@ class DataEngine:
         return geo_df, srp_df
 
     @staticmethod
-    @st.cache_data(ttl=3600)
     def get_date_range():
         """
         Efficiently polls the S3 Silver Parquet dataset to find the absolute MIN and MAX dates.

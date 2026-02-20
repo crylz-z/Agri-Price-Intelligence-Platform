@@ -55,25 +55,12 @@ st.markdown(
 # ==========================================
 st.sidebar.header("Configuration")
 
-# 1. Date
-# 1. Date
-min_date, max_date = DataEngine.get_date_range()
-if not min_date or not max_date:
-    st.warning("No data currently available. Please check back later.")
-    st.info(
-        "The ETL pipeline runs daily. Data may be temporarily unavailable during processing."
-    )
-    st.stop()
+# 1. Date (Global Configuration overrides)
+selected_date = st.session_state.get("global_date")
 
-# Calendar Picker
-picked_date = st.sidebar.date_input(
-    "Date",
-    value=max_date,
-    min_value=min_date,
-    max_value=max_date,
-    help="Select a date to view market prices.",
-)
-selected_date = picked_date.strftime("%Y-%m-%d")
+if not selected_date:
+    st.warning("No date selected. Please select a date from the Global Configuration sidebar.")
+    st.stop()
 
 # LOAD DATA (LKGV)
 raw_df = DataEngine.get_market_snapshot(selected_date)
