@@ -56,6 +56,15 @@ def backfill_silver_gold(target_dates):
             # Note: The raw data contains extract_dt and commodity_group, commodity_name.
             # We map commodity_group -> category and commodity_name -> commodity
             # to meet Streamlit's expectations.
+            from src.core.config import REGION_MAP
+
+            cases = []
+            for rid, rname in REGION_MAP.items():
+                cases.append(f"WHEN region_id = '{rid}' THEN '{rname}'")
+                if rid.startswith("0"):
+                    cases.append(f"WHEN region_id = '{int(rid)}' THEN '{rname}'")
+            case_sql = "CASE " + " ".join(cases) + " ELSE region_name END"
+
             silver_query = f"""
             COPY (
                 WITH source as (
@@ -63,7 +72,7 @@ def backfill_silver_gold(target_dates):
                 ),
                 silver as (
                     SELECT
-                        region_name,
+                        {case_sql} as region_name,
                         market_name,
                         commodity_group as category,
                         commodity_name as commodity,
