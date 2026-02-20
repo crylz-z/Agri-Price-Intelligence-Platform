@@ -1,5 +1,6 @@
 import dlt
 import requests
+import concurrent.futures
 from datetime import datetime
 from typing import Iterator, Dict, Any, List, Optional
 from bs4 import BeautifulSoup
@@ -36,34 +37,52 @@ def agri_price_resource(limit: Optional[int] = None) -> Iterator[Dict[str, Any]]
     """
     Yields structured price records by scraping the DA Bantay Presyo website.
     Iterates over all 17 regions × 10 commodity categories (170 combinations).
-    Each combination is fetched independently; failures are logged and skipped
-    to ensure a partial dataset is always written rather than a total abort.
+    Uses ThreadPoolExecutor to drastically reduce extraction time via concurrency.
     """
     http_client = AgriHttpClient()
     count = 0
+    futures = []
 
-    for region_id, region_name in REGION_MAP.items():
-        for category_id, category_name in CATEGORY_MAP.items():
-            if limit and count >= limit:
-                return
-
-            logger.info(f"Extracting: {region_name} - {category_name}")
-
-            try:
-                data = fetch_category_data(
-                    http_client, region_id, category_id, category_name
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        for region_id, region_name in REGION_MAP.items():
+            for category_id, category_name in CATEGORY_MAP.items():
+                if limit and len(futures) >= limit:
+                    break
+                futures.append(
+                    executor.submit(
+                        fetch_single_category,
+                        http_client,
+                        region_id,
+                        region_name,
+                        category_id,
+                        category_name,
+                    )
                 )
-                if data:
-                    yield from data
-                    count += 1
-            except Exception as e:
-                # Log the failure and continue. A single region/category failure must not
-                # abort the entire pipeline run; partial data is preferable to no data.
-                logger.error(
-                    f"Skipping {region_name} - {category_name} after all retries exhausted",
-                    error=str(e),
-                )
-                continue
+            if limit and len(futures) >= limit:
+                break
+
+        for future in concurrent.futures.as_completed(futures):
+            # Errors are gracefully caught inside fetch_single_category,
+            # so data will be None if exhaustive retries failed.
+            data = future.result()
+            if data:
+                yield from data
+                count += 1
+
+
+def fetch_single_category(
+    http_client, region_id, region_name, category_id, category_name
+) -> Optional[List[Dict[str, Any]]]:
+    """Helper function to execute HTTP fetches and handle specific combination logging."""
+    logger.info(f"Extracting: {region_name} - {category_name}")
+    try:
+        return fetch_category_data(http_client, region_id, category_id, category_name)
+    except Exception as e:
+        logger.error(
+            f"Skipping {region_name} - {category_name} after all retries exhausted",
+            error=str(e),
+        )
+        return None
 
 
 @retry(

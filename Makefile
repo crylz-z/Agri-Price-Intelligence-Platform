@@ -20,7 +20,7 @@ lint:
 
 # Executes the Pytest suite (unit and integration tests).
 test:
-	uv run pytest
+	uv run pytest tests/
 
 # ==============================================================================
 # Execution & Operations
