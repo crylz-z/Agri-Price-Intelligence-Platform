@@ -41,14 +41,16 @@ def backfill_silver_gold(target_dates):
             month = target_date.strftime("%m")
             day = target_date.strftime("%d")
 
-            bronze_path = (
+            dlt_path = (
                 f"s3://{bucket}/bronze/dlt/market_data/agri_price_resource/**/*.parquet"
             )
+            legacy_path = f"s3://{bucket}/bronze/year=2026/**/*.parquet"
+
             silver_dir = f"s3://{bucket}/silver/year={year}/month={month}/day={day}"
-            silver_path = f"{silver_dir}/clean_prices.parquet"
+            silver_path = f"{silver_dir}/clean_prices_{date_str}.parquet"
 
             gold_dir = f"s3://{bucket}/gold/year={year}/month={month}/day={day}"
-            gold_path = f"{gold_dir}/regional_kpis.parquet"
+            gold_path = f"{gold_dir}/regional_kpis_{date_str}.parquet"
 
             # STEP A: MATERIALIZE SILVER
             print(f"-> Step A: Materializing Silver layer to {silver_path}...")
@@ -68,7 +70,7 @@ def backfill_silver_gold(target_dates):
             silver_query = f"""
             COPY (
                 WITH source as (
-                    SELECT * FROM read_parquet('{bronze_path}', union_by_name=true)
+                    SELECT * FROM read_parquet(['{dlt_path}', '{legacy_path}'], union_by_name=true)
                 ),
                 silver as (
                     SELECT

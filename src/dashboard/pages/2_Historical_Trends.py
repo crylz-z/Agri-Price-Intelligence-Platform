@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 # Load environment variables for S3 access
 load_dotenv()
+from datetime import datetime
 
 # Ensure root is in path
 if (
@@ -43,7 +44,20 @@ st.markdown(
 # ==========================================
 # CONFIGURATION & FILTERS
 # ==========================================
-st.sidebar.header("Configuration")
+st.sidebar.markdown("### Configuration")
+
+default_date_str = st.session_state.get("global_date")
+default_date = (
+    datetime.strptime(default_date_str, "%Y-%m-%d").date()
+    if default_date_str
+    else datetime.today().date()
+)
+
+picked_date = st.sidebar.date_input(
+    "Date", value=default_date, max_value=datetime.today()
+)
+latest_date = picked_date.strftime("%Y-%m-%d")
+st.session_state["global_date"] = latest_date
 
 # 1. Date Range
 range_options = {
@@ -56,14 +70,6 @@ selected_range_label = st.sidebar.selectbox(
     "Time Horizon", list(range_options.keys()), index=1
 )
 days_back = range_options[selected_range_label]
-
-# Use the global date as the anchor for historical analysis
-latest_date = st.session_state.get("global_date")
-if not latest_date:
-    st.warning(
-        "No date selected. Please select a date from the Global Configuration sidebar."
-    )
-    st.stop()
 reference_df = DataEngine.get_market_snapshot(latest_date)
 
 if reference_df is None or reference_df.empty:

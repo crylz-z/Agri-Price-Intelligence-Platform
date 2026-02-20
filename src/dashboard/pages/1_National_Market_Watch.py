@@ -64,7 +64,9 @@ default_date = (
     else datetime.today().date()
 )
 
-picked_date = st.sidebar.date_input("Date", value=default_date)
+picked_date = st.sidebar.date_input(
+    "Date", value=default_date, max_value=datetime.today()
+)
 selected_date = picked_date.strftime("%Y-%m-%d")
 st.session_state["global_date"] = selected_date
 
