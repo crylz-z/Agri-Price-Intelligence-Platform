@@ -300,7 +300,10 @@ class DataEngine:
         """Loads SRP and Lat/Lon data safely."""
         from src.core import config
 
-        REF_DATA_DIR = os.path.join(config.DATA_DIR, "reference")
+        # Task 3: Relocated Reference Assets
+        REF_DATA_DIR = os.path.join(
+            config.BASE_DIR, "src", "dashboard", "assets", "reference"
+        )
 
         # 1. GEO DATA
         geo_path = os.path.join(REF_DATA_DIR, "markets_geo.csv")

@@ -90,7 +90,7 @@ region_df = raw_df[raw_df["region_name"] == selected_region].copy()
 valid_categories = sorted(region_df["category"].dropna().unique())
 default_cat_ix = 0
 for i, cat in enumerate(valid_categories):
-    if "FISH" in cat.upper():
+    if "RICE" in cat.upper():
         default_cat_ix = i
         break
 selected_category = st.sidebar.selectbox(
