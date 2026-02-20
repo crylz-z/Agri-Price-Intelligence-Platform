@@ -54,20 +54,14 @@ class DataEngine:
         """Returns a DuckDB connection configured for S3 access."""
         con = duckdb.connect(database=":memory:")
 
-        aws_key = os.getenv("AWS_ACCESS_KEY_ID")
-        aws_secret = os.getenv("AWS_SECRET_ACCESS_KEY")
-        aws_region = os.getenv("AWS_DEFAULT_REGION")
-
-        if not all([aws_key, aws_secret, aws_region, S3_BUCKET_NAME]):
-            print("[ERROR] Missing AWS Credentials or S3_BUCKET_NAME.")
+        if not S3_BUCKET_NAME:
+            print("[ERROR] Missing S3_BUCKET_NAME in environment.")
             return con
 
         try:
             con.execute("INSTALL httpfs;")
             con.execute("LOAD httpfs;")
-            con.execute(f"SET s3_region='{aws_region}';")
-            con.execute(f"SET s3_access_key_id='{aws_key}';")
-            con.execute(f"SET s3_secret_access_key='{aws_secret}';")
+            con.execute("CREATE SECRET IF NOT EXISTS (TYPE s3, PROVIDER credential_chain);")
         except Exception as e:
             print(f"[ERROR] Failed to configure DuckDB S3: {e}")
 
