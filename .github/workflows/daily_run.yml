@@ -51,7 +51,7 @@ jobs:
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-        aws-region: ap-southeast-2
+        aws-region: ${{ vars.AWS_DEFAULT_REGION }}
 
     - name: Pre-Flight S3 Connection Test
       run: python scripts/preflight_check.py
@@ -67,4 +67,5 @@ jobs:
       env:
         S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
         AWS_DEFAULT_REGION: ${{ vars.AWS_DEFAULT_REGION }}
+        AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}

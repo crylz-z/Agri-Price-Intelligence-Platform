@@ -17,14 +17,7 @@ def load():
     if not bucket_name:
         raise ValueError("S3_BUCKET_NAME environment variable is not set.")
 
-    s3_region = os.getenv(
-        "AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "ap-southeast-2")
-    )
-
-    destination = filesystem(
-        bucket_url=f"s3://{bucket_name}/bronze/dlt",
-        credentials={"region_name": s3_region},
-    )
+    destination = filesystem(bucket_url=f"s3://{bucket_name}/bronze/dlt")
 
     pipeline = dlt.pipeline(
         pipeline_name="agri_price",
