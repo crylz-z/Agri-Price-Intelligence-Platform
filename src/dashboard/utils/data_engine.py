@@ -234,21 +234,60 @@ class DataEngine:
             return pd.DataFrame()
 
     @staticmethod
+    @st.cache_data(ttl=600)
+    def load_data_window(target_date_str, window_days=3):
+        """
+        LKGV Strategy: Loads a window of data (Target + Previous Days).
+        Returns a combined raw DataFrame.
+        """
+        if not SILVER_LAYER_PATH:
+            return None
+
+        try:
+            target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
+            start_date = target_date - timedelta(days=window_days)
+            start_date_str = start_date.strftime("%Y-%m-%d")
+
+            con = DataEngine._get_connection()
+            query = f"""
+            SELECT *
+            FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true, hive_partitioning=1)
+            WHERE CAST(extract_dt AS DATE) BETWEEN '{start_date_str}' AND '{target_date_str}'
+            """
+            df = con.sql(query).df()
+            con.close()
+
+            if "extract_dt" in df.columns:
+                df["extract_dt"] = pd.to_datetime(df["extract_dt"])
+
+            return df if not df.empty else None
+        except Exception as e:
+            print(f"Error loading local silver dbt paths: {e}")
+            return None
+
+    @staticmethod
     @st.cache_data
     def load_reference_data():
-        """Loads Geodata and SRPs. (Small CSVs, assume local for now or could be S3)."""
-        # Kept local for simplicity as per instructions only focused on Data Parquet
-        # But for full enterprise, these should likely be in S3 Reference layer too.
-        # Check if local exists, else empty.
+        """Loads SRP and Lat/Lon data safely."""
+        from src.core import config
+        REF_DATA_DIR = os.path.join(config.DATA_DIR, "reference")
+        
+        # 1. GEO DATA
+        geo_path = os.path.join(REF_DATA_DIR, "markets_geo.csv")
+        if os.path.exists(geo_path):
+            geo_df = pd.read_csv(geo_path)
+        else:
+            geo_df = pd.DataFrame(columns=["market_name", "lat", "lon"])
 
-        # 1. GEO
-        # For now, we return empty or basic structure if files missing,
-        # as the user didn't explicitly safeguard this part,
-        # but we must ensure it doesn't crash.
-        geo_df = pd.DataFrame(columns=["market_name", "lat", "lon"])
-        srp_df = pd.DataFrame(columns=["commodity", "srp"])
+        # 2. SRP DATA
+        srp_path = os.path.join(REF_DATA_DIR, "official_srp.csv")
+        if os.path.exists(srp_path):
+            srp_df = pd.read_csv(srp_path)
+            if "official_srp" in srp_df.columns:
+                srp_df.rename(columns={"official_srp": "srp"}, inplace=True)
+        else:
+            srp_df = pd.DataFrame(columns=["commodity", "srp"])
 
-        # NOTE: Ideally migrate these to S3 reference bucket in future steps.
         return geo_df, srp_df
 
     @staticmethod

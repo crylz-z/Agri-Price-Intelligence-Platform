@@ -2,7 +2,6 @@ import pandas as pd
 import folium
 import plotly.express as px
 from datetime import datetime
-from src.dashboard.app import load_reference_data, load_data_window
 
 import streamlit as st
 import sys
@@ -12,8 +11,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 from src.dashboard.utils import ui
-
-# Apply Global Styling
+from src.dashboard.utils.data_engine import DataEngine
 ui.apply_enterprise_styling()
 
 # ==========================================
@@ -128,7 +126,7 @@ def main():
     )
 
     # LOAD DATA (LKGV)
-    raw_df = load_data_window(selected_date)
+    raw_df = DataEngine.load_data_window(selected_date)
 
     if raw_df is None or raw_df.empty:
         st.error(
@@ -187,7 +185,7 @@ def main():
     commodity_df = category_df[category_df["commodity"] == selected_commodity].copy()
 
     # LOAD REFERENCE
-    geo_df, srp_df = load_reference_data()
+    geo_df, srp_df = DataEngine.load_reference_data()
 
     # ==========================================
     # ZONE A: EXECUTIVE BRIEF (Category Level)
