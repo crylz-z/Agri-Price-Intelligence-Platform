@@ -171,18 +171,6 @@ def main():
     # FILTER STEP 2
     category_df = region_df[region_df["category"] == selected_category].copy()
 
-    # LEVEL 4: COMMODITY (Secondary Filter for Drill-Down)
-    if "commodity" not in category_df.columns:
-        st.error("Data integrity error: 'commodity' column missing.")
-        return
-
-    valid_commodities = sorted(category_df["commodity"].dropna().unique())
-    selected_commodity = st.sidebar.selectbox(
-        "Deep Dive Commodity", valid_commodities, index=0
-    )
-
-    # FILTER STEP 3
-    commodity_df = category_df[category_df["commodity"] == selected_commodity].copy()
 
     # LOAD REFERENCE
     geo_df, srp_df = DataEngine.load_reference_data()
@@ -304,100 +292,7 @@ def main():
         hide_index=True,
     )
 
-    # ==========================================
-    # DRILL DOWN SECTION
-    # ==========================================
-    st.markdown("---")
-    st.header(f"🔍 Deep Dive: {selected_commodity}")
 
-    if commodity_df.empty:
-        st.warning(f"No live data for **{selected_commodity}** today.")
-        return
-
-    col_map, col_chart = st.columns([1, 1])
-
-    # ==========================================
-    # ZONE C: GEOSPATIAL MAP
-    # ==========================================
-    with col_map:
-        st.subheader("📍 Market Location")
-
-        # Merge Geo
-        map_df = commodity_df.merge(geo_df, on="market_name", how="inner")
-
-        if not map_df.empty:
-            avg_comm_price = commodity_df["price"].mean()
-            center_lat = map_df["lat"].mean()
-            center_lon = map_df["lon"].mean()
-
-            m = folium.Map(location=[center_lat, center_lon], zoom_start=11)
-
-            for _, row in map_df.iterrows():
-                price = row["price"]
-                color = "green" if price <= avg_comm_price else "red"
-                folium.CircleMarker(
-                    location=[row["lat"], row["lon"]],
-                    radius=8,
-                    color=color,
-                    fill=True,
-                    fill_color=color,
-                    tooltip=f"{row['market_name']}: ₱{price:,.2f}",
-                ).add_to(m)
-
-            import streamlit_folium
-
-            streamlit_folium.st_folium(m, height=400, use_container_width=True)
-            st.caption("Green: Below Regional Avg | Red: Above Regional Avg")
-        else:
-            st.info("Geographic data not available for these markets.")
-
-    # ==========================================
-    # ZONE D: ANALYTICS
-    # ==========================================
-    with col_chart:
-        st.subheader("📊 Price Fairness")
-
-        # Z-Score
-        if commodity_df["price"].std() > 0:
-            commodity_df["z_score"] = (
-                commodity_df["price"] - commodity_df["price"].mean()
-            ) / commodity_df["price"].std()
-            commodity_df["color"] = commodity_df["z_score"].apply(
-                lambda x: "#e74c3c" if x > 0 else "#2ecc71"
-            )
-
-            import plotly.express as px
-
-            fig = px.bar(
-                commodity_df,
-                y="market_name",
-                x="z_score",
-                orientation="h",
-                title="Fairness Meter (Z-Score)",
-                text=commodity_df["price"].apply(lambda x: f"₱{x:.0f}"),
-            )
-            fig.update_traces(marker_color=commodity_df["color"])
-            fig.add_vline(x=0, line_dash="dash", line_color="black")
-            st.plotly_chart(fig, use_container_width=True)
-            st.caption("How to read: Bars to the RIGHT are expensive markets.")
-        else:
-            st.info("Price is uniform across all markets (No Variance).")
-
-    # Box Plot Row
-    st.subheader("📈 Price Distribution")
-    import plotly.express as px
-
-    fig_box = px.box(
-        commodity_df,
-        x="price",
-        points="all",
-        height=200,
-        title=f"Price Range for {selected_commodity}",
-    )
-    st.plotly_chart(fig_box, use_container_width=True)
-    st.caption(
-        "How to read: Dots outside the box are outliers (potential price gouging)."
-    )
 
 
 main()
