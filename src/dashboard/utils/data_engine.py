@@ -61,7 +61,9 @@ class DataEngine:
         try:
             con.execute("INSTALL httpfs;")
             con.execute("LOAD httpfs;")
-            con.execute("CREATE SECRET IF NOT EXISTS (TYPE s3, PROVIDER credential_chain);")
+            con.execute(
+                "CREATE SECRET IF NOT EXISTS (TYPE s3, PROVIDER credential_chain);"
+            )
         except Exception as e:
             print(f"[ERROR] Failed to configure DuckDB S3: {e}")
 
@@ -270,8 +272,9 @@ class DataEngine:
     def load_reference_data():
         """Loads SRP and Lat/Lon data safely."""
         from src.core import config
+
         REF_DATA_DIR = os.path.join(config.DATA_DIR, "reference")
-        
+
         # 1. GEO DATA
         geo_path = os.path.join(REF_DATA_DIR, "markets_geo.csv")
         if os.path.exists(geo_path):

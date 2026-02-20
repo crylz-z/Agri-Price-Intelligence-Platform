@@ -7,8 +7,6 @@ import os
 import boto3
 import dlt
 import pandas as pd
-import s3fs
-from datetime import datetime
 from dotenv import load_dotenv
 from src.core.config import REGION_MAP
 
@@ -73,7 +71,7 @@ def backfill_csvs():
                         "raw_date_text": row["extract_dt"],
                     }
                     all_records.append(record)
-                except Exception as row_err:
+                except Exception:
                     # simplistic error handling
                     continue
 

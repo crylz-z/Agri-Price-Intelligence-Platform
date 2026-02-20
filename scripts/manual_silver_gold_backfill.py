@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 
+
 def get_duckdb_con():
     con = duckdb.connect(database=":memory:")
     aws_key = os.getenv("AWS_ACCESS_KEY_ID")
@@ -17,13 +18,14 @@ def get_duckdb_con():
         con.execute(f"SET s3_secret_access_key='{aws_secret}';")
     return con
 
+
 def backfill_silver_gold(target_dates):
     """
     Backfills the Silver and Gold layers strictly following Medallion architecture.
     """
     load_dotenv()
     bucket = os.getenv("S3_BUCKET_NAME")
-    
+
     if not bucket:
         print("[ERROR] S3_BUCKET_NAME is not set. Cannot run backfill.")
         return
@@ -31,7 +33,7 @@ def backfill_silver_gold(target_dates):
     con = get_duckdb_con()
 
     for date_str in target_dates:
-        print(f"==================================================")
+        print("==================================================")
         print(f"Starting pipeline backfill for {date_str}...")
         try:
             target_date = datetime.strptime(date_str, "%Y-%m-%d")
@@ -39,16 +41,18 @@ def backfill_silver_gold(target_dates):
             month = target_date.strftime("%m")
             day = target_date.strftime("%d")
 
-            bronze_path = f"s3://{bucket}/bronze/dlt/market_data/agri_price_resource/**/*.parquet"
+            bronze_path = (
+                f"s3://{bucket}/bronze/dlt/market_data/agri_price_resource/**/*.parquet"
+            )
             silver_dir = f"s3://{bucket}/silver/year={year}/month={month}/day={day}"
             silver_path = f"{silver_dir}/clean_prices.parquet"
-            
+
             gold_dir = f"s3://{bucket}/gold/year={year}/month={month}/day={day}"
             gold_path = f"{gold_dir}/regional_kpis.parquet"
 
             # STEP A: MATERIALIZE SILVER
             print(f"-> Step A: Materializing Silver layer to {silver_path}...")
-            
+
             # Note: The raw data contains extract_dt and commodity_group, commodity_name.
             # We map commodity_group -> category and commodity_name -> commodity
             # to meet Streamlit's expectations.
@@ -73,12 +77,14 @@ def backfill_silver_gold(target_dates):
                 AND not regexp_matches(CAST(region_name AS VARCHAR), '^[0-9.]+$')
             ) TO '{silver_path}' (FORMAT 'parquet', OVERWRITE_OR_IGNORE true);
             """
-            
+
             con.execute(silver_query)
             print(f"   [SUCCESS] Silver materialized for {date_str}.")
 
             # STEP B: MATERIALIZE GOLD
-            print(f"-> Step B: Materializing Gold layer to {gold_path} from Silver data...")
+            print(
+                f"-> Step B: Materializing Gold layer to {gold_path} from Silver data..."
+            )
             gold_query = f"""
             COPY (
                 SELECT 
@@ -98,7 +104,7 @@ def backfill_silver_gold(target_dates):
                 GROUP BY region_name, commodity
             ) TO '{gold_path}' (FORMAT 'parquet', OVERWRITE_OR_IGNORE true);
             """
-            
+
             con.execute(gold_query)
             print(f"   [SUCCESS] Gold materialized for {date_str}.")
 
@@ -109,14 +115,15 @@ def backfill_silver_gold(target_dates):
     print("==================================================")
     print("Backfill process complete.")
 
+
 if __name__ == "__main__":
     import sys
-    
+
     # If dates are passed via command line (e.g., python script.py 2026-02-18 2026-02-19)
     if len(sys.argv) > 1:
         target_dates = sys.argv[1:]
     else:
         # Default to current system date
         target_dates = [datetime.now().strftime("%Y-%m-%d")]
-        
+
     backfill_silver_gold(target_dates)

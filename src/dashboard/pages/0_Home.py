@@ -1,6 +1,5 @@
 import pandas as pd
 import folium
-import plotly.express as px
 from datetime import datetime
 
 import streamlit as st
@@ -12,6 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.
 
 from src.dashboard.utils import ui
 from src.dashboard.utils.data_engine import DataEngine
+
 ui.apply_enterprise_styling()
 
 # ==========================================

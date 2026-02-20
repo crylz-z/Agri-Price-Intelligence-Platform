@@ -29,7 +29,7 @@ try:
     if df.empty:
         print("\n❌ Silver layer EXISTS but is EMPTY")
     else:
-        print(f"\n✅ Silver layer has data")
+        print("\n✅ Silver layer has data")
         print(f"Columns: {df.columns.tolist()}")
         print(f"Sample row:\n{df.head(1)}")
 except Exception as e:
@@ -43,7 +43,7 @@ except Exception as e:
         if df_bronze.empty:
             print("❌ Bronze layer is also EMPTY - need to run extraction")
         else:
-            print(f"✅ Bronze layer has data - need to run transformation")
+            print("✅ Bronze layer has data - need to run transformation")
             print(f"Bronze columns: {df_bronze.columns.tolist()}")
     except Exception as e2:
         print(f"❌ Bronze layer also failed: {e2}")

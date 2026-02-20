@@ -1,9 +1,7 @@
 import streamlit as st
 import os
-import glob
 import pandas as pd
-import folium
-from datetime import datetime, timedelta
+from datetime import datetime
 from dotenv import load_dotenv
 from src.core import config
 
@@ -26,7 +24,6 @@ REF_DATA_DIR = os.path.join(config.DATA_DIR, "reference")
 # DATA ENGINE & GLOBAL SIDEBAR
 # ==========================================
 from src.dashboard.utils.data_engine import DataEngine, SILVER_LAYER_PATH
-import duckdb
 
 st.sidebar.header("Global Configuration")
 
