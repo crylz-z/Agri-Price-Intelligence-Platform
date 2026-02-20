@@ -216,6 +216,7 @@ with st.container(border=True):
     st.markdown(
         f"#### Price Trend (Last {days_back} Days) - {selected_commodity} ({selected_region})"
     )
+    st.caption(f"📍 Geographic Context: {selected_region}")
     st.caption("Tracking daily price movements across different markets in the region.")
 
     with st.expander("How to Read This Chart", expanded=False):

@@ -62,9 +62,9 @@ def backfill_silver_gold(target_dates):
 
             cases = []
             for rid, rname in REGION_MAP.items():
-                cases.append(f"WHEN region_id = '{rid}' THEN '{rname}'")
-                if rid.startswith("0"):
-                    cases.append(f"WHEN region_id = '{int(rid)}' THEN '{rname}'")
+                cases.append(
+                    f"WHEN region_name IN ('{rid}', '{int(rid)}', '{float(rid)}') THEN '{rname}'"
+                )
             case_sql = "CASE " + " ".join(cases) + " ELSE region_name END"
 
             silver_query = f"""

@@ -156,35 +156,8 @@ metrics.render_national_insight(trend_df, selected_commodity)
 # ==========================================
 # EXECUTIVE SUMMARY
 # ==========================================
+# (Removed per user instruction)
 
-# Compute summary statistics from the current snapshot.
-_national_df = raw_df[raw_df["commodity"] == selected_commodity].copy()
-_national_avg = (
-    _national_df["Prevailing Price (₱)"].mean() if not _national_df.empty else None
-)
-_market_count = commodity_df["market_name"].nunique()
-
-# Best deal: cheapest market in the current region for the selected commodity.
-_best_row = (
-    commodity_df.loc[commodity_df["Prevailing Price (₱)"].idxmin()]
-    if not commodity_df.empty
-    else None
-)
-_best_market = _best_row["market_name"] if _best_row is not None else "N/A"
-_best_price = _best_row["Prevailing Price (₱)"] if _best_row is not None else None
-
-with st.expander("Executive Summary", expanded=True):
-    if _national_avg is not None and _best_price is not None:
-        st.markdown(
-            f"""
-            As of **{selected_date}**, the national average price for **{selected_commodity}** \
-stands at **₱{_national_avg:,.2f}** across all reporting regions. \
-In **{selected_region}**, **{_market_count}** market(s) are currently reporting prices. \
-The best deal available is at **{_best_market}**, with a prevailing price of **₱{_best_price:,.2f}**.
-            """
-        )
-    else:
-        st.info("Insufficient data to generate an executive summary.")
 
 # ==========================================
 # ROW 1.5: REGIONAL CONTEXT (New Feature)
@@ -198,6 +171,7 @@ col_bar, col_top5 = st.columns(2)
 with col_bar:
     with st.container(border=True):
         st.markdown(f"#### Regional Comparison: {selected_commodity}")
+        st.caption(f"📍 Geographic Context: {selected_region}")
         # Calculate Average Price per Region for this Commodity (Snapshot)
         # We need to load raw data for ALL regions for this date first.
         # Currently `raw_df` acts as our snapshot.
