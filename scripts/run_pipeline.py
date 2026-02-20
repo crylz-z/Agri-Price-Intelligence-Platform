@@ -154,8 +154,15 @@ def main() -> None:
         )
 
     except Exception as e:
-        logger.critical("Pipeline failed.", error=str(e))
-        send_discord_alert(f"Pipeline Failed: {str(e)}")
+        error_str = str(e)
+        # Truncate to 1500 chars to fit Discord limits and include context
+        trunc_err_str = (
+            (error_str[:1500] + "...") if len(error_str) > 1500 else error_str
+        )
+
+        logger.critical("Pipeline failed.", error=trunc_err_str)
+        # Add snippet markdown formatting for Discord readability
+        send_discord_alert(f"Pipeline Failed:\n```\n{trunc_err_str}\n```")
         sys.exit(1)
 
     logger.info("ELT Pipeline completed successfully.")
