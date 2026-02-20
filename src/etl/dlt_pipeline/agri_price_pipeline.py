@@ -17,15 +17,13 @@ def load():
     if not bucket_name:
         raise ValueError("S3_BUCKET_NAME environment variable is not set.")
 
-    s3_region = os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "ap-southeast-2"))
+    s3_region = os.getenv(
+        "AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "ap-southeast-2")
+    )
 
     destination = filesystem(
         bucket_url=f"s3://{bucket_name}/bronze/dlt",
-        credentials={
-            "aws_access_key_id": os.getenv("AWS_ACCESS_KEY_ID"),
-            "aws_secret_access_key": os.getenv("AWS_SECRET_ACCESS_KEY"),
-            "region_name": s3_region
-        }
+        credentials={"region_name": s3_region},
     )
 
     pipeline = dlt.pipeline(
