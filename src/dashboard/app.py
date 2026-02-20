@@ -15,7 +15,7 @@ load_dotenv()
 st.set_page_config(
     layout="wide",
     page_title="Market Bulletin | Agri-Price Intelligence",
-    page_icon="📋",
+    page_icon="🇵🇭",
 )
 
 CLEAN_DATA_DIR = os.path.join(config.DATA_DIR, "clean")
@@ -135,7 +135,22 @@ def main():
     if not available_dates:
         st.error(f"System Offline: No data available in {CLEAN_DATA_DIR}.")
         return
-    selected_date = st.sidebar.selectbox("Date", available_dates)
+
+    import duckdb
+
+    try:
+        query = f"SELECT MAX(extract_dt) as max_date FROM read_parquet('{CLEAN_DATA_DIR}/market_prices_*.parquet')"
+        max_date_df = duckdb.query(query).df()
+        latest_date = (
+            pd.to_datetime(max_date_df.iloc[0]["max_date"]).date()
+            if not max_date_df.empty
+            else datetime.today().date()
+        )
+    except Exception:
+        latest_date = datetime.today().date()
+
+    picked_date = st.sidebar.date_input("Date", value=latest_date)
+    selected_date = picked_date.strftime("%Y-%m-%d")
 
     # LOAD DATA (LKGV)
     raw_df = load_data_window(selected_date)
