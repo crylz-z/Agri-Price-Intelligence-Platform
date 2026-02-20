@@ -256,7 +256,7 @@ with col_bar:
                 .properties(height=350)
                 .configure_axis(grid=False)
             )
-            st.altair_chart(chart_reg, use_container_width=True)
+            st.altair_chart(chart_reg, width="stretch")
         else:
             st.info("No cross-regional data available.")
 
@@ -367,7 +367,7 @@ st.dataframe(
         "Prevailing Price (₱)": st.column_config.NumberColumn("Price", format="₱%.2f"),
         "days_ago": None,  # Hide raw
     },
-    use_container_width=True,
+    width="stretch",
     hide_index=True,
 )
 

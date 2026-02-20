@@ -42,5 +42,5 @@ def render_market_map(
     if locations:
         m.fit_bounds(locations)
 
-    st_folium(m, height=400, returned_objects=[], use_container_width=True)
+    st_folium(m, height=400, returned_objects=[], width="stretch")
     st.caption("Green: Below Average | Red: Above Average")

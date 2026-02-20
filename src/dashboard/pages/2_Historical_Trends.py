@@ -253,7 +253,7 @@ with st.container(border=True):
         .interactive()
     )
 
-    st.altair_chart(line_chart, use_container_width=True, theme=None)
+    st.altair_chart(line_chart, width="stretch", theme=None)
 
 # CHART 2: VOLATILITY / SPREAD
 with st.container(border=True):
@@ -293,7 +293,7 @@ with st.container(border=True):
         .interactive()
     )
 
-    st.altair_chart(combined, use_container_width=True, theme=None)
+    st.altair_chart(combined, width="stretch", theme=None)
     st.caption(
         "Blue Area = Price Range (Low to High). Red Dashed Line = Market Average."
     )
@@ -369,7 +369,7 @@ with st.container(border=True):
                 )
                 .properties(height=300)
             )
-            st.altair_chart(chart, use_container_width=True)
+            st.altair_chart(chart, width="stretch")
             st.success(
                 f"**Insight:** Historical data suggests **{best_day}** is generally the best day to buy."
             )
