@@ -110,5 +110,13 @@ def backfill_silver_gold(target_dates):
     print("Backfill process complete.")
 
 if __name__ == "__main__":
-    target_dates = ['2026-02-18', '2026-02-19']
+    import sys
+    
+    # If dates are passed via command line (e.g., python script.py 2026-02-18 2026-02-19)
+    if len(sys.argv) > 1:
+        target_dates = sys.argv[1:]
+    else:
+        # Default to current system date
+        target_dates = [datetime.now().strftime("%Y-%m-%d")]
+        
     backfill_silver_gold(target_dates)

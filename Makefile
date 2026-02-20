@@ -37,3 +37,8 @@ run:
 # Run Streamlit dashboard. Starts the local server for the web application.
 ui:
 	uv run streamlit run src/dashboard/app.py
+
+.PHONY: build-layers
+build-layers:
+	@echo "Materializing Silver and Gold layers for today..."
+	uv run python scripts/manual_silver_gold_backfill.py
