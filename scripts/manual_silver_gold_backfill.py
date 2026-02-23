@@ -83,7 +83,7 @@ def backfill_silver_gold(target_dates):
                         try_cast(price as double) as price,
                         try_cast(extract_dt as timestamp) as extract_dt
                     FROM source
-                    WHERE CAST(extract_dt AS DATE) = '{date_str}'
+                    WHERE TRY_CAST(extract_dt AS DATE) = '{date_str}'
                 )
                 SELECT * FROM silver
                 WHERE price <= 20000 AND price >= 0
@@ -151,6 +151,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Medallion Architecture Backfill Orchestrator"
     )
+    parser.add_argument(
+        "dates", nargs="*", help="Positional dates: [start_date] [end_date]"
+    )
     parser.add_argument("--start-date", help="Backfill start date (YYYY-MM-DD)")
     parser.add_argument("--end-date", help="Backfill end date (YYYY-MM-DD)")
     parser.add_argument(
@@ -173,8 +176,8 @@ if __name__ == "__main__":
             f"s3://{bucket}/bronze/dlt/market_data/agri_price_resource/**/*.parquet"
         )
         try:
-            # Efficiently query min/max dates from S3 metadata
-            bounds_query = f"SELECT MIN(CAST(extract_dt AS DATE)) as min_dt, MAX(CAST(extract_dt AS DATE)) as max_dt FROM read_parquet('{bronze_path}')"
+            # Efficiently query min/max dates from S3 metadata, ignoring corrupted strings
+            bounds_query = f"SELECT MIN(TRY_CAST(extract_dt AS DATE)) as min_dt, MAX(TRY_CAST(extract_dt AS DATE)) as max_dt FROM read_parquet('{bronze_path}')"
             df = con.sql(bounds_query).df()
             if not df.empty and pd.notnull(df.iloc[0]["min_dt"]):
                 start = df.iloc[0]["min_dt"].strftime("%Y-%m-%d")
@@ -188,6 +191,11 @@ if __name__ == "__main__":
             sys.exit(1)
         finally:
             con.close()
+    elif args.dates:
+        # Handle positional arguments: "2026-01-01" or "2026-01-01 2026-01-31"
+        start = args.dates[0]
+        end = args.dates[1] if len(args.dates) > 1 else pht_now.strftime("%Y-%m-%d")
+        target_dates = generate_date_range(start, end)
     elif args.start_date:
         start = args.start_date
         end = args.end_date if args.end_date else pht_now.strftime("%Y-%m-%d")

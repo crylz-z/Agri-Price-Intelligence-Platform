@@ -17,7 +17,8 @@ help:
 	@echo ""
 	@echo "Data Engineering & Operations:"
 	@echo "  run              Execute full ELT pipeline (dL/dT/dS)"
-	@echo "  backfill         Materialize/Repair Silver & Gold layers (from Bronze)"
+	@echo "  backfill         Materialize/Repair layers. Usage: make backfill ARGS=\"2026-02-01 [end_date]\""
+	@echo "  backfill-all     Perform a full historical backfill across all partitions"
 	@echo "  preflight        Verify S3 and Discord connectivity"
 	@echo ""
 	@echo "Application:"
@@ -50,7 +51,11 @@ run:
 
 backfill:
 	@echo "Repairing and materializing Silver/Gold layers..."
-	uv run python scripts/manual_silver_gold_backfill.py
+	uv run python scripts/manual_silver_gold_backfill.py $(ARGS)
+
+backfill-all:
+	@echo "Performing FULL historical backfill..."
+	uv run python scripts/manual_silver_gold_backfill.py --all
 
 ui:
 	uv run streamlit run src/dashboard/app.py
