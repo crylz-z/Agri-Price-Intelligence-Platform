@@ -44,21 +44,13 @@ try:
     con = DataEngine._get_connection()
     bucket = os.getenv("S3_BUCKET_NAME")
     if bucket:
-        # Scan current and previous month to handle month-start edge cases
-        curr_y, curr_m = pht_now.strftime("%Y"), pht_now.strftime("%m")
-        prev_month = pht_now.month - 1 or 12
-        prev_year = pht_now.year if pht_now.month > 1 else pht_now.year - 1
-        prev_m = f"{prev_month:02d}"
-
-        # Construct paths for both months
-        paths = [
-            f"s3://{bucket}/silver/year={curr_y}/month={curr_m}/*/*.parquet",
-            f"s3://{bucket}/silver/year={prev_year}/month={prev_m}/*/*.parquet",
-        ]
+        # Use a single resilient wildcard to avoid "No files found" errors on specific month partitions
+        # DuckDB will efficiently prune partitions based on the WHERE clause
+        resilient_path = f"s3://{bucket}/silver/year=*/month=*/day=*/*.parquet"
 
         query = f"""
             SELECT MAX(extract_dt) as max_date
-            FROM read_parquet({paths}, union_by_name=true)
+            FROM read_parquet('{resilient_path}', union_by_name=true, hive_partitioning=1)
             WHERE TRY_CAST(extract_dt AS DATE) <= '{pht_now.date()}'
         """
         max_date_df = con.sql(query).df()
