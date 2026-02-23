@@ -65,8 +65,10 @@ default_date_str = st.session_state.get("global_date")
 if default_date_str not in available_dates:
     default_date_str = available_dates[0]
 
-# Date selection via custom component
-ui_components.render_custom_calendar(available_dates, selected_date=default_date_str)
+# Date selection via custom component in sidebar
+with st.sidebar:
+    st.write("Market Date")
+    ui_components.render_custom_calendar(available_dates, selected_date=default_date_str)
 
 selected_date = st.session_state.get("global_date", default_date_str)
 

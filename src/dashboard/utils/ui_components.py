@@ -55,4 +55,4 @@ def render_custom_calendar(available_dates, selected_date=None):
     </script>
     """
     
-    components.html(html_code, height=450)
+    components.html(html_code, height=400)
