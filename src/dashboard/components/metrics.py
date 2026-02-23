@@ -153,46 +153,53 @@ def render_sparklines(trend_df, category_name, region_name):
     st.altair_chart(chart.properties(height=180), width="stretch", theme=None)
 
 
-def render_gouging_alert(df, srp_df):
+def render_gouging_alert(df):
     """
-    Scans for markets charging > 15% above SRP or Regional Average.
-    Displays a Red Warning Box if found.
+    Scans for markets with prices significantly above the statistical average.
+    Uses Z-Score detection (Threshold > 1.5) for dynamic outlier discovery.
     """
-    if df.empty:
+    if df.empty or "Prevailing Price (₱)" not in df.columns:
+        return
+
+    # Calculate Mean and Std for the current dataset (ideally already filtered by commodity)
+    mean_price = df["Prevailing Price (₱)"].mean()
+    std_price = df["Prevailing Price (₱)"].std()
+
+    if pd.isna(mean_price) or std_price == 0 or pd.isna(std_price):
+        st.info("Insufficient variance in pricing to detect outliers today.")
         return
 
     alerts = []
 
-    # Group by commodity to check
-    for commodity in df["commodity"].unique():
-        subset = df[df["commodity"] == commodity]
-        srp_row = srp_df[srp_df["commodity"] == commodity]
+    # Calculate Z-Scores and find violators
+    df_alerts = df.copy()
+    df_alerts["z_score"] = (df_alerts["Prevailing Price (₱)"] - mean_price) / std_price
 
-        if not srp_row.empty:
-            srp = srp_row.iloc[0]["srp"]
-            threshold = srp * 1.15  # 15% buffer
+    # Trigger: Z-Score > 1.5
+    violators = df_alerts[df_alerts["z_score"] > 1.5].sort_values(
+        "z_score", ascending=False
+    )
 
-            # Find violators
-            violators = subset[subset["Prevailing Price (₱)"] > threshold]
-            for _, row in violators.iterrows():
-                diff_pct = ((row["Prevailing Price (₱)"] - srp) / srp) * 100
-                alerts.append(
-                    f"**{row['market_name']}**: {commodity} @ ₱{row['Prevailing Price (₱)']:.2f} (+{diff_pct:.0f}% vs SRP)"
-                )
+    for _, row in violators.iterrows():
+        commodity = row.get("commodity", "item")
+        z_val = row["z_score"]
+        alerts.append(
+            f"⚠️ **{row['market_name']}** is pricing {commodity} significantly above today's national average (Z-Score: {z_val:.2f})"
+        )
 
     if alerts:
         with st.expander(
-            f"PRICE GOUGING DETECTED ({len(alerts)} Markets)", expanded=True
+            f"ABNORMAL PRICE DISPARITY ({len(alerts)} Markets)", expanded=True
         ):
             st.error(
-                "The following markets are charging >15% above the Suggested Retail Price:"
+                "The following markets are reporting prices significantly higher than the statistical norm:"
             )
-            for a in alerts[:5]:  # Show top 5 to avoid flooding
+            for a in alerts[:5]:  # Show top 5
                 st.markdown(f"- {a}")
             if len(alerts) > 5:
                 st.caption(f"...and {len(alerts) - 5} more.")
     else:
-        st.success("No Price Gouging Detected (All markets within 15% of SRP).")
+        st.success("✅ No extreme price outliers detected today.")
 
 
 def render_zscore_chart(df, height=400):
@@ -237,39 +244,50 @@ def render_zscore_chart(df, height=400):
     st.altair_chart(chart, width="stretch", theme=None)
 
 
-def render_national_insight(df, commodity: str) -> None:
+def render_price_insight(trend_df, commodity: str, truth_df=None) -> None:
     """
-    Renders a snapshot-focused insight banner for the National Market Watch page.
+    Renders a snapshot-focused insight banner.
     Compares the current day's price against the 30-day average and names the
-    single cheapest market available today.
+    single cheapest market available in the provided dataset.
 
     Parameters
     ----------
-    df : pd.DataFrame
+    trend_df : pd.DataFrame
         Historical trend DataFrame with columns: 'extract_dt',
         'Prevailing Price (₱)', 'market_name'.
     commodity : str
         Human-readable commodity name.
+    truth_df : pd.DataFrame, optional
+        The 'Source of Truth' snapshot for the current day. If provided,
+        the 'Best Deal' will be derived from this set to ensure UI consistency.
     """
-    required_cols = {"extract_dt", "Prevailing Price (₱)", "market_name"}
-    if df is None or df.empty or not required_cols.issubset(df.columns):
+    if trend_df is None or trend_df.empty:
+        st.warning(f"Insufficient historical data for {commodity}.")
+        return
+
+    avg_30d = trend_df["Prevailing Price (₱)"].mean()
+    latest_date = trend_df["extract_dt"].max()
+
+    # Baseline: use the latest day in the trend df
+    current_trend_df = trend_df[trend_df["extract_dt"] == latest_date]
+    current_avg = current_trend_df["Prevailing Price (₱)"].mean()
+
+    # Priority: use truth_df for the "Best Deal" if it belongs to the same day
+    # (Checking date alignment is safer)
+    best_source = (
+        truth_df if truth_df is not None and not truth_df.empty else current_trend_df
+    )
+
+    if pd.isna(avg_30d) or pd.isna(current_avg) or avg_30d == 0 or best_source.empty:
         st.warning(f"Insufficient data to generate an insight for {commodity}.")
         return
 
-    avg_30d = df["Prevailing Price (₱)"].mean()
-    latest_date = df["extract_dt"].max()
-    current_df = df[df["extract_dt"] == latest_date]
-    current_price = current_df["Prevailing Price (₱)"].mean()
-
-    if pd.isna(avg_30d) or pd.isna(current_price) or avg_30d == 0:
-        st.warning(f"Insufficient data to generate an insight for {commodity}.")
-        return
-
-    pct_diff = ((current_price - avg_30d) / avg_30d) * 100
+    pct_diff = ((current_avg - avg_30d) / avg_30d) * 100
     direction = "cheaper" if pct_diff < 0 else "more expensive"
     abs_pct = abs(pct_diff)
 
-    best_market_row = current_df.loc[current_df["Prevailing Price (₱)"].idxmin()]
+    # Find the absolute best price in the best_source
+    best_market_row = best_source.loc[best_source["Prevailing Price (₱)"].idxmin()]
     best_market = best_market_row["market_name"]
     best_price = best_market_row["Prevailing Price (₱)"]
 
@@ -328,3 +346,50 @@ def render_historical_insight(df, commodity: str) -> None:
     )
 
     st.info(insight_text)
+
+
+def render_market_spread(df, commodity: str):
+    """
+    Renders an Altair Strip Plot with Box Plot overlay to visualize
+    price density and outliers across markets within a region.
+    """
+    if df is None or df.empty:
+        return
+
+    st.markdown(f"**Market Price Distribution: {commodity}**")
+
+    # Base chart
+    base = (
+        alt.Chart(df)
+        .encode(
+            y=alt.Y("market_name:N", title=None, sort="-x"),
+            x=alt.X(
+                "Prevailing Price (₱):Q",
+                title="Price (₱)",
+                scale=alt.Scale(zero=False),
+            ),
+        )
+        .properties(height=alt.Step(40))  # Consistent spacing per market
+    )
+
+    # 1. Box plot for statistical distribution
+    boxplot = base.mark_boxplot(extent="min-max", color="#2E86AB", opacity=0.3).encode(
+        tooltip=alt.value(None)  # Boxplot tooltips can be messy
+    )
+
+    # 2. Strip plot (dots) for individual markets
+    stripplot = base.mark_circle(size=100, opacity=0.8).encode(
+        color=alt.value("#1e3a5f"),
+        tooltip=[
+            alt.Tooltip("market_name:N", title="Market"),
+            alt.Tooltip("Prevailing Price (₱):Q", title="Price", format="₱,.2f"),
+        ],
+    )
+
+    combined = (
+        (boxplot + stripplot)
+        .properties(height=450)
+        .configure_axis(titlePadding=15, labelFontSize=10)
+        .configure_view(strokeOpacity=0)
+    )
+    st.altair_chart(combined, use_container_width=True)

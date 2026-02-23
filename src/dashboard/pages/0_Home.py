@@ -44,20 +44,20 @@ with c3:
 st.markdown("<div style='margin-top:1rem;'></div>", unsafe_allow_html=True)
 
 # ==========================================
-# AVAILABLE MODULES — 2-column portal cards
+# AVAILABLE MODULES — 3-column portal cards
 # ==========================================
 st.markdown("#### Available Modules")
-m1, m2 = st.columns(2)
+m1, m2, m3 = st.columns(3)
 
 with m1:
     with st.container(border=True):
         st.markdown(
             """
-            <h4 style="color:#1e3a5f; margin-bottom:0.25rem;">National Market Watch</h4>
+            <h4 style="color:#1e3a5f; margin-bottom:0.25rem;">Regional Deep Dive</h4>
             <p style="color:#6B7280; font-size:0.88rem; margin-top:0;">
-                Tactical daily price monitoring — identify regional price variations,
-                detect potential price gouging, and pinpoint the best-value markets
-                for any commodity on any given date.
+                Tactical market intelligence — identify localized price variations,
+                analyze market density within a region, and pinpoint the best-value
+                local markets for any date.
             </p>
             """,
             unsafe_allow_html=True,
@@ -67,11 +67,25 @@ with m2:
     with st.container(border=True):
         st.markdown(
             """
+            <h4 style="color:#1e3a5f; margin-bottom:0.25rem;">National Macro Watch</h4>
+            <p style="color:#6B7280; font-size:0.88rem; margin-top:0;">
+                Bird's eye view — compare price performance across all 17 regions,
+                detect national-level anomalies, and identify absolute best deals
+                nationwide.
+            </p>
+            """,
+            unsafe_allow_html=True,
+        )
+
+with m3:
+    with st.container(border=True):
+        st.markdown(
+            """
             <h4 style="color:#1e3a5f; margin-bottom:0.25rem;">Historical Trends</h4>
             <p style="color:#6B7280; font-size:0.88rem; margin-top:0;">
-                Strategic long-term analysis — track price trajectories over 7, 30,
-                or 90-day windows, measure market volatility, and identify the
-                historically cheapest day of the week to buy.
+                Strategic analysis — track price trajectories over 7, 30,
+                or 90-day windows, measure market volatility, and identify
+                statistically optimal buying days.
             </p>
             """,
             unsafe_allow_html=True,

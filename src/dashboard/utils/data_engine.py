@@ -168,11 +168,11 @@ class DataEngine:
 
             # Calculate days_ago for freshness tracking (LKGV)
             if not df.empty and "extract_dt" in df.columns:
-                df["extract_dt"] = pd.to_datetime(
-                    df["extract_dt"], format="mixed", errors="coerce"
+                df["extract_dt"] = pd.to_datetime(df["extract_dt"], errors="coerce")
+                target_dt = pd.to_datetime(target_date_str).date()
+                df["days_ago"] = df["extract_dt"].apply(
+                    lambda x: (target_dt - x.date()).days if pd.notnull(x) else None
                 )
-                target_dt = pd.to_datetime(target_date_str)
-                df["days_ago"] = (target_dt - df["extract_dt"]).dt.days
 
             # Prevent caching of empty dataframes upon silent DuckDB failures
             if df.empty:
@@ -183,6 +183,25 @@ class DataEngine:
             print(f"[ERROR] Engine Error: {e}")
             st.cache_data.clear()
             return pd.DataFrame()
+
+    @staticmethod
+    def get_truth_df(target_date_str, region=None, category=None, commodity=None):
+        """
+        Provides a 'Single Source of Truth' DataFrame filtered by date and scope.
+        Essential for mathematical consistency across dashboard components.
+        """
+        df = DataEngine.get_market_snapshot(target_date_str)
+        if df.empty:
+            return df
+
+        if region:
+            df = df[df["region_name"] == region]
+        if category:
+            df = df[df["category"] == category]
+        if commodity:
+            df = df[df["commodity"] == commodity]
+
+        return df.copy()
 
     @staticmethod
     @st.cache_data(ttl=3600)
@@ -213,6 +232,8 @@ class DataEngine:
         # Generator partition pruning filter
         partition_filter = DataEngine._get_partition_filters(start_date, end_date)
 
+        region_clause = f"AND region_name = '{region}'" if region else ""
+
         query = f"""
         SELECT
             extract_dt,
@@ -228,7 +249,7 @@ class DataEngine:
             AND TRY_CAST(extract_dt AS DATE) >= '{start_date_str}'
             AND TRY_CAST(extract_dt AS DATE) <= '{end_date_formatted}'
             AND commodity = '{commodity}'
-            AND region_name = '{region}'
+            {region_clause}
         ORDER BY extract_dt ASC
         """
 
@@ -313,10 +334,9 @@ class DataEngine:
     @staticmethod
     @st.cache_data
     def load_reference_data():
-        """Loads SRP and Lat/Lon data safely."""
+        """Loads geospatial market coordinates safely."""
         from src.core import config
 
-        # Task 3: Relocated Reference Assets
         REF_DATA_DIR = os.path.join(
             config.BASE_DIR, "src", "dashboard", "assets", "reference"
         )
@@ -328,16 +348,7 @@ class DataEngine:
         else:
             geo_df = pd.DataFrame(columns=["market_name", "lat", "lon"])
 
-        # 2. SRP DATA
-        srp_path = os.path.join(REF_DATA_DIR, "official_srp.csv")
-        if os.path.exists(srp_path):
-            srp_df = pd.read_csv(srp_path)
-            if "official_srp" in srp_df.columns:
-                srp_df.rename(columns={"official_srp": "srp"}, inplace=True)
-        else:
-            srp_df = pd.DataFrame(columns=["commodity", "srp"])
-
-        return geo_df, srp_df
+        return geo_df
 
     @staticmethod
     def get_date_range():
@@ -405,8 +416,12 @@ class DataEngine:
         if df.empty:
             return df
 
-        # Create a lookup for fast matching
-        geo_lookup = geo_df.set_index("market_name")[["lat", "lon"]].to_dict("index")
+        # Create a lookup for fast matching (deduplicate to prevent ValueError)
+        geo_lookup = (
+            geo_df.drop_duplicates(subset=["market_name"])
+            .set_index("market_name")[["lat", "lon"]]
+            .to_dict("index")
+        )
 
         def get_coords(row):
             market = row.get("market_name")

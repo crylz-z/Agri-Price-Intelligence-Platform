@@ -73,16 +73,21 @@ if "global_date" not in st.session_state:
 
 # --- Multipage Navigation (st.Page API) ---
 home = st.Page("pages/0_Home.py", title="Home", icon=":material/home:", default=True)
-market = st.Page(
-    "pages/1_National_Market_Watch.py",
-    title="National Market Watch",
-    icon=":material/monitoring:",
+regional = st.Page(
+    "pages/1_Regional_Deep_Dive.py",
+    title="Regional Deep Dive",
+    icon=":material/zoom_in:",
+)
+national = st.Page(
+    "pages/2_National_Macro_Watch.py",
+    title="National Macro Watch",
+    icon=":material/public:",
 )
 trends = st.Page(
-    "pages/2_Historical_Trends.py",
+    "pages/3_Historical_Trends.py",
     title="Historical Trends",
     icon=":material/timeline:",
 )
 
-pg = st.navigation([home, market, trends])
+pg = st.navigation([home, regional, national, trends])
 pg.run()

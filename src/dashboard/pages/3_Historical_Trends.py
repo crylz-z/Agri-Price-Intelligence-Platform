@@ -3,8 +3,6 @@ import sys
 import os
 import pandas as pd
 import altair as alt
-from datetime import datetime
-from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 
 # Load environment variables for S3 access
@@ -67,7 +65,7 @@ with st.sidebar:
         value=pd.to_datetime(default_date_str).date(),
         min_value=min_data_date,
         max_value=max_data_date,
-        help="Select the end date for historical analysis."
+        help="Select the end date for historical analysis.",
     )
     # Task 1: Fix Type Mismatch
     selected_date_str = selected_date.strftime("%Y-%m-%d")
@@ -88,23 +86,49 @@ with st.sidebar:
     )
     days_back = range_options[selected_range_label]
 
-    # Load data for filter population (use latest date if selected is missing)
-    filter_ref_df = DataEngine.get_market_snapshot(selected_date_str if selected_date_str in available_dates else available_dates[0])
-    
+    # Load data for filter population (use Truth for consistency)
+    filter_ref_df = DataEngine.get_market_snapshot(
+        selected_date_str
+        if selected_date_str in available_dates
+        else available_dates[0]
+    )
+
     if filter_ref_df is not None and not filter_ref_df.empty:
-        # 2. Region Selection
+        # 1. Region Selection
         valid_regions = sorted(filter_ref_df["region_name"].dropna().unique())
-        selected_region = st.selectbox("Region", valid_regions)
-        region_df_filter = filter_ref_df[filter_ref_df["region_name"] == selected_region].copy()
+        default_ix = 0
+        if "NCR (NATIONAL CAPITAL REGION)" in valid_regions:
+            default_ix = valid_regions.index("NCR (NATIONAL CAPITAL REGION)")
+        selected_region = st.selectbox("Region", valid_regions, index=default_ix)
+        region_df_filter = filter_ref_df[
+            filter_ref_df["region_name"] == selected_region
+        ].copy()
 
-        # 3. Category Selection
+        # 2. Category Selection
         valid_categories = sorted(region_df_filter["category"].dropna().unique())
-        selected_category = st.selectbox("Category", valid_categories)
-        category_df_filter = region_df_filter[region_df_filter["category"] == selected_category].copy()
+        default_cat_ix = 0
+        for i, cat in enumerate(valid_categories):
+            if "RICE" in cat.upper():
+                default_cat_ix = i
+                break
+        selected_category = st.selectbox(
+            "Category", valid_categories, index=default_cat_ix
+        )
+        category_df_filter = region_df_filter[
+            region_df_filter["category"] == selected_category
+        ].copy()
 
-        # 4. Commodity Selection
+        # 3. Commodity Selection
         valid_commods = sorted(category_df_filter["commodity"].dropna().unique())
-        selected_commodity = st.selectbox("Commodity", valid_commods)
+        default_commod_ix = 0
+        if "RICE" in selected_category:
+            for i, commod in enumerate(valid_commods):
+                if "WELL-MILLED" in commod.upper() or "REGULAR" in commod.upper():
+                    default_commod_ix = i
+                    break
+        selected_commodity = st.selectbox(
+            "Commodity", valid_commods, index=default_commod_ix
+        )
     else:
         st.info("Syncing historical metadata...")
         selected_region = None
@@ -117,27 +141,13 @@ if selected_date_str not in available_dates:
     st.info(f"Most recent available dates: {', '.join(available_dates[:5])}")
     st.stop()
 
-# Prepare data for charts
-trend_df = DataEngine.get_historical_trends(selected_date_str, days_back)
-if trend_df is None or trend_df.empty:
-    st.error("Could not retrieve trend data for the selected period.")
-    st.stop()
-
-commodity_df = trend_df[
-    (trend_df["region_name"] == selected_region) & 
-    (trend_df["category"] == selected_category) & 
-    (trend_df["commodity"] == selected_commodity)
-].copy()
-
-# ==========================================
 # DATA INGESTION
-# ==========================================
 with st.spinner(f"Loading {days_back} days of history for {selected_commodity}..."):
     hist_df = DataEngine.get_historical_trends(
         selected_commodity,
         selected_region,
         days_back=days_back,
-        end_date_str=latest_date,
+        end_date_str=selected_date_str,
     )
 
 if hist_df.empty:
@@ -156,13 +166,11 @@ min_price_period = hist_df["Prevailing Price (₱)"].min()
 max_price_period = hist_df["Prevailing Price (₱)"].max()
 
 # Fetch the prior equivalent period to compute meaningful deltas.
-# E.g. for 'Last 30 Days', fetch the 60 days before today and take the
-# first 30 days as the baseline. Falls back gracefully if no prior data.
 prior_df = DataEngine.get_historical_trends(
     selected_commodity,
     selected_region,
     days_back=days_back * 2,
-    end_date_str=latest_date,
+    end_date_str=selected_date_str,
 )
 # Isolate only the older half (the prior period).
 if not prior_df.empty:
@@ -255,24 +263,25 @@ with st.container(border=True):
     st.markdown(
         f"#### Price Trend (Last {days_back} Days) - {selected_commodity} ({selected_region})"
     )
-    st.caption(f"📍 Geographic Context: {selected_region}")
+    st.caption(
+        "How to read: The shaded corridor/dashed line represents the 7-day moving average to forecast upcoming price shifts."
+    )
     st.caption("Tracking daily price movements across different markets in the region.")
 
-    with st.expander("How to Read This Chart", expanded=False):
-        st.markdown(
-            """
-        *   **Upward Slope**: Prices are getting more expensive (Inflation).
-        *   **Downward Slope**: Prices are going down (Supply is stabilizing).
-        *   **High Flyers**: Lines far above the rest may indicate localized shortages.
-        *   **Tight Cluster**: When lines are close together, prices are consistent across markets.
-        """
-        )
+    # Calculate a 7D Moving Average for the whole region as a baseline
+    region_ma = (
+        hist_df.groupby("extract_dt")["Prevailing Price (₱)"]
+        .mean()
+        .rolling(window=7)
+        .mean()
+        .reset_index()
+    )
+    region_ma.rename(columns={"Prevailing Price (₱)": "7D Moving Avg"}, inplace=True)
 
-    # Line Chart: X=Date, Y=Price, Color=Market
-    # Visualization configured for enterprise clarity with interactive tooltips and distinct color schemes
-    line_chart = (
+    # Base Line Chart (Markets)
+    markets_chart = (
         alt.Chart(hist_df)
-        .mark_line(point=True, strokeWidth=3)
+        .mark_line(point=False, strokeWidth=1, opacity=0.4)
         .encode(
             x=alt.X("extract_dt:T", title="Date", axis=alt.Axis(format="%b %d")),
             y=alt.Y(
@@ -287,17 +296,36 @@ with st.container(border=True):
                 alt.Tooltip("Prevailing Price (₱)", title="Price", format=",.2f"),
             ],
         )
-        .properties(height=400)
-        .configure_axis(grid=False)
-        .configure_view(strokeOpacity=0)
-        .interactive()
     )
 
-    st.altair_chart(line_chart, width="stretch", theme=None)
+    # Benchmark 7D MA Line
+    ma_line = (
+        alt.Chart(region_ma)
+        .mark_line(strokeWidth=4, color="#D64045")
+        .encode(
+            x="extract_dt:T",
+            y="7D Moving Avg:Q",
+            tooltip=[
+                alt.Tooltip("extract_dt", title="Date", format="%b %d, %Y"),
+                alt.Tooltip("7D Moving Avg", title="7D Moving Avg", format=",.2f"),
+            ],
+        )
+    )
+
+    final_trend = (
+        (markets_chart + ma_line)
+        .properties(height=450)
+        .configure_axis(titlePadding=15)
+        .interactive()
+    )
+    st.altair_chart(final_trend, use_container_width=True, theme=None)
 
 # CHART 2: VOLATILITY / SPREAD
 with st.container(border=True):
     st.markdown("#### Daily Price Spread (Volatility)")
+    st.caption(
+        "How to read: 🔴 Red = High Price Volatility (Unstable) | ⬤ Blue Area = Price Range (Stability)"
+    )
     st.caption("The gap between the cheapest and most expensive market each day.")
 
     # Calculate Daily Min/Max/Avg
@@ -342,7 +370,7 @@ with st.container(border=True):
 with st.container(border=True):
     st.markdown("#### Best Day to Buy Analysis")
     st.caption(
-        "Which day of the week typically offers the lowest prices? Based on historical averages."
+        "How to read: 🟢 Green = Statistically Cheapest Day | ⚪ Gray = Standard Pricing. Optimized for consumer planning."
     )
 
     # Prepare Data
