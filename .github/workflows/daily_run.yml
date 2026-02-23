@@ -8,8 +8,6 @@ on:
     - cron: '0 9 * * *'
     # harvester 1: 08:30 PM PHT = 12:30 UTC
     - cron: '30 12 * * *'
-    # harvester 2: 11:30 PM PHT = 15:30 UTC
-    - cron: '30 15 * * *'
 
   workflow_dispatch:
 

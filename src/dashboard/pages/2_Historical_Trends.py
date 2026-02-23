@@ -56,7 +56,6 @@ if default_date_str not in available_dates:
 
 # Date selection via custom component in sidebar
 with st.sidebar:
-    st.write("End Date")
     ui_components.render_custom_calendar(available_dates, selected_date=default_date_str)
 
 latest_date = st.session_state.get("global_date", default_date_str)
