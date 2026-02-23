@@ -399,22 +399,30 @@ class DataEngine:
     @staticmethod
     def enrich_with_geo(df, geo_df):
         """
-        Joins market data with geo data.
+        Joins market data with geo data from the reference CSV.
+        Prioritizes market-level precision over region-level approximations.
         """
         if df.empty:
             return df
 
-        # Logic adapted for Region-based Gold Data (No Market level in Gold)
-        # We Map Region Center directly.
+        # Create a lookup for fast matching
+        geo_lookup = geo_df.set_index("market_name")[["lat", "lon"]].to_dict("index")
 
         def get_coords(row):
+            market = row.get("market_name")
             region = row.get("region_name")
+
+            # 1. High Precision Market Lookup
+            if market in geo_lookup:
+                return geo_lookup[market]["lat"], geo_lookup[market]["lon"]
+
+            # 2. Fallback to Region Center (with jitter)
             if region in REGION_CENTERS:
                 base_lat, base_lon = REGION_CENTERS[region]
-                # Add small jitter
                 lat_offset = random.uniform(-0.02, 0.02)
                 lon_offset = random.uniform(-0.02, 0.02)
                 return base_lat + lat_offset, base_lon + lon_offset
+
             return None, None
 
         coords = df.apply(get_coords, axis=1)
