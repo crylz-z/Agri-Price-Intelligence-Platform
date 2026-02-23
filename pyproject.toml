@@ -25,6 +25,7 @@ dependencies = [
     "dbt-core>=1.11.0",
     "dbt-duckdb>=1.9.0",
     "dlt[s3]>=1.22.0",
+    "geopy>=2.4.1",
 ]
 
 [build-system]

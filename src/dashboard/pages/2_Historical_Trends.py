@@ -18,7 +18,7 @@ if (
     )
 
 from src.dashboard.utils.data_engine import DataEngine  # noqa: E402
-from src.dashboard.utils import ui  # noqa: E402
+from src.dashboard.utils import ui, ui_components  # noqa: E402
 from src.dashboard.components import metrics  # noqa: E402
 
 # Apply Global Styling
@@ -54,18 +54,10 @@ default_date_str = st.session_state.get("global_date")
 if default_date_str not in available_dates:
     default_date_str = available_dates[0]
 
-try:
-    default_ix = available_dates.index(default_date_str)
-except ValueError:
-    default_ix = 0
+# Date selection via custom component
+ui_components.render_custom_calendar(available_dates, selected_date=default_date_str)
 
-latest_date = st.sidebar.selectbox(
-    "End Date",
-    options=available_dates,
-    index=default_ix,
-    help="Select the end date for historical analysis.",
-)
-st.session_state["global_date"] = latest_date
+latest_date = st.session_state.get("global_date", default_date_str)
 
 # 1. Date Range
 range_options = {

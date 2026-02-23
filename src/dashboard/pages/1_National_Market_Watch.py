@@ -27,7 +27,7 @@ if (
     )
 
 from src.dashboard.utils.data_engine import DataEngine  # noqa: E402
-from src.dashboard.utils import ui  # noqa: E402
+from src.dashboard.utils import ui, ui_components  # noqa: E402
 from src.dashboard.components import metrics, spatial  # noqa: E402
 
 # Apply Global Styling
@@ -65,19 +65,10 @@ default_date_str = st.session_state.get("global_date")
 if default_date_str not in available_dates:
     default_date_str = available_dates[0]
 
-# Find index for selectbox
-try:
-    default_ix = available_dates.index(default_date_str)
-except ValueError:
-    default_ix = 0
+# Date selection via custom component
+ui_components.render_custom_calendar(available_dates, selected_date=default_date_str)
 
-selected_date = st.sidebar.selectbox(
-    "Available Dates",
-    options=available_dates,
-    index=default_ix,
-    help="Select from existing dataset dates in S3.",
-)
-st.session_state["global_date"] = selected_date
+selected_date = st.session_state.get("global_date", default_date_str)
 
 # LOAD DATA (LKGV)
 raw_df = DataEngine.get_market_snapshot(selected_date)

@@ -71,6 +71,13 @@ except Exception as e:
 if "global_date" not in st.session_state:
     st.session_state["global_date"] = latest_date.strftime("%Y-%m-%d")
 
+# --- Query Param Interception (Bidirectional JS Sync) ---
+if "date" in st.query_params:
+    new_date = st.query_params["date"]
+    st.session_state["global_date"] = new_date
+    st.query_params.clear() # Keep URL clean after intercepting
+    st.rerun() # Ensure global state change propagates immediately
+
 # --- Multipage Navigation (st.Page API) ---
 home = st.Page("pages/0_Home.py", title="Home", icon=":material/home:", default=True)
 market = st.Page(
