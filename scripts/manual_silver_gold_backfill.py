@@ -98,15 +98,15 @@ def backfill_silver_gold(target_dates):
             )
             gold_query = f"""
             COPY (
-                SELECT 
+                SELECT
                     region_name,
                     commodity,
                     AVG(price) as avg_price,
                     MIN(price) as min_price,
                     MAX(price) as max_price,
-                    CASE 
-                        WHEN AVG(price) > 0 THEN ((MAX(price) - MIN(price)) / AVG(price)) * 100 
-                        ELSE 0 
+                    CASE
+                        WHEN AVG(price) > 0 THEN ((MAX(price) - MIN(price)) / AVG(price)) * 100
+                        ELSE 0
                     END as price_volatility,
                     MAX(extract_dt) as latest_date,
                     0 as days_ago

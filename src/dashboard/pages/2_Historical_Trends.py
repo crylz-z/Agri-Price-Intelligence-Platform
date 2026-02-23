@@ -1,4 +1,5 @@
 import streamlit as st
+from datetime import datetime
 import sys
 import os
 import pandas as pd
@@ -7,7 +8,6 @@ from dotenv import load_dotenv
 
 # Load environment variables for S3 access
 load_dotenv()
-from datetime import datetime
 
 # Ensure root is in path
 if (

@@ -1,6 +1,7 @@
 import streamlit as st
 import sys
 import os
+from datetime import datetime
 import altair as alt
 from dotenv import load_dotenv
 
@@ -56,7 +57,6 @@ st.markdown(
 st.sidebar.markdown("### Configuration")
 
 default_date_str = st.session_state.get("global_date")
-from datetime import datetime
 
 default_date = (
     datetime.strptime(default_date_str, "%Y-%m-%d").date()

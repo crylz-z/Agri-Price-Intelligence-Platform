@@ -1,3 +1,5 @@
+import os
+import pandas as pd
 from datetime import datetime
 from src.dashboard.utils.data_engine import DataEngine
 
@@ -6,7 +8,6 @@ print("Testing app.py date selection...")
 y = datetime.today().strftime("%Y")
 m = datetime.today().strftime("%m")
 con = DataEngine._get_connection()
-import os
 
 bucket = os.getenv("S3_BUCKET_NAME")
 fast_silver_path = f"s3://{bucket}/silver/year={y}/month={m}/*/*.parquet"
@@ -14,7 +15,6 @@ try:
     query = f"SELECT MAX(extract_dt) as max_date FROM read_parquet('{fast_silver_path}', union_by_name=true) WHERE CAST(extract_dt AS DATE) <= CURRENT_DATE()"
     max_date_df = con.sql(query).df()
     print("max_date_df:", max_date_df)
-    import pandas as pd
 
     latest_date = pd.to_datetime(max_date_df.iloc[0]["max_date"]).date()
     selected_date = latest_date.strftime("%Y-%m-%d")

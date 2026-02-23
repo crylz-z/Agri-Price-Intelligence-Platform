@@ -61,7 +61,7 @@ def apply_enterprise_styling():
         }
 
         /* Target the dropdown popover portal */
-        div[data-baseweb="popover"] ul li, 
+        div[data-baseweb="popover"] ul li,
         div[data-baseweb="select"] * {
             white-space: normal !important;
             word-wrap: break-word !important;

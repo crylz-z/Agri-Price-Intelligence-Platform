@@ -7,7 +7,7 @@ silver_path = f"s3://{bucket}/silver/year=*/month=*/day=*/*.parquet"
 con = DataEngine._get_connection()
 
 query = f"""
-SELECT DISTINCT region_name, commodity 
+SELECT DISTINCT region_name, commodity
 FROM read_parquet('{silver_path}', union_by_name=true, hive_partitioning=1)
 LIMIT 20
 """

@@ -9,6 +9,13 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# S3 Path Config
+S3_BUCKET = os.getenv("S3_BUCKET_NAME")
+SILVER_LAYER_PATH = (
+    f"s3://{S3_BUCKET}/silver/year=*/month=*/day=*/*.parquet" if S3_BUCKET else None
+)
+
+
 # ==========================================
 # ==========================================
 # CONFIGURATION
@@ -264,8 +271,6 @@ class DataEngine:
         # Note: We now dynamically construct the partition path instead of relying on SILVER_LAYER_PATH wildcard
         try:
             target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
-            start_date = target_date - timedelta(days=window_days)
-            start_date_str = start_date.strftime("%Y-%m-%d")
 
             # Tasks 1 & 2: Dynamic S3 Path Construction for exact partition
             year = target_date.strftime("%Y")

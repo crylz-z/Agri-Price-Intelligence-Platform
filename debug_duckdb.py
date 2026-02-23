@@ -16,7 +16,7 @@ except Exception as e:
     print("Error 1:", e)
 
 query = f"""
-SELECT extract_dt, price 
+SELECT extract_dt, price
 FROM read_parquet('{silver_path}', union_by_name=true, hive_partitioning=1)
 WHERE commodity = 'Rice - Regular Milled'
   AND region_name = 'REGION I (ILOCOS REGION)'
