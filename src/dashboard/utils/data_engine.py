@@ -370,24 +370,28 @@ class DataEngine:
             return None, None
 
     @staticmethod
+    @st.cache_data(ttl=600)
     def get_available_dates():
-        """Scans S3 Silver layer partitions for available dates."""
+        """
+        Scans S3 Silver layer partitions for available dates.
+        Strictly ordered by date descending for UI selection.
+        """
         if not SILVER_LAYER_PATH:
             return []
 
         query = (
-            f"SELECT DISTINCT extract_dt FROM read_parquet('{SILVER_LAYER_PATH}', "
-            "union_by_name=true) "
+            f"SELECT DISTINCT CAST(extract_dt AS DATE) as available_date "
+            f"FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true) "
             "WHERE CAST(extract_dt AS VARCHAR) NOT LIKE '%<%' "
-            "AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%' "
-            "ORDER BY extract_dt DESC"
+            "AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'"
+            "ORDER BY 1 DESC"
         )
 
         try:
             con = DataEngine._get_connection()
             df = con.sql(query).df()
             con.close()
-            return df["extract_dt"].astype(str).tolist()
+            return df["available_date"].astype(str).tolist()
         except Exception as e:
             print(f"[ERROR] Available Dates Error: {e}")
             return []

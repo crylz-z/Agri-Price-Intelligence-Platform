@@ -17,11 +17,29 @@ renamed as (
     select
         try_cast(extract_dt as timestamp) as extract_ts,
         region_id,
-        region_name,
+        CASE
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '130000000' THEN 'NCR (NATIONAL CAPITAL REGION)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '140000000' THEN 'CAR (CORDILLERA ADMINISTRATIVE REGION)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '010000000' THEN 'REGION I (ILOCOS REGION)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '020000000' THEN 'REGION II (CAGAYAN VALLEY)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '030000000' THEN 'REGION III (CENTRAL LUZON)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '040000000' THEN 'REGION IV-A (CALABARZON)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '170000000' THEN 'REGION IV-B (MIMAROPA)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '050000000' THEN 'REGION V (BICOL REGION)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '060000000' THEN 'REGION VI (WESTERN VISAYAS)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '070000000' THEN 'REGION VII (CENTRAL VISAYAS)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '080000000' THEN 'REGION VIII (EASTERN VISAYAS)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '090000000' THEN 'REGION IX (ZAMBOANGA PENINSULA)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '100000000' THEN 'REGION X (NORTHERN MINDANAO)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '110000000' THEN 'REGION XI (DAVAO REGION)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '120000000' THEN 'REGION XII (SOCCSKSARGEN)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '150000000' THEN 'BARMM (Bangsamoro Autonomous Region of Muslim Mindanao)'
+            WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '160000000' THEN 'REGION XIII (Caraga)'
+            ELSE region_name
+        END as region_name,
         market_name,
         commodity_group,
         commodity_name,
-        -- specifications, (Removed as column is missing in source)
         try_cast(price as double) as price,
         raw_date_text,
         _dlt_load_id
@@ -30,8 +48,5 @@ renamed as (
 
 select * from renamed
 where
-    -- Sanity check: agri prices above ₱20,000 are data errors.
     price <= 20000
     and price >= 0
-    -- Sanity check: filter rows where region_name is a raw numeric ID (e.g. "1000000", "40000000.0").
-    and not regexp_matches(region_name, '^[0-9.]+$')

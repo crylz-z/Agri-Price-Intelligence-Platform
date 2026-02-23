@@ -1,5 +1,4 @@
 import streamlit as st
-from datetime import datetime
 import sys
 import os
 import pandas as pd
@@ -46,17 +45,26 @@ st.markdown(
 # ==========================================
 st.sidebar.markdown("### Configuration")
 
-default_date_str = st.session_state.get("global_date")
-default_date = (
-    datetime.strptime(default_date_str, "%Y-%m-%d").date()
-    if default_date_str
-    else datetime.today().date()
-)
+available_dates = DataEngine.get_available_dates()
+if not available_dates:
+    st.error("No data available in S3 Silver layer.")
+    st.stop()
 
-picked_date = st.sidebar.date_input(
-    "Date", value=default_date, max_value=datetime.today().date()
+default_date_str = st.session_state.get("global_date")
+if default_date_str not in available_dates:
+    default_date_str = available_dates[0]
+
+try:
+    default_ix = available_dates.index(default_date_str)
+except ValueError:
+    default_ix = 0
+
+latest_date = st.sidebar.selectbox(
+    "End Date",
+    options=available_dates,
+    index=default_ix,
+    help="Select the end date for historical analysis.",
 )
-latest_date = picked_date.strftime("%Y-%m-%d")
 st.session_state["global_date"] = latest_date
 
 # 1. Date Range

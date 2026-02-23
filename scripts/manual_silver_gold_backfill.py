@@ -63,7 +63,7 @@ def backfill_silver_gold(target_dates):
             cases = []
             for rid, rname in REGION_MAP.items():
                 cases.append(
-                    f"WHEN region_name IN ('{rid}', '{int(rid)}', '{float(rid)}') THEN '{rname}'"
+                    f"WHEN LPAD(CAST(region_name AS VARCHAR), 9, '0') = '{rid}' THEN '{rname}'"
                 )
             case_sql = "CASE " + " ".join(cases) + " ELSE region_name END"
 
@@ -85,7 +85,6 @@ def backfill_silver_gold(target_dates):
                 )
                 SELECT * FROM silver
                 WHERE price <= 20000 AND price >= 0
-                AND not regexp_matches(CAST(region_name AS VARCHAR), '^[0-9.]+$')
             ) TO '{silver_path}' (FORMAT 'parquet', OVERWRITE_OR_IGNORE true);
             """
 

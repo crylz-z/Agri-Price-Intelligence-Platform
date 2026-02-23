@@ -1,7 +1,6 @@
 import streamlit as st
 import sys
 import os
-from datetime import datetime
 import altair as alt
 from dotenv import load_dotenv
 
@@ -56,18 +55,28 @@ st.markdown(
 # ==========================================
 st.sidebar.markdown("### Configuration")
 
+available_dates = DataEngine.get_available_dates()
+if not available_dates:
+    st.error("No data available in S3 Silver layer.")
+    st.stop()
+
 default_date_str = st.session_state.get("global_date")
+# Ensure the default is valid, otherwise fallback to the most recent date
+if default_date_str not in available_dates:
+    default_date_str = available_dates[0]
 
-default_date = (
-    datetime.strptime(default_date_str, "%Y-%m-%d").date()
-    if default_date_str
-    else datetime.today().date()
-)
+# Find index for selectbox
+try:
+    default_ix = available_dates.index(default_date_str)
+except ValueError:
+    default_ix = 0
 
-picked_date = st.sidebar.date_input(
-    "Date", value=default_date, max_value=datetime.today().date()
+selected_date = st.sidebar.selectbox(
+    "Available Dates",
+    options=available_dates,
+    index=default_ix,
+    help="Select from existing dataset dates in S3.",
 )
-selected_date = picked_date.strftime("%Y-%m-%d")
 st.session_state["global_date"] = selected_date
 
 # LOAD DATA (LKGV)
