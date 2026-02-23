@@ -16,32 +16,46 @@ def render_custom_calendar(available_dates, selected_date=None):
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
-        body {{ margin: 0; padding: 0; overflow: hidden; display: flex; justify-content: center; }}
-        #date-picker {{ display: none; }}
-        .flatpickr-calendar {{ 
-            box-shadow: none !important; 
-            border: none !important; 
-            background: transparent !important;
-            margin: 0 auto !important;
+        body {{ 
+            margin: 0; 
+            padding: 0; 
+            background-color: transparent; 
+            font-family: 'Source Sans Pro', sans-serif; 
+        }}
+        .flatpickr-input {{
+            width: 100%;
+            font-size: 14px;
+            border-radius: 8px;
+            border: 1px solid #d5dce6;
+            padding: 8px 12px;
+            color: #31333F;
+            background-color: white;
+            cursor: pointer;
+            box-sizing: border-box;
+            font-family: inherit;
+        }}
+        .flatpickr-input:focus {{
+            outline: none;
+            border-color: #ff4b4b;
         }}
     </style>
     
-    <input type="text" id="date-picker" value="{default_date}">
-    <div id="inline-calendar"></div>
+    <input type="text" id="date-picker" class="flatpickr-input" value="{default_date}">
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {{
             const availableDates = {dates_json};
             
-            flatpickr("#inline-calendar", {{
-                inline: true,
+            flatpickr("#date-picker", {{
                 enable: availableDates,
-                dateFormat: "Y-m-d",
+                dateFormat: "Y/m/d",
                 defaultDate: "{default_date}",
                 onChange: function(selectedDates, dateStr) {{
                     if (dateStr) {{
+                        // Convert display format Y/m/d back to Y-m-d for backend compatibility
+                        const internalDate = dateStr.replace(/\//g, '-');
                         const url = new URL(window.parent.location.href);
-                        url.searchParams.set('date', dateStr);
+                        url.searchParams.set('date', internalDate);
                         window.parent.history.pushState({{}}, '', url);
                         window.parent.location.reload();
                     }}
@@ -51,4 +65,4 @@ def render_custom_calendar(available_dates, selected_date=None):
     </script>
     """
     
-    components.html(html_code, height=320)
+    components.html(html_code, height=350)
