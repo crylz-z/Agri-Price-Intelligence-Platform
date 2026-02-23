@@ -3,6 +3,8 @@ import sys
 import os
 import pandas as pd
 import altair as alt
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 
 # Load environment variables for S3 access
@@ -18,7 +20,7 @@ if (
     )
 
 from src.dashboard.utils.data_engine import DataEngine  # noqa: E402
-from src.dashboard.utils import ui, ui_components  # noqa: E402
+from src.dashboard.utils import ui  # noqa: E402
 from src.dashboard.components import metrics  # noqa: E402
 
 # Apply Global Styling
@@ -50,46 +52,82 @@ if not available_dates:
     st.error("No data available in S3 Silver layer.")
     st.stop()
 
+# Determine first and last dates in dataset
+min_data_date = pd.to_datetime(available_dates[-1]).date()
+max_data_date = pd.to_datetime(available_dates[0]).date()
+
 default_date_str = st.session_state.get("global_date")
 if default_date_str not in available_dates:
     default_date_str = available_dates[0]
 
-# Date selection via custom component in sidebar
+# Date selection via native component in sidebar
 with st.sidebar:
-    ui_components.render_custom_calendar(available_dates, selected_date=default_date_str)
+    selected_date = st.date_input(
+        "End Date",
+        value=pd.to_datetime(default_date_str).date(),
+        min_value=min_data_date,
+        max_value=max_data_date,
+        help="Select the end date for historical analysis."
+    )
+    # Task 1: Fix Type Mismatch
+    selected_date_str = selected_date.strftime("%Y-%m-%d")
 
-latest_date = st.session_state.get("global_date", default_date_str)
+st.session_state["global_date"] = selected_date_str
 
-# 1. Date Range
-range_options = {
-    "Last 7 Days": 7,
-    "Last 30 Days": 30,
-    "Last 90 Days": 90,
-    "Year to Date": 365,
-}
-selected_range_label = st.sidebar.selectbox(
-    "Time Horizon", list(range_options.keys()), index=1
-)
-days_back = range_options[selected_range_label]
-reference_df = DataEngine.get_market_snapshot(latest_date)
+# Task 2: Unconditional Sidebar Rendering
+with st.sidebar:
+    st.markdown("---")
+    range_options = {
+        "Last 7 Days": 7,
+        "Last 30 Days": 30,
+        "Last 90 Days": 90,
+        "Year to Date": 365,
+    }
+    selected_range_label = st.selectbox(
+        "Time Horizon", list(range_options.keys()), index=1
+    )
+    days_back = range_options[selected_range_label]
 
-if reference_df is None or reference_df.empty:
-    st.warning(f"Unable to load data for {latest_date}.")
-    st.info("Try again later or contact support if the issue persists.")
+    # Load data for filter population (use latest date if selected is missing)
+    filter_ref_df = DataEngine.get_market_snapshot(selected_date_str if selected_date_str in available_dates else available_dates[0])
+    
+    if filter_ref_df is not None and not filter_ref_df.empty:
+        # 2. Region Selection
+        valid_regions = sorted(filter_ref_df["region_name"].dropna().unique())
+        selected_region = st.selectbox("Region", valid_regions)
+        region_df_filter = filter_ref_df[filter_ref_df["region_name"] == selected_region].copy()
+
+        # 3. Category Selection
+        valid_categories = sorted(region_df_filter["category"].dropna().unique())
+        selected_category = st.selectbox("Category", valid_categories)
+        category_df_filter = region_df_filter[region_df_filter["category"] == selected_category].copy()
+
+        # 4. Commodity Selection
+        valid_commods = sorted(category_df_filter["commodity"].dropna().unique())
+        selected_commodity = st.selectbox("Commodity", valid_commods)
+    else:
+        st.info("Syncing historical metadata...")
+        selected_region = None
+        selected_category = None
+        selected_commodity = None
+
+# Task 3: Correct Execution Flow for Soft-Fail (Main Body)
+if selected_date_str not in available_dates:
+    st.warning(f"No market data found for {selected_date_str}.")
+    st.info(f"Most recent available dates: {', '.join(available_dates[:5])}")
     st.stop()
 
-# Region Selection
-valid_regions = sorted(reference_df["region_name"].dropna().unique())
-default_ix = 0
-if "NCR (NATIONAL CAPITAL REGION)" in valid_regions:
-    default_ix = valid_regions.index("NCR (NATIONAL CAPITAL REGION)")
-selected_region = st.sidebar.selectbox("Region", valid_regions, index=default_ix)
+# Prepare data for charts
+trend_df = DataEngine.get_historical_trends(selected_date_str, days_back)
+if trend_df is None or trend_df.empty:
+    st.error("Could not retrieve trend data for the selected period.")
+    st.stop()
 
-# Commodity Selection (Filtered by Region)
-region_ref_df = reference_df[reference_df["region_name"] == selected_region]
-valid_commodities = sorted(region_ref_df["commodity"].dropna().unique())
-selected_commodity = st.sidebar.selectbox("Commodity", valid_commodities)
-
+commodity_df = trend_df[
+    (trend_df["region_name"] == selected_region) & 
+    (trend_df["category"] == selected_category) & 
+    (trend_df["commodity"] == selected_commodity)
+].copy()
 
 # ==========================================
 # DATA INGESTION

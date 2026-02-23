@@ -2,6 +2,9 @@ import streamlit as st
 import sys
 import os
 import altair as alt
+import pandas as pd
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 
 # Load environment variables for S3 access
@@ -27,7 +30,7 @@ if (
     )
 
 from src.dashboard.utils.data_engine import DataEngine  # noqa: E402
-from src.dashboard.utils import ui, ui_components  # noqa: E402
+from src.dashboard.utils import ui  # noqa: E402
 from src.dashboard.components import metrics, spatial  # noqa: E402
 
 # Apply Global Styling
@@ -60,53 +63,73 @@ if not available_dates:
     st.error("No data available in S3 Silver layer.")
     st.stop()
 
+# Determine first and last dates in dataset
+min_data_date = pd.to_datetime(available_dates[-1]).date()
+max_data_date = pd.to_datetime(available_dates[0]).date()
+
 default_date_str = st.session_state.get("global_date")
 # Ensure the default is valid, otherwise fallback to the most recent date
 if default_date_str not in available_dates:
     default_date_str = available_dates[0]
 
-# Date selection via custom component in sidebar
+# Date selection via native component
 with st.sidebar:
-    ui_components.render_custom_calendar(available_dates, selected_date=default_date_str)
+    selected_date = st.date_input(
+        "Market Date",
+        value=pd.to_datetime(default_date_str).date(),
+        min_value=min_data_date,
+        max_value=max_data_date,
+        help="Select a date to view market prices."
+    )
+    # Task 1: Fix Type Mismatch - Explicitly cast to string
+    selected_date_str = selected_date.strftime("%Y-%m-%d")
 
-selected_date = st.session_state.get("global_date", default_date_str)
+st.session_state["global_date"] = selected_date_str
 
-# LOAD DATA (LKGV)
-raw_df = DataEngine.get_market_snapshot(selected_date)
-if raw_df is None or raw_df.empty:
-    st.warning(f"No data available for {selected_date}.")
-    st.info("Try selecting a different date or check back later.")
-    st.stop()
+# Task 2: Unconditional Sidebar Rendering
+# Load a reference snapshot for filter population (use latest date if selected is missing)
+filter_ref_df = DataEngine.get_market_snapshot(selected_date_str if selected_date_str in available_dates else available_dates[0])
 
-# 2. Region
-valid_regions = sorted(raw_df["region_name"].dropna().unique())
-default_ix = 0
-if "NCR (NATIONAL CAPITAL REGION)" in valid_regions:
-    default_ix = valid_regions.index("NCR (NATIONAL CAPITAL REGION)")
+with st.sidebar:
+    if filter_ref_df is not None and not filter_ref_df.empty:
+        # 2. Region
+        valid_regions = sorted(filter_ref_df["region_name"].dropna().unique())
+        default_ix = 0
+        if "NCR (NATIONAL CAPITAL REGION)" in valid_regions:
+            default_ix = valid_regions.index("NCR (NATIONAL CAPITAL REGION)")
+        selected_region = st.selectbox("Region", valid_regions, index=default_ix)
+        
+        region_df = filter_ref_df[filter_ref_df["region_name"] == selected_region].copy()
+        
+        # 3. Category
+        valid_categories = sorted(region_df["category"].dropna().unique().tolist())
+        default_cat_ix = 0
+        for i, cat in enumerate(valid_categories):
+            if "RICE" in cat.upper():
+                default_cat_ix = i
+                break
+        selected_category = st.selectbox("Category", valid_categories, index=default_cat_ix)
+        
+        # 4. Commodity
+        cat_df_for_filter = region_df[region_df["category"] == selected_category].copy()
+        valid_commods = sorted(cat_df_for_filter["commodity"].dropna().unique())
+        selected_commodity = st.selectbox("Commodity", valid_commods)
+    else:
+        st.info("Syncing market metadata...")
+        selected_region = None
+        selected_category = None
+        selected_commodity = None
 
-selected_region = st.sidebar.selectbox("Region", valid_regions, index=default_ix)
+# Task 3: Correct Execution Flow for Soft-Fail (Main Body)
+if selected_date_str not in available_dates:
+    st.warning(f"No market data found for {selected_date_str}.")
+    st.info(f"Most recent available dates: {', '.join(available_dates[:5])}")
+    st.stop() # Halts charts but keeps sidebar intact
+
+# LOAD DATA for actual display
+raw_df = DataEngine.get_market_snapshot(selected_date_str)
 region_df = raw_df[raw_df["region_name"] == selected_region].copy()
-
-# 3. Category
-valid_categories = sorted(region_df["category"].dropna().unique().tolist())
-if "OTHER COMMODITIES" in [c.upper() for c in valid_categories]:
-    actual = next(c for c in valid_categories if c.upper() == "OTHER COMMODITIES")
-    valid_categories.remove(actual)
-    valid_categories.append(actual)
-
-default_cat_ix = 0
-for i, cat in enumerate(valid_categories):
-    if "RICE" in cat.upper():
-        default_cat_ix = i
-        break
-selected_category = st.sidebar.selectbox(
-    "Category", valid_categories, index=default_cat_ix
-)
 category_df = region_df[region_df["category"] == selected_category].copy()
-
-# 4. Commodity
-valid_commodities = sorted(category_df["commodity"].dropna().unique())
-selected_commodity = st.sidebar.selectbox("Commodity Focus", valid_commodities)
 commodity_df = category_df[category_df["commodity"] == selected_commodity].copy()
 
 # LOAD REF
