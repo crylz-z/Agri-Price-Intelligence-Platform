@@ -1,44 +1,56 @@
-.PHONY: install lint test preflight run
+.PHONY: help install lint test preflight run ui backfill
 
 # ==============================================================================
-# Dependency Management
+# General
 # ==============================================================================
 
-# Setup environment. Syncs the local virtual environment with uv.lock. Run this after pulling new changes.
+# Display this help screen.
+help:
+	@echo "Usage: make [target]"
+	@echo ""
+	@echo "Project Setup:"
+	@echo "  install          Sync local virtual environment with uv.lock"
+	@echo ""
+	@echo "Quality Assurance:"
+	@echo "  lint             Run formatter (Ruff) and linter checks"
+	@echo "  test             Execute pytest suite"
+	@echo ""
+	@echo "Data Engineering & Operations:"
+	@echo "  run              Execute full ELT pipeline (dL/dT/dS)"
+	@echo "  backfill         Materialize/Repair Silver & Gold layers (from Bronze)"
+	@echo "  preflight        Verify S3 and Discord connectivity"
+	@echo ""
+	@echo "Application:"
+	@echo "  ui               Start the Streamlit dashboard"
+
+# ==============================================================================
+# Setup & Quality
+# ==============================================================================
+
 install:
 	uv sync
 
-# ==============================================================================
-# Quality Assurance
-# ==============================================================================
-
-# Formatting/Hygiene. Runs the formatter, linter, and all pre-commit hooks to ensure code quality.
 lint:
 	uv run ruff format
 	uv run ruff check . --fix
 	uv run pre-commit run --all-files
 
-# Run pytest tests. Executes the Pytest suite (unit and integration tests).
 test:
 	uv run pytest tests/
 
 # ==============================================================================
-# Execution & Operations
+# Data Pipeline & Operations
 # ==============================================================================
 
-# Run preflight tests. Verifies S3 connection and Discord alerting health before running a pipeline.
 preflight:
 	uv run python scripts/preflight_check.py
 
-# Run pipeline. Executes the full ELT pipeline: dlt extraction, dbt transformation, and audit gate.
 run:
 	uv run python scripts/run_pipeline.py
 
-# Run Streamlit dashboard. Starts the local server for the web application.
+backfill:
+	@echo "Repairing and materializing Silver/Gold layers..."
+	uv run python scripts/manual_silver_gold_backfill.py
+
 ui:
 	uv run streamlit run src/dashboard/app.py
-
-.PHONY: build-layers
-build-layers:
-	@echo "Materializing Silver and Gold layers for today..."
-	uv run python scripts/manual_silver_gold_backfill.py

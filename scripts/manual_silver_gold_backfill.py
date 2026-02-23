@@ -1,6 +1,10 @@
 import duckdb
 import os
-from datetime import datetime
+import pandas as pd
+import argparse
+import sys
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 
 
@@ -23,9 +27,7 @@ def backfill_silver_gold(target_dates):
     """
     Backfills the Silver and Gold layers strictly following Medallion architecture.
     """
-    load_dotenv()
     bucket = os.getenv("S3_BUCKET_NAME")
-
     if not bucket:
         print("[ERROR] S3_BUCKET_NAME is not set. Cannot run backfill.")
         return
@@ -41,10 +43,10 @@ def backfill_silver_gold(target_dates):
             month = target_date.strftime("%m")
             day = target_date.strftime("%d")
 
+            # Corrected paths: Only use the active DLT bronze path
             dlt_path = (
                 f"s3://{bucket}/bronze/dlt/market_data/agri_price_resource/**/*.parquet"
             )
-            legacy_path = f"s3://{bucket}/bronze/year=2026/**/*.parquet"
 
             silver_dir = f"s3://{bucket}/silver/year={year}/month={month}/day={day}"
             silver_path = f"{silver_dir}/clean_prices_{date_str}.parquet"
@@ -70,7 +72,7 @@ def backfill_silver_gold(target_dates):
             silver_query = f"""
             COPY (
                 WITH source as (
-                    SELECT * FROM read_parquet(['{dlt_path}', '{legacy_path}'], union_by_name=true)
+                    SELECT * FROM read_parquet('{dlt_path}', union_by_name=true)
                 ),
                 silver as (
                     SELECT
@@ -126,14 +128,76 @@ def backfill_silver_gold(target_dates):
     print("Backfill process complete.")
 
 
+def generate_date_range(start_date_str, end_date_str):
+    """Generates a list of YYYY-MM-DD strings between start and end (inclusive)."""
+    start_dt = datetime.strptime(start_date_str, "%Y-%m-%d")
+    end_dt = datetime.strptime(end_date_str, "%Y-%m-%d")
+
+    delta = end_dt - start_dt
+    if delta.days < 0:
+        return []
+
+    return [
+        (start_dt + timedelta(days=i)).strftime("%Y-%m-%d")
+        for i in range(delta.days + 1)
+    ]
+
+
 if __name__ == "__main__":
-    import sys
+    load_dotenv()
+    pht_tz = ZoneInfo("Asia/Manila")
+    pht_now = datetime.now(pht_tz)
 
-    # If dates are passed via command line (e.g., python script.py 2026-02-18 2026-02-19)
-    if len(sys.argv) > 1:
-        target_dates = sys.argv[1:]
+    parser = argparse.ArgumentParser(
+        description="Medallion Architecture Backfill Orchestrator"
+    )
+    parser.add_argument("--start-date", help="Backfill start date (YYYY-MM-DD)")
+    parser.add_argument("--end-date", help="Backfill end date (YYYY-MM-DD)")
+    parser.add_argument(
+        "--all", action="store_true", help="Backfill entire history from Bronze layer"
+    )
+
+    args = parser.parse_args()
+    bucket = os.getenv("S3_BUCKET_NAME")
+
+    target_dates = []
+
+    if args.all:
+        if not bucket:
+            print("[ERROR] S3_BUCKET_NAME required for --all scan.")
+            sys.exit(1)
+
+        print("-> Scanning Bronze metadata for historical bounds...")
+        con = get_duckdb_con()
+        bronze_path = (
+            f"s3://{bucket}/bronze/dlt/market_data/agri_price_resource/**/*.parquet"
+        )
+        try:
+            # Efficiently query min/max dates from S3 metadata
+            bounds_query = f"SELECT MIN(CAST(extract_dt AS DATE)) as min_dt, MAX(CAST(extract_dt AS DATE)) as max_dt FROM read_parquet('{bronze_path}')"
+            df = con.sql(bounds_query).df()
+            if not df.empty and pd.notnull(df.iloc[0]["min_dt"]):
+                start = df.iloc[0]["min_dt"].strftime("%Y-%m-%d")
+                end = df.iloc[0]["max_dt"].strftime("%Y-%m-%d")
+                print(f"   [INFO] Found history: {start} to {end}")
+                target_dates = generate_date_range(start, end)
+            else:
+                print("[WARNING] No data found in Bronze layer.")
+        except Exception as e:
+            print(f"[ERROR] Historical scan failed: {e}")
+            sys.exit(1)
+        finally:
+            con.close()
+    elif args.start_date:
+        start = args.start_date
+        end = args.end_date if args.end_date else pht_now.strftime("%Y-%m-%d")
+        target_dates = generate_date_range(start, end)
     else:
-        # Default to current system date
-        target_dates = [datetime.now().strftime("%Y-%m-%d")]
+        # Default behavior: Today's date (PHT)
+        target_dates = [pht_now.strftime("%Y-%m-%d")]
 
-    backfill_silver_gold(target_dates)
+    if not target_dates:
+        print("[INFO] No dates to process.")
+    else:
+        print(f"[INFO] Prepared {len(target_dates)} days for backfill.")
+        backfill_silver_gold(target_dates)
