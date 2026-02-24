@@ -2,6 +2,7 @@
 import streamlit as st
 import sys
 import os
+import datetime
 import pandas as pd
 from dotenv import load_dotenv
 
@@ -52,9 +53,9 @@ min_data_date = pd.to_datetime(available_dates[-1]).date()
 max_data_date = pd.to_datetime(available_dates[0]).date()
 
 default_date_str = st.session_state.get("global_date")
-# Ensure the default is valid, otherwise fallback to the most recent date
-if default_date_str not in available_dates:
-    default_date_str = available_dates[0]
+# Ensure the default is valid, otherwise fallback to today's date
+if not default_date_str:
+    default_date_str = datetime.date.today().strftime("%Y-%m-%d")
 
 # Date selection via native component
 with st.sidebar:
@@ -62,7 +63,7 @@ with st.sidebar:
         "Market Date",
         value=pd.to_datetime(default_date_str).date(),
         min_value=min_data_date,
-        max_value=max_data_date,
+        max_value=datetime.date.today(),
         help="Select a date to view market prices.",
     )
     # Task 1: Fix Type Mismatch - Explicitly cast to string
@@ -121,15 +122,25 @@ with st.sidebar:
         selected_category = None
         selected_commodity = None
 
-# Task 3: Correct Execution Flow for Soft-Fail (Main Body)
+# Task 3: Graceful Fallback for Missing Dates
+actual_date_str = selected_date_str
 if selected_date_str not in available_dates:
-    st.warning(f"No market data found for {selected_date_str}.")
-    st.info(f"Most recent available dates: {', '.join(available_dates[:5])}")
-    st.stop()
+    closest_dates = [d for d in available_dates if d < selected_date_str]
+    is_today = selected_date_str == datetime.date.today().strftime("%Y-%m-%d")
+
+    if closest_dates:
+        actual_date_str = closest_dates[0]
+        if is_today:
+             st.warning(f"🕒 **Pending Extraction**: Market data for `{selected_date_str}` is not yet available (likely pending daily update or server outage). Falling back to the latest data from `{actual_date_str}`.")
+        else:
+             st.warning(f"⚠️ **Server Outage Detected**: No market data found for `{selected_date_str}`. Falling back to the last known good data from `{actual_date_str}`.")
+    else:
+        st.error(f"No market data found for {selected_date_str} and no prior history exists.")
+        st.stop()
 
 # UNIFIED SOURCE OF TRUTH (Strictly scoped to Page 1: Regional)
 truth_df = DataEngine.get_truth_df(
-    selected_date_str,
+    actual_date_str,
     region=selected_region,
     category=selected_category,
     commodity=selected_commodity,
@@ -137,7 +148,7 @@ truth_df = DataEngine.get_truth_df(
 
 # LOAD History for trends/deltas
 trend_df = DataEngine.get_historical_trends(
-    selected_commodity, selected_region, days_back=30, end_date_str=selected_date_str
+    selected_commodity, selected_region, days_back=30, end_date_str=actual_date_str
 )
 
 # LOAD REF for Map
@@ -172,7 +183,7 @@ st.markdown(
 # Previously we tried to derive this from the snapshot, but that only has 1 date.
 # We must explicitly fetch history for this specific commodity/region.
 trend_df = DataEngine.get_historical_trends(
-    selected_commodity, selected_region, days_back=30, end_date_str=selected_date
+    selected_commodity, selected_region, days_back=30, end_date_str=actual_date_str
 )
 
 # FIX: Passed commodity_df instead of category_df per user request
@@ -207,7 +218,7 @@ with st.container(border=True):
 
 # LOAD Substitutes for the category analytics
 substitutes_df = DataEngine.get_truth_df(
-    selected_date_str, region=selected_region, category=selected_category
+    actual_date_str, region=selected_region, category=selected_category
 )
 
 # ==========================================

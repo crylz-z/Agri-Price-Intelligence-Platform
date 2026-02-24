@@ -2,6 +2,7 @@
 import streamlit as st
 import sys
 import os
+import datetime
 import altair as alt
 import pandas as pd
 from dotenv import load_dotenv
@@ -59,7 +60,7 @@ with st.sidebar:
         "Market Date",
         value=pd.to_datetime(default_date_str).date(),
         min_value=min_data_date,
-        max_value=max_data_date,
+        max_value=datetime.date.today(),
     )
     selected_date_str = selected_date.strftime("%Y-%m-%d")
 
@@ -102,19 +103,30 @@ with st.sidebar:
         selected_category = None
         selected_commodity = None
 
-# Soft-Fail
+# Task 3: Graceful Fallback for Missing Dates
+actual_date_str = selected_date_str
 if selected_date_str not in available_dates:
-    st.warning(f"No market data found for {selected_date_str}.")
-    st.stop()
+    closest_dates = [d for d in available_dates if d < selected_date_str]
+    is_today = selected_date_str == datetime.date.today().strftime("%Y-%m-%d")
+
+    if closest_dates:
+        actual_date_str = closest_dates[0]
+        if is_today:
+             st.warning(f"🕒 **Pending Extraction**: Market data for `{selected_date_str}` is not yet available. Falling back to the latest data from `{actual_date_str}`.")
+        else:
+             st.warning(f"⚠️ **Server Outage Detected**: No market data found for `{selected_date_str}`. Falling back to the last known good data from `{actual_date_str}`.")
+    else:
+        st.error(f"No market data found for {selected_date_str} and no prior history exists.")
+        st.stop()
 
 # UNIFIED SOURCE OF TRUTH (National Scope)
 truth_df = DataEngine.get_truth_df(
-    selected_date_str, category=selected_category, commodity=selected_commodity
+    actual_date_str, category=selected_category, commodity=selected_commodity
 )
 
 # Load History (National Average)
 trend_df = DataEngine.get_historical_trends(
-    selected_commodity, None, days_back=30, end_date_str=selected_date_str
+    selected_commodity, None, days_back=30, end_date_str=actual_date_str
 )
 
 # ==========================================

@@ -1,5 +1,6 @@
 import dlt
 import os
+import json
 from dotenv import load_dotenv
 from dlt.destinations import filesystem
 from src.etl.dlt_pipeline.agri_price_source import agri_price_source
@@ -30,6 +31,18 @@ def load():
     load_info = pipeline.run(agri_price_source(), loader_file_format="parquet")
     load_info.raise_on_failed_jobs()
     print(load_info)
+
+    # Write metrics for orchestrator to detect 0-row runs
+    import tempfile
+    status_file = os.path.join(tempfile.gettempdir(), "agri_pipeline_status.json")
+    try:
+        packages = len(load_info.loads)
+    except Exception:
+        packages = 0
+        
+    with open(status_file, "w") as f:
+        json.dump({"load_packages": packages}, f)
+
 
 
 if __name__ == "__main__":

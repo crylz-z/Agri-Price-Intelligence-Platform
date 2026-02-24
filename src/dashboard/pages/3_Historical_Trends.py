@@ -2,6 +2,7 @@
 import streamlit as st
 import sys
 import os
+import datetime
 import pandas as pd
 import altair as alt
 from dotenv import load_dotenv
@@ -61,7 +62,7 @@ with st.sidebar:
         "End Date",
         value=pd.to_datetime(default_date_str).date(),
         min_value=min_data_date,
-        max_value=max_data_date,
+        max_value=datetime.date.today(),
         help="Select the end date for historical analysis.",
     )
     # Task 1: Fix Type Mismatch
@@ -132,11 +133,21 @@ with st.sidebar:
         selected_category = None
         selected_commodity = None
 
-# Task 3: Correct Execution Flow for Soft-Fail (Main Body)
+# Task 3: Graceful Fallback for Missing Dates
+actual_date_str = selected_date_str
 if selected_date_str not in available_dates:
-    st.warning(f"No market data found for {selected_date_str}.")
-    st.info(f"Most recent available dates: {', '.join(available_dates[:5])}")
-    st.stop()
+    closest_dates = [d for d in available_dates if d < selected_date_str]
+    is_today = selected_date_str == datetime.date.today().strftime("%Y-%m-%d")
+
+    if closest_dates:
+        actual_date_str = closest_dates[0]
+        if is_today:
+             st.warning(f"🕒 **Pending Extraction**: Market data for `{selected_date_str}` is not yet available. Falling back to the latest data from `{actual_date_str}`.")
+        else:
+             st.warning(f"⚠️ **Server Outage Detected**: No market data found for `{selected_date_str}`. Falling back to the last known good data from `{actual_date_str}`.")
+    else:
+        st.error(f"No market data found for {selected_date_str} and no prior history exists.")
+        st.stop()
 
 # DATA INGESTION
 with st.spinner(f"Loading {days_back} days of history for {selected_commodity}..."):
@@ -144,7 +155,7 @@ with st.spinner(f"Loading {days_back} days of history for {selected_commodity}..
         selected_commodity,
         selected_region,
         days_back=days_back,
-        end_date_str=selected_date_str,
+        end_date_str=actual_date_str,
     )
 
 if hist_df.empty:

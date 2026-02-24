@@ -69,6 +69,9 @@ def send_discord_alert(message: str, status: str = "ERROR") -> None:
         return
 
     color = 65280 if status in ["SUCCESS", "INFO"] else 16711680  # green / red
+    if status == "WARNING":
+        color = 16776960 # yellow
+        
     payload = {
         "embeds": [
             {
@@ -166,10 +169,36 @@ def main() -> None:
         sys.exit(1)
 
     logger.info("ELT Pipeline completed successfully.")
-    send_discord_alert(
-        "ELT Pipeline completed successfully. Bronze -> Silver -> Gold is healthy.",
-        status="SUCCESS",
-    )
+
+    # Check for 0-row extraction via pipeline status file
+    import tempfile
+    import json
+    
+    status_file = os.path.join(tempfile.gettempdir(), "agri_pipeline_status.json")
+    zero_rows = False
+    if os.path.exists(status_file):
+        try:
+            with open(status_file, "r") as f:
+                stats = json.load(f)
+                if stats.get("load_packages", 1) == 0:
+                    zero_rows = True
+        except Exception:
+            pass
+
+    if zero_rows:
+        warning_msg = (
+            "⚠️ **Pipeline Completed with 0 Rows Extracted**\n"
+            "The pipeline executed fully, but no data was returned by the DA Bantay Presyo server. "
+            "This confirms the government API is currently unreachable or blocking requests. "
+            "Downstream data was untouched."
+        )
+        logger.warning(warning_msg)
+        send_discord_alert(warning_msg, status="WARNING")
+    else:
+        send_discord_alert(
+            "ELT Pipeline completed successfully. Bronze -> Silver -> Gold is healthy.",
+            status="SUCCESS",
+        )
 
 
 if __name__ == "__main__":
