@@ -121,3 +121,5 @@ with st.expander("Platform Documentation & Terms of Use", expanded=False):
 st.caption(
     "Data Source: [Department of Agriculture - Bantay Presyo](http://www.bantaypresyo.da.gov.ph/) | © 2026 Agri-Price Intelligence Platform"
 )
+
+ui.render_system_health()

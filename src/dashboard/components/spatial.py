@@ -24,7 +24,9 @@ def render_market_map(
     # Add Pins
     for _, row in geo_enriched_df.iterrows():
         price = row["Prevailing Price (₱)"]
-        color = "green" if price <= avg_price else "red"
+        color = (
+            "#0d9488" if price <= avg_price else "#e11d48"
+        )  # Teal (Cheap) vs Coral (Expensive)
         tooltip_txt = f"{row['market_name']}: ₱{price:,.2f}"
 
         folium.CircleMarker(
@@ -42,5 +44,5 @@ def render_market_map(
     if locations:
         m.fit_bounds(locations)
 
-    st_folium(m, height=400, returned_objects=[], width="stretch")
-    st.caption("Green: Below Average | Red: Above Average")
+    st_folium(m, height=380, returned_objects=[], width="stretch")
+    st.caption("Teal: Below Average | Coral: Above Average")

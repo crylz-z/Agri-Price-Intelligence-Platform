@@ -174,9 +174,8 @@ class DataEngine:
                     lambda x: (target_dt - x.date()).days if pd.notnull(x) else None
                 )
 
-            # Prevent caching of empty dataframes upon silent DuckDB failures
-            if df.empty:
-                st.cache_data.clear()
+            # Cache empty dataframes normally; TTL will handle refreshes
+            return df
 
             return df
         except Exception as e:
@@ -185,6 +184,7 @@ class DataEngine:
             return pd.DataFrame()
 
     @staticmethod
+    @st.cache_data(ttl=3600)
     def get_truth_df(target_date_str, region=None, category=None, commodity=None):
         """
         Provides a 'Single Source of Truth' DataFrame filtered by date and scope.
@@ -274,8 +274,6 @@ class DataEngine:
                         med = df["Prevailing Price (₱)"].median()
                         if med > 0:
                             df = df[df["Prevailing Price (₱)"] <= med * 5]
-            if df.empty:
-                st.cache_data.clear()
             return df
         except Exception as e:
             print(f"[ERROR] History Engine Error: {e}")
@@ -323,9 +321,7 @@ class DataEngine:
                     df["extract_dt"], format="mixed", errors="coerce"
                 )
 
-            if df.empty:
-                st.cache_data.clear()
-            return df if not df.empty else None
+            return None
         except Exception as e:
             print(f"[ERROR] load_data_window Error: {e}")
             st.cache_data.clear()

@@ -141,49 +141,69 @@ metrics.render_kpi_cards(truth_df, trend_df)
 with st.container(border=True):
     st.markdown("#### National Price Trend (30D Avg)")
     st.caption(
-        "How to read: The sparkline represents the 30-day aggregate price trajectory across all 17 regions."
+        "Reading Guide: The sparkline represents the 30-day aggregate price trajectory across all 17 regions."
     )
     metrics.render_sparklines(trend_df, selected_commodity, "PHILIPPINES (NATIONAL)")
 
-# Insight derived from unified national data (Trend + Truth)
-metrics.render_price_insight(trend_df, selected_commodity, truth_df=truth_df)
+# Macro Insight: Regional Variance
+metrics.render_national_insight(truth_df, selected_commodity)
 
 # ==========================================
 # ROW 2: COMPARATIVE ANALYSIS
 # ==========================================
-# National Comparative Analysis: Regional Pricing Heatmap
+# National Comparative Analysis: Regional Price Ranking
 with st.container(border=True):
-    st.markdown("#### Regional Pricing Heatmap")
+    st.markdown("### Regional Price Ranking (National View)")
     st.caption(
-        "How to read: 🟥 Darker Red = Higher Avg Price | 🟦 Darker Blue = Lower Avg Price. Visualizes regional variance at a glance."
+        "Reading Guide: Regions ranked from cheapest (top/green) to most expensive (bottom/red)."
     )
     if not truth_df.empty:
+        # Task 1: Enforce Numeric Types & Min-Centric Aggregation
+        # We aggregate by MIN to surface the absolute best deal per region,
+        # ensuring NCR's ₱42.00 is recognized as the national floor.
         reg_stats = (
-            truth_df.groupby("region_name")["Prevailing Price (₱)"].mean().reset_index()
+            truth_df.groupby("region_name")["Prevailing Price (₱)"].min().reset_index()
         )
-        reg_stats = reg_stats.sort_values("Prevailing Price (₱)", ascending=False)
+        reg_stats.columns = ["region", "price"]
+        reg_stats["price"] = reg_stats["price"].astype(float)
 
-        heatmap = (
-            alt.Chart(reg_stats)
-            .mark_rect()
-            .encode(
-                x=alt.X(
-                    "region_name:N",
-                    sort="-y",
-                    title=None,
-                    axis=alt.Axis(labelAngle=-45),
-                ),
-                color=alt.Color(
-                    "Prevailing Price (₱):Q",
-                    scale=alt.Scale(scheme="redblue", reverse=True),
-                    title="Avg Price (₱)",
-                ),
-                tooltip=["region_name", "Prevailing Price (₱)"],
-            )
-            .properties(height=100)
+        # Create display column
+        reg_stats["price_label"] = reg_stats["price"].apply(lambda x: f"₱{x:,.2f}")
+
+        # Task 2: Build the Heat-Mapped Bar Chart (Ranking by Best Price)
+        reg_stats = reg_stats.sort_values("price", ascending=True)
+
+        base = alt.Chart(reg_stats).encode(
+            y=alt.Y("region:N", sort=None, title=None),
+            x=alt.X("price:Q", title="Best Available Price (₱)"),
         )
 
-        st.altair_chart(heatmap, use_container_width=True)
+        bars = base.mark_bar().encode(
+            color=alt.Color(
+                "price:Q",
+                scale=alt.Scale(
+                    domain=[
+                        reg_stats["price"].min(),
+                        reg_stats["price"].median(),
+                        reg_stats["price"].max(),
+                    ],
+                    range=["#0d9488", "#64748b", "#e11d48"],  # Teal, Slate, Coral
+                ),
+                legend=None,
+            ),
+            tooltip=[
+                alt.Tooltip("region:N", title="Region"),
+                alt.Tooltip("price:Q", title="Avg Price", format=",.2f"),
+            ],
+        )
+
+        text = base.mark_text(align="left", dx=5, color="#333333").encode(
+            text=alt.Text("price_label:N")
+        )
+
+        chart = alt.layer(bars, text).properties(height=max(300, len(reg_stats) * 30))
+
+        st.altair_chart(chart, width="stretch")
     else:
         st.info("No regional comparisons available.")
 
@@ -191,10 +211,14 @@ with st.container(border=True):
 # ROW 3: PRICE ANOMALIES (NATIONAL)
 # ==========================================
 with st.container(border=True):
-    st.markdown("#### Dynamic Price Anomalies (National Cluster)")
+    st.markdown("### National Price Disparity Watch")
     st.caption(
-        "How to read: Identifies markets nationwide that significantly deviate from the global commodity median."
+        "Reading Guide: Scatter plot displaying every reporting market nationwide. Points significantly above the national baseline (dashed line) are highlighted for monitoring."
     )
-    metrics.render_gouging_alert(truth_df)
+    metrics.render_national_anomaly_detection(truth_df)
 
-st.caption("© 2026 Agri-Price Intelligence Platform | National Data Feed")
+st.caption(
+    "Data Source: [Department of Agriculture - Bantay Presyo](http://www.bantaypresyo.da.gov.ph/) | © 2026 Agri-Price Intelligence Platform"
+)
+
+ui.render_system_health()

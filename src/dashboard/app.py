@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from src.core import config
 from src.dashboard.utils.data_engine import DataEngine
+from src.dashboard.utils import ui
 
 load_dotenv()
 
@@ -14,7 +15,7 @@ load_dotenv()
 # ==========================================
 st.set_page_config(
     layout="wide",
-    page_title="Market Bulletin | Agri-Price Intelligence",
+    page_title="Agri-Price Intelligence",
     page_icon="🇵🇭",
 )
 
@@ -34,42 +35,46 @@ st.markdown(
 CLEAN_DATA_DIR = os.path.join(config.DATA_DIR, "clean")
 REF_DATA_DIR = os.path.join(config.DATA_DIR, "reference")
 
+
 # ==========================================
 # DATA ENGINE & GLOBAL SIDEBAR
-# Task 1: Dynamically scan Silver directory for latest data (PHT Aware)
-try:
-    pht_tz = ZoneInfo("Asia/Manila")
-    pht_now = datetime.now(pht_tz)
+# Task: Cache the latest date calculation to optimize page navigation
+@st.cache_data(ttl=600)
+def get_latest_data_date():
+    try:
+        pht_tz = ZoneInfo("Asia/Manila")
+        pht_now = datetime.now(pht_tz)
 
-    con = DataEngine._get_connection()
-    bucket = os.getenv("S3_BUCKET_NAME")
-    if bucket:
-        # Use a single resilient wildcard to avoid "No files found" errors on specific month partitions
-        # DuckDB will efficiently prune partitions based on the WHERE clause
-        resilient_path = f"s3://{bucket}/silver/year=*/month=*/day=*/*.parquet"
+        con = DataEngine._get_connection()
+        bucket = os.getenv("S3_BUCKET_NAME")
+        if bucket:
+            resilient_path = f"s3://{bucket}/silver/year=*/month=*/day=*/*.parquet"
+            query = f"""
+                SELECT MAX(extract_dt) as max_date
+                FROM read_parquet('{resilient_path}', union_by_name=true, hive_partitioning=1)
+                WHERE TRY_CAST(extract_dt AS DATE) <= '{pht_now.date()}'
+            """
+            max_date_df = con.sql(query).df()
+        else:
+            max_date_df = pd.DataFrame()
 
-        query = f"""
-            SELECT MAX(extract_dt) as max_date
-            FROM read_parquet('{resilient_path}', union_by_name=true, hive_partitioning=1)
-            WHERE TRY_CAST(extract_dt AS DATE) <= '{pht_now.date()}'
-        """
-        max_date_df = con.sql(query).df()
-    else:
-        max_date_df = pd.DataFrame()
+        latest_date = (
+            pd.to_datetime(max_date_df.iloc[0]["max_date"]).date()
+            if not max_date_df.empty and pd.notnull(max_date_df.iloc[0]["max_date"])
+            else pht_now.date()
+        )
+        con.close()
+        return latest_date.strftime("%Y-%m-%d")
+    except Exception as e:
+        print(f"Max date calculation failed: {e}")
+        return datetime.now(ZoneInfo("Asia/Manila")).strftime("%Y-%m-%d")
 
-    latest_date = (
-        pd.to_datetime(max_date_df.iloc[0]["max_date"]).date()
-        if not max_date_df.empty and pd.notnull(max_date_df.iloc[0]["max_date"])
-        else pht_now.date()
-    )
-    con.close()
-except Exception as e:
-    print(f"Max date calculation failed: {e}")
-    latest_date = datetime.now(ZoneInfo("Asia/Manila")).date()
+
+selected_date_str = get_latest_data_date()
 
 # Initialize global date state
 if "global_date" not in st.session_state:
-    st.session_state["global_date"] = latest_date.strftime("%Y-%m-%d")
+    st.session_state["global_date"] = selected_date_str
 
 # --- Multipage Navigation (st.Page API) ---
 home = st.Page("pages/0_Home.py", title="Home", icon=":material/home:", default=True)

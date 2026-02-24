@@ -165,284 +165,133 @@ avg_price_period = hist_df["Prevailing Price (₱)"].mean()
 min_price_period = hist_df["Prevailing Price (₱)"].min()
 max_price_period = hist_df["Prevailing Price (₱)"].max()
 
-# Fetch the prior equivalent period to compute meaningful deltas.
-prior_df = DataEngine.get_historical_trends(
-    selected_commodity,
-    selected_region,
-    days_back=days_back * 2,
-    end_date_str=selected_date_str,
-)
-# Isolate only the older half (the prior period).
-if not prior_df.empty:
-    cutoff = prior_df["extract_dt"].max() - pd.Timedelta(days=days_back)
-    prior_window = prior_df[prior_df["extract_dt"] <= cutoff]
-    avg_prior = (
-        prior_window["Prevailing Price (₱)"].mean() if not prior_window.empty else None
-    )
-else:
-    avg_prior = None
-
-# Delta for Period Average: % change vs prior period.
-if avg_prior and avg_prior != 0:
-    avg_delta_pct = ((avg_price_period - avg_prior) / avg_prior) * 100
-    avg_delta_str = f"{avg_delta_pct:+.1f}% vs prior {days_back}d"
-else:
-    avg_delta_str = None
-
-# Delta for Period Low: deviation below the period average (always negative or zero).
-low_delta_pct = (
-    ((min_price_period - avg_price_period) / avg_price_period) * 100
-    if avg_price_period
-    else None
-)
-low_delta_str = f"{low_delta_pct:+.1f}% vs avg" if low_delta_pct is not None else None
-
-# Delta for Period High: deviation above the period average (always positive or zero).
-high_delta_pct = (
-    ((max_price_period - avg_price_period) / avg_price_period) * 100
-    if avg_price_period
-    else None
-)
-high_delta_str = (
-    f"{high_delta_pct:+.1f}% vs avg" if high_delta_pct is not None else None
-)
-
 m1, m2, m3 = st.columns(3)
 with m1:
     with st.container(border=True):
-        st.metric(
-            "Period Average",
-            f"₱{avg_price_period:,.2f}",
-            delta=avg_delta_str,
-            delta_color="inverse",  # Red = price up (bad), green = price down (good).
-        )
+        st.metric("Period Average", f"₱{avg_price_period:,.2f}")
 with m2:
     with st.container(border=True):
-        st.metric(
-            "Period Low",
-            f"₱{min_price_period:,.2f}",
-            delta=low_delta_str,
-            delta_color="inverse",
-        )
+        st.metric("Period Low", f"₱{min_price_period:,.2f}")
 with m3:
     with st.container(border=True):
-        st.metric(
-            "Period High",
-            f"₱{max_price_period:,.2f}",
-            delta=high_delta_str,
-            delta_color="inverse",
-        )
+        st.metric("Period High", f"₱{max_price_period:,.2f}")
 
 # Historical insight: price spread over the period + best day of week to buy.
-metrics.render_historical_insight(hist_df, selected_commodity)
+metrics.render_historical_period_insight(hist_df, selected_commodity)
 
 # ==========================================
-# 30-DAY MARKET BRIEFING
+# CHARTS
 # ==========================================
 
-# Identify the dates of the extreme prices for the narrative.
-_max_price_row = hist_df.loc[hist_df["Prevailing Price (₱)"].idxmax()]
-_min_price_row = hist_df.loc[hist_df["Prevailing Price (₱)"].idxmin()]
-_max_price_date = _max_price_row["extract_dt"].strftime("%b %d, %Y")
-_min_price_date = _min_price_row["extract_dt"].strftime("%b %d, %Y")
-_volatility = max_price_period - min_price_period
+# ==========================================
+# CHARTS: TEMPORAL ANALYTICS OVERHAUL
+# ==========================================
 
-with st.expander("30-Day Market Briefing", expanded=True):
-    st.markdown(
-        f"""
-        Over the selected **{days_back}-day** window, **{selected_commodity}** in **{selected_region}** \
-averaged **₱{avg_price_period:,.2f}**. \
-The highest recorded price was **₱{max_price_period:,.2f}** on **{_max_price_date}**, \
-while the lowest was **₱{min_price_period:,.2f}** on **{_min_price_date}**. \
-The overall price spread (volatility) for this period is **₱{_volatility:,.2f}**—\
-{"indicating a stable market with minimal price fluctuation." if _volatility < 20 else "suggesting notable price volatility across the period."}
-        """
-    )
+# Data Prep
+df_plot = hist_df.copy()
+df_plot["price"] = pd.to_numeric(df_plot["Prevailing Price (₱)"], errors="coerce")
+df_plot = df_plot.dropna(subset=["price"])
 
+# Task 1: Aggregation Math (Fixing the Barcode Bug)
+daily_agg = (
+    df_plot.groupby("extract_dt")["price"]
+    .agg(min_price="min", max_price="max", mean_price="mean")
+    .reset_index()
+)
+
+# Task 2: Build the 'Price Volatility Envelope'
 with st.container(border=True):
-    st.markdown(
-        f"#### Price Trend (Last {days_back} Days) - {selected_commodity} ({selected_region})"
-    )
+    st.markdown("### Regional Price Volatility (30-Day Envelope)")
     st.caption(
-        "How to read: The shaded corridor/dashed line represents the 7-day moving average to forecast upcoming price shifts."
+        "Reading Guide: The shaded Slate area represents the spread between the cheapest and most expensive markets. The Teal line represents the regional average."
     )
-    st.caption("Tracking daily price movements across different markets in the region.")
 
-    # Calculate a 7D Moving Average for the whole region as a baseline
-    region_ma = (
-        hist_df.groupby("extract_dt")["Prevailing Price (₱)"]
-        .mean()
-        .rolling(window=7)
-        .mean()
-        .reset_index()
-    )
-    region_ma.rename(columns={"Prevailing Price (₱)": "7D Moving Avg"}, inplace=True)
-
-    # Base Line Chart (Markets)
-    markets_chart = (
-        alt.Chart(hist_df)
-        .mark_line(point=False, strokeWidth=1, opacity=0.4)
+    envelope = (
+        alt.Chart(daily_agg)
+        .mark_area(opacity=0.3, color="#64748b")
         .encode(
-            x=alt.X("extract_dt:T", title="Date", axis=alt.Axis(format="%b %d")),
-            y=alt.Y(
-                "Prevailing Price (₱):Q", title="Price (₱)", scale=alt.Scale(zero=False)
-            ),
-            color=alt.Color(
-                "market_name:N", title="Market", scale=alt.Scale(scheme="tealblues")
-            ),
-            tooltip=[
-                alt.Tooltip("extract_dt", title="Date", format="%b %d, %Y"),
-                alt.Tooltip("market_name", title="Market"),
-                alt.Tooltip("Prevailing Price (₱)", title="Price", format=",.2f"),
-            ],
+            x=alt.X("extract_dt:T", title=None, axis=alt.Axis(format="%b %d")),
+            y=alt.Y("min_price:Q", title="Price (₱)", scale=alt.Scale(zero=False)),
+            y2="max_price:Q",
         )
     )
 
-    # Benchmark 7D MA Line
-    ma_line = (
-        alt.Chart(region_ma)
-        .mark_line(strokeWidth=4, color="#D64045")
+    average = (
+        alt.Chart(daily_agg)
+        .mark_line(color="#0d9488", strokeWidth=3)
         .encode(
             x="extract_dt:T",
-            y="7D Moving Avg:Q",
+            y="mean_price:Q",
             tooltip=[
-                alt.Tooltip("extract_dt", title="Date", format="%b %d, %Y"),
-                alt.Tooltip("7D Moving Avg", title="7D Moving Avg", format=",.2f"),
+                alt.Tooltip("extract_dt:T", title="Date", format="%b %d, %Y"),
+                alt.Tooltip("mean_price:Q", title="Avg Price", format=",.2f"),
+                alt.Tooltip("min_price:Q", title="Min Price", format=",.2f"),
+                alt.Tooltip("max_price:Q", title="Max Price", format=",.2f"),
             ],
         )
     )
 
-    final_trend = (
-        (markets_chart + ma_line)
-        .properties(height=450)
-        .configure_axis(titlePadding=15)
-        .interactive()
-    )
-    st.altair_chart(final_trend, use_container_width=True, theme=None)
+    chart_vol = (envelope + average).properties(height=350)
+    st.altair_chart(chart_vol, width="stretch", theme=None)
 
-# CHART 2: VOLATILITY / SPREAD
+# Task 3: Build the 'Calendar Price Matrix' (Heatmap)
 with st.container(border=True):
-    st.markdown("#### Daily Price Spread (Volatility)")
+    st.markdown("### Day-of-Week Price Intensity Matrix")
     st.caption(
-        "How to read: 🔴 Red = High Price Volatility (Unstable) | ⬤ Blue Area = Price Range (Stability)"
-    )
-    st.caption("The gap between the cheapest and most expensive market each day.")
-
-    # Calculate Daily Min/Max/Avg
-    daily_stats = (
-        hist_df.groupby("extract_dt")["Prevailing Price (₱)"]
-        .agg(["min", "max", "mean"])
-        .reset_index()
-    )
-    daily_stats["spread"] = daily_stats["max"] - daily_stats["min"]
-
-    # Area Chart for Price Range (Min-Max)
-    base = alt.Chart(daily_stats).encode(x=alt.X("extract_dt:T", title="Date"))
-
-    # Render Range Area (Teal)
-    area = base.mark_area(opacity=0.3, color="#1f77b4").encode(
-        y=alt.Y("min:Q", title="Price Range (₱)", scale=alt.Scale(zero=False)),
-        y2="max:Q",
-        tooltip=[
-            alt.Tooltip("extract_dt", title="Date", format="%b %d, %Y"),
-            alt.Tooltip("min", title="Min Price", format=",.2f"),
-            alt.Tooltip("max", title="Max Price", format=",.2f"),
-            alt.Tooltip("mean", title="Avg Price", format=",.2f"),
-        ],
+        "Reading Guide: Visualizes temporal pricing patterns. Darker Coral squares indicate days with historically higher average prices."
     )
 
-    # Render Average Line (Muted Coral, Dashed)
-    line_avg = base.mark_line(color="#D64045", strokeDash=[5, 5]).encode(y="mean:Q")
+    # Day-of-week sorting
+    days_order = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ]
 
-    combined = (
-        (area + line_avg)
-        .properties(height=300)
-        .configure_axis(grid=False)
-        .interactive()
-    )
+    # Calculate day and week for the heatmap
+    daily_agg["day_of_week"] = daily_agg["extract_dt"].dt.day_name()
+    daily_agg["week_of_year"] = daily_agg["extract_dt"].dt.isocalendar().week
 
-    st.altair_chart(combined, width="stretch", theme=None)
-    st.caption(
-        "Blue Area = Price Range (Low to High). Red Dashed Line = Market Average."
-    )
-
-# CHART 3: BEST DAY TO BUY (Day of Week Analysis)
-with st.container(border=True):
-    st.markdown("#### Best Day to Buy Analysis")
-    st.caption(
-        "How to read: 🟢 Green = Statistically Cheapest Day | ⚪ Gray = Standard Pricing. Optimized for consumer planning."
-    )
-
-    # Prepare Data
-    if "extract_dt" in hist_df.columns and not hist_df.empty:
-        dow_df = hist_df.copy()
-        dow_df["day_name"] = dow_df["extract_dt"].dt.day_name()
-
-        # Aggregate
-        dow_stats = (
-            dow_df.groupby("day_name")["Prevailing Price (₱)"].mean().reset_index()
+    heatmap = (
+        alt.Chart(daily_agg)
+        .mark_rect(stroke="#ffffff", strokeWidth=2)
+        .encode(
+            x=alt.X("week_of_year:O", title=None, axis=None),
+            y=alt.Y(
+                "day_of_week:N",
+                sort=days_order,
+                title=None,
+                scale=alt.Scale(domain=days_order),
+            ),
+            color=alt.Color(
+                "mean_price:Q",
+                scale=alt.Scale(range=["#f1f5f9", "#e11d48"]),
+                title="Avg Price (₱)",
+                legend=alt.Legend(orient="bottom", gradientLength=200),
+            ),
+            tooltip=[
+                alt.Tooltip("extract_dt:T", title="Date", format="%b %d, %Y"),
+                alt.Tooltip("mean_price:Q", title="Avg Price", format=",.2f"),
+                alt.Tooltip("day_of_week:N", title="Day"),
+            ],
         )
-        # Sort by Price (Cheapest first) for the chart
-        dow_stats = dow_stats.sort_values("Prevailing Price (₱)")
+        .properties(height=300)
+    )
 
-        # Highlight the BEST day (First row after sort)
-        if not dow_stats.empty:
-            best_day = dow_stats.iloc[0]["day_name"]
-            dow_stats["is_best"] = dow_stats["day_name"] == best_day
+    st.altair_chart(heatmap, width="stretch", theme=None)
 
-            # Bar Chart: X=Price, Y=Day, Color=Best Day Highlight
-            base = alt.Chart(dow_stats).encode(
-                x=alt.X("Prevailing Price (₱):Q", title="Avg Price (₱)"),
-                y=alt.Y(
-                    "day_name:N",
-                    sort=alt.EncodingSortField(
-                        field="Prevailing Price (₱)", order="ascending"
-                    ),
-                    title=None,
-                ),
-                tooltip=[
-                    alt.Tooltip("day_name", title="Day"),
-                    alt.Tooltip(
-                        "Prevailing Price (₱)", title="Avg Price", format=",.2f"
-                    ),
-                ],
-            )
-
-            bars = base.mark_bar().encode(
-                color=alt.condition(
-                    alt.datum.day_name == best_day,
-                    alt.value(
-                        "#2ca02c"
-                    ),  # Best day: green (consistent with regional bar chart)
-                    alt.value("#d3d3d3"),  # All others: muted gray
-                )
-            )
-
-            text = base.mark_text(align="left", dx=3, color="#333333").encode(
-                text=alt.Text("Prevailing Price (₱):Q", format=",.0f")
-            )
-
-            # Sort descending so the cheapest (green) bar is at the bottom —
-            # a natural visual anchor for the 'best deal' reading direction.
-            chart = (
-                (bars + text)
-                .encode(
-                    y=alt.Y(
-                        "day_name:N",
-                        sort=alt.EncodingSortField(
-                            field="Prevailing Price (₱)", order="descending"
-                        ),
-                        title=None,
-                    )
-                )
-                .properties(height=300)
-            )
-            st.altair_chart(chart, width="stretch")
-            st.success(
-                f"**Insight:** Historical data suggests **{best_day}** is generally the best day to buy."
-            )
-
+# Task 4: High-Level Insight (Best Day Comparison)
+best_day = daily_agg.groupby("day_of_week")["mean_price"].mean().idxmin()
+st.info(
+    f"Temporal Analysis: Historical data for this period indicates that **{best_day}** typically offers the most competitive regional pricing."
+)
 
 st.caption(
     "Data Source: [Department of Agriculture - Bantay Presyo](http://www.bantaypresyo.da.gov.ph/) | © 2026 Agri-Price Intelligence Platform"
 )
+
+ui.render_system_health()

@@ -196,7 +196,7 @@ with st.container(border=True):
     metrics.render_sparklines(trend_df, selected_commodity, selected_region)
 
 # Insight derived from unified data (Trend + Truth)
-metrics.render_price_insight(trend_df, selected_commodity, truth_df=truth_df)
+metrics.render_regional_insight(trend_df, selected_commodity, truth_df=truth_df)
 
 # ==========================================
 # EXECUTIVE SUMMARY
@@ -211,37 +211,44 @@ metrics.render_price_insight(trend_df, selected_commodity, truth_df=truth_df)
 # Remove top-level header to put it inside the card for alignment
 # st.subheader(f"Regional Price Comparison: {selected_commodity}")
 
-# Advanced Market Price Spread Chart
+# Advanced Market Leaderboard
 with st.container(border=True):
     st.caption(
-        "How to read: Dots represent individual markets. Wide box spreads indicate severe price inconsistency within the region."
+        "Reading Guide: Markets ranked from cheapest (top) to most expensive (bottom)."
     )
-    metrics.render_market_spread(truth_df, selected_commodity)
+    metrics.render_market_leaderboard(truth_df, selected_commodity)
+
+# LOAD Substitutes for the category analytics
+substitutes_df = DataEngine.get_truth_df(
+    selected_date_str, region=selected_region, category=selected_category
+)
 
 # ==========================================
-# ROW 2: VISUAL INTELLIGENCE
+# ROW 2: VISUAL INTELLIGENCE (Final Production Quadrant)
 # ==========================================
 
-# 50/50 Split per request
-col_map, col_alert = st.columns(2)
-
-with col_map:
+top_l, top_r = st.columns(2)
+with top_l:
     with st.container(border=True):
-        st.markdown("#### Market Locations")
-        st.caption(
-            "How to read: Marker intensity indicates price levels. Pulse markers represent market centers."
-        )
+        st.markdown("### Market Locations")
+        st.caption("Geography: Larger markers indicate price intensity.")
         geo_enriched = DataEngine.enrich_with_geo(truth_df.copy(), geo_df)
         spatial.render_market_map(geo_enriched)
 
-with col_alert:
+with top_r:
     with st.container(border=True):
-        st.markdown("#### Price Watch")
-        st.caption(
-            "How to read: Higher Z-Scores (RED) indicate statistical price anomalies/gouging vs regional median."
-        )
-        metrics.render_gouging_alert(truth_df)
-        metrics.render_zscore_chart(truth_df, height=400)
+        metrics.render_category_substitutes(substitutes_df, selected_commodity)
+
+bot_l, bot_r = st.columns(2)
+with bot_l:
+    with st.container(border=True):
+        metrics.render_historical_baseline_delta(truth_df, trend_df)
+
+with bot_r:
+    with st.container(border=True):
+        st.markdown("### Price Fairness Index")
+        st.caption("Index: Market-level deviation from the regional average.")
+        metrics.render_zscore_chart(truth_df)
 
 
 # ==========================================
@@ -254,6 +261,7 @@ st.subheader("Official Price Bulletin")
 display_df = (
     truth_df[["market_name", "commodity", "Prevailing Price (₱)", "days_ago"]]
     .copy()
+    .sort_values("Prevailing Price (₱)")
     .reset_index(drop=True)
 )
 # Pre-format Price as string to force Left Alignment in st.dataframe
