@@ -49,7 +49,7 @@ def agri_price_resource(limit: Optional[int] = None) -> Iterator[Dict[str, Any]]
     count = 0
     futures = {}
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         for region_id, region_name in REGION_MAP.items():
             if region_name not in REGION_STATS:
                 REGION_STATS[region_name] = {"rows": 0, "status": "OK", "duration": 0.0}
@@ -174,14 +174,10 @@ def fetch_category_data(
 
     time.sleep(random.uniform(0.5, 2.0))
 
-    response = http_client.post(
-        URL_DATE, data=payload_base, headers=headers, timeout=30
-    )
+    response = http_client.post(URL_DATE, data=payload_base, headers=headers)
     date_text = response.text
 
-    response = http_client.post(
-        URL_HEADER, data=payload_base, headers=headers, timeout=30
-    )
+    response = http_client.post(URL_HEADER, data=payload_base, headers=headers)
     headers_html = response.text
 
     soup = BeautifulSoup(headers_html, "html.parser")
@@ -199,9 +195,7 @@ def fetch_category_data(
     payload_price = payload_base.copy()
     payload_price["count"] = str(len(markets))
 
-    response = http_client.post(
-        URL_PRICE, data=payload_price, headers=headers, timeout=30
-    )
+    response = http_client.post(URL_PRICE, data=payload_price, headers=headers)
     prices_html = response.text
 
     return parse_price_rows(prices_html, markets, region_id, category_name, date_text)
