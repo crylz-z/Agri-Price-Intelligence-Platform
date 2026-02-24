@@ -3,16 +3,11 @@ import requests
 import concurrent.futures
 import time
 import random
+import threading
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Iterator, Dict, Any, List, Optional
 from bs4 import BeautifulSoup
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception_type,
-)
 
 from src.core.config import REGION_MAP, CATEGORY_MAP, BASE_URL
 from src.core.http_client import AgriHttpClient
@@ -27,6 +22,8 @@ URL_PRICE = f"{BASE_URL}/tbl_price_get_comm_price.php"
 
 REGION_FAILURES = {}
 REGION_STATS = {}
+GLOBAL_STATE = {"failures": 0, "max_failures": 6}
+STATE_LOCK = threading.Lock()
 
 
 @dlt.source
@@ -80,12 +77,18 @@ def agri_price_resource(limit: Optional[int] = None) -> Iterator[Dict[str, Any]]
                 REGION_STATS[region_name]["duration"] += duration
                 if data:
                     REGION_FAILURES[region_name] = 0
+                    with STATE_LOCK:
+                        GLOBAL_STATE["failures"] = max(
+                            0, GLOBAL_STATE["failures"] - 0.5
+                        )
                     REGION_STATS[region_name]["rows"] += len(data)
                     yield from data
                     count += 1
             except Exception as e:
                 logger.error(f"Task failed for {region_name}: {e}")
                 REGION_FAILURES[region_name] = REGION_FAILURES.get(region_name, 0) + 1
+                with STATE_LOCK:
+                    GLOBAL_STATE["failures"] += 1
                 REGION_STATS[region_name]["status"] = "ERROR"
 
     skipped = [
@@ -136,21 +139,25 @@ def fetch_single_category(
 ) -> tuple[List[Dict[str, Any]], float]:
     """Helper function to execute HTTP fetches with timing metrics."""
     start = time.time()
+
+    with STATE_LOCK:
+        if GLOBAL_STATE["failures"] >= GLOBAL_STATE["max_failures"]:
+            logger.warning(
+                f"Global failure limit reached. Fast-failing {region_name} - {category_name}."
+            )
+            return [], time.time() - start
+
     if REGION_FAILURES.get(region_name, 0) >= 2:
         return [], time.time() - start
 
     logger.info(f"Extracting: {region_name} - {category_name}")
-    data = fetch_category_data(http_client, region_id, category_id, category_name)
+    try:
+        data = fetch_category_data(http_client, region_id, category_id, category_name)
+    except Exception as e:
+        raise e
     return data if data else [], time.time() - start
 
 
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=2, max=10),
-    retry=retry_if_exception_type(
-        (requests.exceptions.RequestException, requests.exceptions.HTTPError)
-    ),
-)
 def fetch_category_data(
     http_client, region_id, category_id, category_name
 ) -> Optional[List[Dict[str, Any]]]:

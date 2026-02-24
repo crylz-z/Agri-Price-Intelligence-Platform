@@ -27,9 +27,9 @@ class AgriHttpClient:
                 "Referer": "http://www.bantaypresyo.da.gov.ph/",
             }
         )
-        # 120s per request. The government server (bantaypresyo.da.gov.ph) is slow;
-        # 30s caused premature ConnectionErrors that triggered retries and compounded total runtime.
-        self.timeout = 120
+        # Bound max timeout. The government server is failing; letting it hang for 120s blocks threads.
+        # Retries are handled cleanly by urllib3's default HTTPAdapter limits.
+        self.timeout = config.TIMEOUT_SECONDS
 
     def get(self, url, params=None, timeout=None, **kwargs):
         try:
