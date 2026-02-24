@@ -6,7 +6,6 @@ from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from src.core import config
 from src.dashboard.utils.data_engine import DataEngine
-from src.dashboard.utils import ui
 
 load_dotenv()
 

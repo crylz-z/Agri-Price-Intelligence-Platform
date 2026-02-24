@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 import streamlit as st
 import sys
 import os
@@ -12,7 +13,6 @@ load_dotenv()
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
 if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
-# noqa: E402
 from src.dashboard.utils.data_engine import DataEngine
 from src.dashboard.utils import ui
 from src.dashboard.components import metrics
