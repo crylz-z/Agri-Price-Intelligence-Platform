@@ -28,6 +28,7 @@ def load():
     # NOTE: Legacy .jsonl files in S3 (from before this fix) must be manually purged
     # to prevent schema conflicts. DLT will now strictly output Parquet.
     load_info = pipeline.run(agri_price_source(), loader_file_format="parquet")
+    load_info.raise_on_failed_jobs()
     print(load_info)
 
 

@@ -1,111 +1,57 @@
 # Agri-Price Intelligence Platform
 
-## System Architecture
+**Executive Summary**
+The Agri-Price Intelligence Platform is an enterprise-grade analytical suite designed to monitor and visualize national agricultural price disparities across the Philippines. By leveraging a high-frequency automated ETL pipeline and a distributed Medallion Data Lake, the platform provides real-time "Visual Intelligence" into regional market dynamics, identifying price gouging via statistical anomaly detection and tracking temporal patterns for strategic procurement.
 
-The platform uses a modern **ELT (Extract, Load, Transform)** architecture orchestrated by GitHub Actions.
+## Architecture
+The platform follows a modern Data Lakehouse pattern with a strictly tiered Medallion Architecture.
 
-### Architecture Overview
-
-1.  **Ingestion:** The **dlt (Data Load Tool)** pipeline scrapes daily price updates from the DA-AMAS website and writes raw data to the **Bronze Layer** (AWS S3) as partitioned Parquet files.
-2.  **Transformation:** **dbt Core** (with DuckDB) reads Bronze data directly from S3, cleans and standardizes it into the **Silver Layer**, and aggregates business metrics into the **Gold Layer**.
-3.  **Consumption:** The **Streamlit Dashboard** queries the Gold Layer Parquet files directly using DuckDB for high-performance OLAP analysis.
-4.  **Orchestration:** A Python script (`run_pipeline.py`) manages the end-to-end flow, enforcing a **WAP (Write-Audit-Publish)** pattern.
-
-## How It Works
-
-### 1. Ingestion (EL)
-*   **Tool:** `dlt`
-*   **Source:** `src/etl/dlt_pipeline/`
-*   **Action:** Scrapes daily price updates.
-*   **Destination:** AWS S3 (Bronze Layer).
-*   **Resilience:** Uses `tenacity` for retries and smart timeouts to handle intermittent server availability.
-
-### 2. Transformation (T)
-*   **Tool:** `dbt` (Data Build Tool) + DuckDB
-*   **Source:** `src/etl/dbt_project/`
-*   **Action:**
-    *   Reads Bronze data from S3.
-    *   Transforms data to Silver and Gold layers.
-*   **Quality Gate:** `dbt test` runs immediately after valid models are built. If any data quality test (e.g., price < 0 or price > 5000) fails, the pipeline stops.
-
-### 3. Orchestration & Alerting
-*   **Script:** `scripts/run_pipeline.py`
-*   **Pattern:** **WAP (Write-Audit-Publish)**.
-    1.  **Preflight:** Verifies S3 connectivity.
-    2.  **Write:** `dlt` runs extraction.
-    3.  **Audit:** `dbt build` runs transformations and tests.
-    4.  **Publish:** Data is ready for consumption.
-*   **Alerting:** Sends real-time success/failure notifications to Discord via Webhook.
-
-## Folder Structure
-
-```
-├── .github/workflows/    # CI/CD: Daily ingestion schedule (daily_run.yml)
-├── script/               # Orchestration & Utility scripts
-│   ├── run_pipeline.py   # Main entry point for ELT
-│   ├── preflight_check.py# Verifies S3 connectivity
-│   └── rebuild_lakehouse.py # Manual backfill tool
-├── src/
-│   ├── core/             # Shared utilities (logging, config)
-│   ├── dashboard/        # Streamlit Application
-│   │   ├── components/   # UI widgets (charts, filters)
-│   │   └── utils/        # Data Engine (DuckDB S3 connector)
-│   ├── etl/
-│   │   ├── dlt_pipeline/ # Extraction logic (scrapers)
-│   │   └── dbt_project/  # Transformation logic (SQL models)
-└── .env                  # Local secrets (Not committed)
+```mermaid
+graph TD
+    A[GitHub Actions Cron] --> B[Python Scraper/dlt]
+    B --> C[AWS S3: Bronze Layer]
+    C --> D[dbt Cloud / Transformations]
+    D --> E[AWS S3: Silver/Gold Layers]
+    E --> F[DuckDB Compute Engine]
+    F --> G[Streamlit Executive Dashboard]
 ```
 
-## Setup & Configuration
+## Key Technical Features
+*   **Medallion Data Lake**: Automated pipeline segregates data into **Bronze** (Raw JSON), **Silver** (Cleaned Parquet), and **Gold** (Analytic Views) to ensure data lineage and integrity.
+*   **Statistical Anomaly Detection**: Utilizes dynamic **Z-Score clustering** instead of static benchmarks to identify price outliers and market-level price gouging in real-time.
+*   **Temporal Analytics Overhaul**: Features a specialized **Price Volatility Envelope** (Min/Max/Mean spread) and a **Calendar Price Intensity Matrix** (Heatmap) for advanced seasonal and day-of-week pattern recognition.
+*   **Enterprise UI/UX**: Radical high-end aesthetics using a strictly enforced **Teal (#0d9488) / Coral (#e11d48) / Slate (#64748b)** palette and a zero-emoji technical communication policy.
+*   **FinOps & Performance**: DuckDB-powered backend enables direct S3 Parquet querying with tiered caching for near-instant UI responsiveness.
 
-### Prerequisites
+## Tech Stack
+*   **Language**: Python 3.12
+*   **Compute**: DuckDB (Vectorized SQL)
+*   **Storage**: AWS S3 (Hive-partitioned Parquet)
+*   **Orchestration**: GitHub Actions (Daily Cron)
+*   **Visualization**: Streamlit, Altair, Folium
+*   **Engineering**: dlt (Extract/Load), dbt (Transform)
+
+## Local Setup
+
+### 1. Prerequisites
 *   Python 3.12+
-*   `uv` package manager
+*   AWS Account with S3 permissions
 
-### Environment Variables (.env)
-Create a `.env` file in the root directory:
-```properties
-# AWS Credentials (for S3 access)
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
+### 2. Configuration
+Create a `.env` file in the root directory with your AWS credentials:
+```env
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
 AWS_DEFAULT_REGION=ap-southeast-2
-S3_BUCKET_NAME=...
-
-# Alerting
-DISCORD_WEBHOOK_URL=...
+S3_BUCKET_NAME=your-data-lake-bucket
 ```
 
-### Running Locally
-1.  **Install dependencies:**
-    ```bash
-    uv sync
-    ```
-2.  **Run full pipeline:**
-    ```bash
-    uv run python scripts/run_pipeline.py
-    ```
-3.  **Launch Dashboard:**
-    ```bash
-    uv run python -m streamlit run src/dashboard/app.py
-    ```
+### 3. Execution
+Install dependencies and launch the dashboard:
+```bash
+uv pip install -e .
+streamlit run src/dashboard/app.py
+```
 
-## Development Workflow
-
-We use **pre-commit hooks** to ensure code quality and security.
-
-1.  **Install hooks:**
-    ```bash
-    uv run pre-commit install
-    ```
-2.  **Commit changes:**
-    When you commit, hooks will run automatically:
-    *   **Ruff**: Lints and formats Python code.
-    *   **Gitleaks**: Scans for secrets.
-    *   **Fixers**: Trims whitespace, fixes EOF.
-
-    If a hook fails (e.g., auto-formatting occurred), simply **stage the changes** (`git add .`) and commit again.
-
-3.  **Run manually:**
-    ```bash
-    uv run pre-commit run --all-files
-    ```
+---
+*Data Source: [DA Bantay Presyo](http://www.bantaypresyo.da.gov.ph/) | Built for Scalable Market Intelligence.*

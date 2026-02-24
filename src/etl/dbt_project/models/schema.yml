@@ -37,11 +37,12 @@ models:
     description: "Daily summary of prices by commodity and market"
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - report_date
-            - region_name
-            - commodity_name
-            - market_name
+          arguments:
+            combination_of_columns:
+              - report_date
+              - region_name
+              - commodity_name
+              - market_name
     columns:
       - name: report_date
         description: "Date of the report (extracted from extract_ts)"

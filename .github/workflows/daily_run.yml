@@ -2,11 +2,11 @@ name: Daily Price Extraction
 
 on:
   schedule:
-    # scout 1: 12:00 PM PHT = 04:00 UTC
+    # Execution Window 1: 12:00 PM PHT (04:00 UTC)
     - cron: '0 4 * * *'
-    # scout 2: 05:00 PM PHT = 09:00 UTC
+    # Execution Window 2: 05:00 PM PHT (09:00 UTC)
     - cron: '0 9 * * *'
-    # harvester 1: 08:30 PM PHT = 12:30 UTC
+    # Execution Window 3: 08:30 PM PHT (12:30 UTC)
     - cron: '30 12 * * *'
 
   workflow_dispatch:
@@ -66,4 +66,25 @@ jobs:
         S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
         AWS_DEFAULT_REGION: ${{ vars.AWS_DEFAULT_REGION }}
         AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
+        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+    - name: Finalize Status Notification
+      if: always()
+      run: |
+        python -c "
+        import os, requests
+        url = os.getenv('DISCORD_WEBHOOK_URL')
+        if not url: exit(0)
+        status = '${{ job.status }}'
+        color = 65280 if status == 'success' else 16711680 if status == 'failure' else 16776960
+        payload = {
+            'embeds': [{
+                'title': f'Agri-Price Pipeline Final Status: {status.upper()}',
+                'description': f'The daily ELT process finished with status: **{status}**.\n[View GitHub Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})',
+                'color': color
+            }]
+        }
+        requests.post(url, json=payload, timeout=10)
+        "
+      env:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}

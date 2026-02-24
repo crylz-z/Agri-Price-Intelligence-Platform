@@ -4,6 +4,7 @@ import concurrent.futures
 import time
 import random
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Iterator, Dict, Any, List, Optional
 from bs4 import BeautifulSoup
 from tenacity import (
@@ -85,22 +86,16 @@ def agri_price_resource(limit: Optional[int] = None) -> Iterator[Dict[str, Any]]
                 logger.error(f"Task failed for {region_name}: {e}")
                 REGION_FAILURES[region_name] = REGION_FAILURES.get(region_name, 0) + 1
 
-    summary_lines = [
-        "=" * 50,
-        "EXTRACTION SUMMARY REPORT",
-        "=" * 50,
-        f"{'REGION':<25} | {'STATUS':<18} | ROWS",
-        "-" * 50,
+    skipped = [
+        reg for reg, stats in REGION_STATS.items() if "SKIPPED" in stats["status"]
     ]
-    for reg, stats in REGION_STATS.items():
-        reg_trunc = reg[:22] + "..." if len(reg) > 25 else reg
-        summary_lines.append(
-            f"{reg_trunc:<25} | {stats['status']:<18} | {stats['rows']}"
-        )
-    summary_lines.append("=" * 50)
-
-    summary_report = "\n" + "\n".join(summary_lines)
-    print(summary_report)
+    logger.info(
+        "Extraction cycle complete.",
+        total_rows=sum(s["rows"] for s in REGION_STATS.values()),
+        regions_processed=len(REGION_STATS),
+        regions_skipped=len(skipped),
+        skipped_details=skipped if skipped else None,
+    )
 
 
 def fetch_single_category(
@@ -143,15 +138,13 @@ def fetch_category_data(
 
     time.sleep(random.uniform(0.5, 2.0))
 
-    # Step 1: Retrieve the publication date for this region/category combination.
     response = http_client.post(
-        URL_DATE, data=payload_base, headers=headers, timeout=15
+        URL_DATE, data=payload_base, headers=headers, timeout=10
     )
     date_text = response.text
 
-    # Step 2: Retrieve market column headers to determine which markets are reporting.
     response = http_client.post(
-        URL_HEADER, data=payload_base, headers=headers, timeout=15
+        URL_HEADER, data=payload_base, headers=headers, timeout=10
     )
     headers_html = response.text
 
@@ -171,7 +164,7 @@ def fetch_category_data(
     payload_price["count"] = str(len(markets))
 
     response = http_client.post(
-        URL_PRICE, data=payload_price, headers=headers, timeout=15
+        URL_PRICE, data=payload_price, headers=headers, timeout=10
     )
     prices_html = response.text
 
@@ -192,7 +185,7 @@ def parse_price_rows(html_rows, market_list, region_id, category_name, payload_d
 
     # Capture extraction timestamp once per batch to ensure consistency across all records
     # in this region/category combination.
-    extract_dt = datetime.now().isoformat()
+    extract_dt = datetime.now(ZoneInfo("Asia/Manila")).isoformat()
 
     for row in rows:
         cells = row.find_all(["td", "th"])

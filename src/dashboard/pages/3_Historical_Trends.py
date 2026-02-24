@@ -8,14 +8,10 @@ from dotenv import load_dotenv
 # Load environment variables for S3 access
 load_dotenv()
 
-# Ensure root is in path
-if (
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
-    not in sys.path
-):
-    sys.path.append(
-        os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
-    )
+# Ensure root is in path for imports
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+if PROJECT_ROOT not in sys.path:
+    sys.path.append(PROJECT_ROOT)
 
 from src.dashboard.utils.data_engine import DataEngine  # noqa: E402
 from src.dashboard.utils import ui  # noqa: E402

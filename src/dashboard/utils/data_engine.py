@@ -17,7 +17,6 @@ SILVER_LAYER_PATH = (
 
 
 # ==========================================
-# ==========================================
 # CONFIGURATION
 # ==========================================
 
@@ -176,8 +175,6 @@ class DataEngine:
 
             # Cache empty dataframes normally; TTL will handle refreshes
             return df
-
-            return df
         except Exception as e:
             print(f"[ERROR] Engine Error: {e}")
             st.cache_data.clear()
@@ -279,53 +276,6 @@ class DataEngine:
             print(f"[ERROR] History Engine Error: {e}")
             st.cache_data.clear()
             return pd.DataFrame()
-
-    @staticmethod
-    @st.cache_data(ttl=600)
-    def load_data_window(target_date_str, window_days=3):
-        """
-        LKGV Strategy: Loads a window of data (Target + Previous Days).
-        Returns a combined raw DataFrame.
-        """
-        # Note: We now dynamically construct the partition path instead of relying on SILVER_LAYER_PATH wildcard
-        try:
-            target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
-
-            # Tasks 1 & 2: Dynamic S3 Path Construction for exact partition
-            year = target_date.strftime("%Y")
-            month = target_date.strftime("%m")
-            day = target_date.strftime("%d")
-
-            bucket = os.getenv("S3_BUCKET_NAME")
-            if not bucket:
-                return None
-
-            silver_path = (
-                f"s3://{bucket}/silver/year={year}/month={month}/day={day}/*.parquet"
-            )
-
-            # Task 3: Enforce Authenticated Connection
-            con = DataEngine._get_connection()
-            # To handle the window logic, we could either query base path WITH filter,
-            # OR just load the target date partition if "window" is effectively just the target date for LKGV.
-            # As requested: Update the DuckDB SQL query to read directly from the specific S3 partition.
-            query = f"""
-            SELECT *
-            FROM read_parquet('{silver_path}', union_by_name=true)
-            """
-            df = con.sql(query).df()
-            con.close()
-
-            if "extract_dt" in df.columns:
-                df["extract_dt"] = pd.to_datetime(
-                    df["extract_dt"], format="mixed", errors="coerce"
-                )
-
-            return None
-        except Exception as e:
-            print(f"[ERROR] load_data_window Error: {e}")
-            st.cache_data.clear()
-            return None
 
     @staticmethod
     @st.cache_data
