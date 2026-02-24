@@ -52,7 +52,7 @@ def agri_price_resource(limit: Optional[int] = None) -> Iterator[Dict[str, Any]]
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         for region_id, region_name in REGION_MAP.items():
             if region_name not in REGION_STATS:
-                REGION_STATS[region_name] = {"rows": 0, "status": "OK"}
+                REGION_STATS[region_name] = {"rows": 0, "status": "OK", "duration": 0.0}
 
             if REGION_FAILURES.get(region_name, 0) >= 2:
                 REGION_STATS[region_name]["status"] = "SKIPPED (DEGRADED)"
@@ -76,7 +76,8 @@ def agri_price_resource(limit: Optional[int] = None) -> Iterator[Dict[str, Any]]
         for future in concurrent.futures.as_completed(futures):
             region_name = futures[future]
             try:
-                data = future.result()
+                data, duration = future.result()
+                REGION_STATS[region_name]["duration"] += duration
                 if data:
                     REGION_FAILURES[region_name] = 0
                     REGION_STATS[region_name]["rows"] += len(data)
@@ -85,6 +86,7 @@ def agri_price_resource(limit: Optional[int] = None) -> Iterator[Dict[str, Any]]
             except Exception as e:
                 logger.error(f"Task failed for {region_name}: {e}")
                 REGION_FAILURES[region_name] = REGION_FAILURES.get(region_name, 0) + 1
+                REGION_STATS[region_name]["status"] = "ERROR"
 
     skipped = [
         reg for reg, stats in REGION_STATS.items() if "SKIPPED" in stats["status"]
@@ -96,16 +98,50 @@ def agri_price_resource(limit: Optional[int] = None) -> Iterator[Dict[str, Any]]
         regions_skipped=len(skipped),
         skipped_details=skipped if skipped else None,
     )
+    summarize_extraction()
+
+
+def summarize_extraction():
+    """
+    Prints a human-readable professional summary table of the extraction cycle.
+    Includes regional breakdown of rows, duration, and final status.
+    """
+    print("\n" + "=" * 95)
+    print(f"{'REGION':<55} | {'ROWS':<8} | {'SEC':<8} | {'STATUS'}")
+    print("-" * 95)
+
+    sorted_stats = sorted(
+        REGION_STATS.items(), key=lambda x: x[1]["rows"], reverse=True
+    )
+    total_rows = 0
+    total_duration = 0
+
+    for region, stats in sorted_stats:
+        status = stats["status"]
+        rows = stats["rows"]
+        duration = stats["duration"]
+        total_rows += rows
+        total_duration += duration
+        print(f"{region:<55} | {rows:<8} | {duration:<8.2f} | {status}")
+
+    print("-" * 95)
+    print(
+        f"{'TOTAL (Parallel Service Time)':<55} | {total_rows:<8} | {total_duration:<8.2f}"
+    )
+    print("=" * 95 + "\n")
 
 
 def fetch_single_category(
     http_client, region_id, region_name, category_id, category_name
-) -> Optional[List[Dict[str, Any]]]:
-    """Helper function to execute HTTP fetches and handle specific combination logging."""
+) -> tuple[List[Dict[str, Any]], float]:
+    """Helper function to execute HTTP fetches with timing metrics."""
+    start = time.time()
     if REGION_FAILURES.get(region_name, 0) >= 2:
-        return []  # Instantly abort queued tasks for degraded regions
+        return [], time.time() - start
+
     logger.info(f"Extracting: {region_name} - {category_name}")
-    return fetch_category_data(http_client, region_id, category_id, category_name)
+    data = fetch_category_data(http_client, region_id, category_id, category_name)
+    return data if data else [], time.time() - start
 
 
 @retry(
@@ -139,12 +175,12 @@ def fetch_category_data(
     time.sleep(random.uniform(0.5, 2.0))
 
     response = http_client.post(
-        URL_DATE, data=payload_base, headers=headers, timeout=10
+        URL_DATE, data=payload_base, headers=headers, timeout=30
     )
     date_text = response.text
 
     response = http_client.post(
-        URL_HEADER, data=payload_base, headers=headers, timeout=10
+        URL_HEADER, data=payload_base, headers=headers, timeout=30
     )
     headers_html = response.text
 
@@ -164,7 +200,7 @@ def fetch_category_data(
     payload_price["count"] = str(len(markets))
 
     response = http_client.post(
-        URL_PRICE, data=payload_price, headers=headers, timeout=10
+        URL_PRICE, data=payload_price, headers=headers, timeout=30
     )
     prices_html = response.text
 

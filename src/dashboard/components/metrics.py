@@ -10,8 +10,8 @@ def render_kpi_cards(commodity_df, trend_df=None):
     2. Best Deal (Cheapest Market for this Commodity)
     3. Markets Reporting (Count)
     """
-    if commodity_df.empty:
-        st.warning("No data available for KPI calculation.")
+    if commodity_df.empty or commodity_df["Prevailing Price (₱)"].isnull().all():
+        st.warning("Insufficient pricing data reported for selected commodity.")
         return
 
     # metrics
@@ -21,7 +21,7 @@ def render_kpi_cards(commodity_df, trend_df=None):
     # Calculate Delta (Day-Over-Day)
     price_delta = None
     if trend_df is not None and not trend_df.empty:
-        # Get yesterday's average price
+        # Retrieve chronological average for previous active period
         # Assumes trend_df is sorted by date ascending
         dates = trend_df["extract_dt"].dt.date.unique()
         if len(dates) >= 2:
@@ -169,7 +169,7 @@ def render_sparklines(trend_df, category_name, region_name):
     daily.columns = ["date", "avg", "low", "high"]
     daily["date"] = pd.to_datetime(daily["date"])
 
-    # 3. ENCODE
+    # Axis encoding and scale definition
     x_enc = alt.X(
         "date:T", title=None, axis=alt.Axis(format="%b %d", labelAngle=-30, tickCount=7)
     )
@@ -476,7 +476,12 @@ def render_market_leaderboard(df, commodity: str):
     Cheapest market ALWAYS at the top.
     """
     if df is None or df.empty:
-        st.info("No market data available for the leaderboard.")
+        st.info("Insufficient market data available for regional ranking.")
+        return
+
+    # Column Guard: Ensure expected columns exist
+    required = {"market_name", "Prevailing Price (₱)"}
+    if not required.issubset(df.columns):
         return
 
     # Data Prep

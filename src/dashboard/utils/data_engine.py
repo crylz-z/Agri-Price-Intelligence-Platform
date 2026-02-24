@@ -101,63 +101,69 @@ class DataEngine:
         silver_path = f"s3://{bucket}/silver/year=*/month=*/day=*/*.parquet"
 
         try:
-            target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
-            start_date = target_date - timedelta(days=window_days)
-            start_date_str = start_date.strftime("%Y-%m-%d")
-
-            # Generate partition pruning filter
-            partition_filter = DataEngine._get_partition_filters(
-                start_date, target_date
-            )
-        except Exception as e:
-            print(f"[PREAMBLE ERROR] {e}")
-            return pd.DataFrame()
-
-        query = f"""
-        WITH windowed_data AS (
-            SELECT
-                region_name,
-                market_name,
-                category,
-                commodity,
-                price,
-                extract_dt
-            FROM read_parquet('{silver_path}', union_by_name=true, hive_partitioning=1)
-            WHERE ({partition_filter})
-              AND CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
-              AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'
-              AND CAST(extract_dt AS DATE) BETWEEN '{start_date_str}' AND '{target_date_str}'
-        ),
-        ranked AS (
-            SELECT
-                *,
-                ROW_NUMBER() OVER (
-                    PARTITION BY region_name, market_name, commodity
-                    ORDER BY extract_dt DESC
-                ) as rn
-            FROM windowed_data
-        )
-        SELECT * EXCLUDE (rn)
-        FROM ranked
-        WHERE rn = 1
-        """
-
-        try:
+            datetime.strptime(target_date_str, "%Y-%m-%d")
+            # 1. Retrieve absolute latest available date in S3 that is <= target_date
+            # This ensures availability is not restricted by a fixed window during data gaps.
             con = DataEngine._get_connection()
+            latest_available_query = f"""
+                SELECT MAX(CAST(extract_dt AS DATE)) as latest_dt
+                FROM read_parquet('{silver_path}', union_by_name=true, hive_partitioning=1)
+                WHERE CAST(extract_dt AS DATE) <= '{target_date_str}'
+                  AND CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
+                  AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'
+            """
+            latest_dt_df = con.sql(latest_available_query).df()
+
+            if latest_dt_df.empty or pd.isnull(latest_dt_df.iloc[0]["latest_dt"]):
+                con.close()
+                return pd.DataFrame()
+
+            lkgv_date = latest_dt_df.iloc[0]["latest_dt"]
+            lkgv_date_str = lkgv_date.strftime("%Y-%m-%d")
+
+            # 2. Load all records for the identified 'Last Known Good Date'
+            query = f"""
+            WITH daily_data AS (
+                SELECT
+                    region_name,
+                    market_name,
+                    category,
+                    commodity,
+                    price,
+                    extract_dt
+                FROM read_parquet('{silver_path}', union_by_name=true, hive_partitioning=1)
+                WHERE CAST(extract_dt AS DATE) = '{lkgv_date_str}'
+                  AND CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
+                  AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'
+            ),
+            ranked AS (
+                SELECT
+                    *,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY region_name, market_name, commodity
+                        ORDER BY extract_dt DESC
+                    ) as rn
+                FROM daily_data
+            )
+            SELECT * EXCLUDE (rn)
+            FROM ranked
+            WHERE rn = 1
+            """
+
             df = con.sql(query).df()
             con.close()
 
             if "price" in df.columns:
                 df.rename(columns={"price": "Prevailing Price (₱)"}, inplace=True)
 
-            # 2. Filter price outliers (> 5x median + Hard Cap)
+            # Filter price outliers (> 5x median + Hard Cap)
             if not df.empty and "Prevailing Price (₱)" in df.columns:
                 # Force numeric
                 df["Prevailing Price (₱)"] = pd.to_numeric(
                     df["Prevailing Price (₱)"], errors="coerce"
                 )
 
-                # Hard Cap 20k
+                # Execute Hard Cap (20k PHP)
                 df = df[df["Prevailing Price (₱)"] <= 20000]
 
                 if not df.empty:
@@ -165,27 +171,25 @@ class DataEngine:
                     if median_price > 0:
                         df = df[df["Prevailing Price (₱)"] <= median_price * 5]
 
-            # Calculate days_ago for freshness tracking (LKGV)
+            # Calculate temporal offset (days_ago) for freshness tracking
             if not df.empty and "extract_dt" in df.columns:
                 df["extract_dt"] = pd.to_datetime(df["extract_dt"], errors="coerce")
                 target_dt = pd.to_datetime(target_date_str).date()
                 df["days_ago"] = df["extract_dt"].apply(
-                    lambda x: (target_dt - x.date()).days if pd.notnull(x) else None
+                    lambda x: (target_dt - x.date()).days if pd.notnull(x) else 0
                 )
 
-            # Cache empty dataframes normally; TTL will handle refreshes
             return df
         except Exception as e:
             print(f"[ERROR] Engine Error: {e}")
-            st.cache_data.clear()
             return pd.DataFrame()
 
     @staticmethod
     @st.cache_data(ttl=3600)
     def get_truth_df(target_date_str, region=None, category=None, commodity=None):
         """
-        Provides a 'Single Source of Truth' DataFrame filtered by date and scope.
-        Essential for mathematical consistency across dashboard components.
+        Retrieves a 'Single Source of Truth' DataFrame filtered by date and scope.
+        Ensures mathematical consistency across all downstream dashboard components.
         """
         df = DataEngine.get_market_snapshot(target_date_str)
         if df.empty:

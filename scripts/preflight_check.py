@@ -48,7 +48,8 @@ def check_source() -> None:
         "Referer": "http://www.bantaypresyo.da.gov.ph/",
     }
     try:
-        response = requests.get(BASE_URL, headers=headers, timeout=10)
+        # Increased timeout to 30s as government servers are frequently high-latency.
+        response = requests.get(BASE_URL, headers=headers, timeout=30)
         if response.status_code == 200:
             logger.info("Data source is reachable.", status_code=response.status_code)
         else:

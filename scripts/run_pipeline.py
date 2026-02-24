@@ -80,7 +80,7 @@ def send_discord_alert(message: str, status: str = "ERROR") -> None:
     }
 
     try:
-        resp = requests.post(webhook_url, json=payload, timeout=10)
+        resp = requests.post(webhook_url, json=payload, timeout=30)
         resp.raise_for_status()
         logger.info("Discord notification sent.", status=status)
     except requests.exceptions.RequestException as exc:
