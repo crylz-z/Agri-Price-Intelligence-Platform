@@ -70,8 +70,8 @@ def send_discord_alert(message: str, status: str = "ERROR") -> None:
 
     color = 65280 if status in ["SUCCESS", "INFO"] else 16711680  # green / red
     if status == "WARNING":
-        color = 16776960 # yellow
-        
+        color = 16776960  # yellow
+
     payload = {
         "embeds": [
             {
@@ -173,7 +173,7 @@ def main() -> None:
     # Check for 0-row extraction via pipeline status file
     import tempfile
     import json
-    
+
     status_file = os.path.join(tempfile.gettempdir(), "agri_pipeline_status.json")
     zero_rows = False
     if os.path.exists(status_file):

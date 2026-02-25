@@ -142,11 +142,17 @@ if selected_date_str not in available_dates:
     if closest_dates:
         actual_date_str = closest_dates[0]
         if is_today:
-             st.warning(f"🕒 **Pending Extraction**: Market data for `{selected_date_str}` is not yet available. Falling back to the latest data from `{actual_date_str}`.")
+            st.warning(
+                f"🕒 **Pending Extraction**: Market data for `{selected_date_str}` is not yet available. Falling back to the latest data from `{actual_date_str}`."
+            )
         else:
-             st.warning(f"⚠️ **Server Outage Detected**: No market data found for `{selected_date_str}`. Falling back to the last known good data from `{actual_date_str}`.")
+            st.warning(
+                f"⚠️ **Server Outage Detected**: No market data found for `{selected_date_str}`. Falling back to the last known good data from `{actual_date_str}`."
+            )
     else:
-        st.error(f"No market data found for {selected_date_str} and no prior history exists.")
+        st.error(
+            f"No market data found for {selected_date_str} and no prior history exists."
+        )
         st.stop()
 
 # DATA INGESTION

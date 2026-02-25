@@ -8,26 +8,38 @@ The platform follows a modern Data Lakehouse pattern with a strictly tiered Meda
 
 ```mermaid
 graph TD
-    subgraph "Orchestration & Alerting"
-        A[GitHub Actions Cron] --> B[Pipeline Orchestrator]
-        B --> H{Alerting Engine}
-        H -->|Fail/Success| I[Discord Webhook]
-    end
+    %% Core Nodes
+    Source[("DA Bantay Presyo (Gov Website)")]
+    Extract["Pipeline & Extractor (GitHub Actions + dlt)"]
+    S3[("Data Lake (Amazon S3)")]
+    Transform["Transforms & Audits (DuckDB + dbt)"]
+    Dashboard["Analytics UI (Streamlit)"]
+    Alerts(("Discord Alerts"))
 
-    subgraph "Data Lake (Medallion Tier)"
-        B --> C[Python Scraper / dlt]
-        C --> D[(S3: Bronze Layer)]
-        D --> E[dbt Build / Audit]
-        E --> F[(S3: Silver & Gold Layers)]
-    end
+    %% Styling
+    classDef source fill:#ff9,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
+    classDef compute fill:#d2e5ff,stroke:#5c8bc0,stroke-width:2px
+    classDef storage fill:#ffecd2,stroke:#d08f4b,stroke-width:2px
+    classDef final fill:#e2f0cb,stroke:#8fb96c,stroke-width:2px
+    classDef ui fill:#e1d5e7,stroke:#9673a6,stroke-width:2px
+    classDef alert fill:#5865F2,stroke:#fff,color:#fff,stroke-width:2px
 
-    subgraph "Consumer Tier"
-        F --> G[DuckDB / Streamlit Dashboard]
-    end
+    %% Apply Styles
+    class Source source
+    class Extract,Transform compute
+    class S3 storage
+    class Dashboard ui
+    class Alerts alert
 
-    style I fill:#5865f2,stroke:#333,stroke-width:2px,color:#fff
-    style D fill:#cd7f32,stroke:#333
-    style F fill:#ffd700,stroke:#333
+    %% Flow
+    Source -->|Scrapes via Python dlt| Extract
+    Extract -->|Loads Raw Parquet| S3
+    S3 -->|Queries directly| Transform
+    Transform -->|Exposes Clean Data| Dashboard
+
+    %% Alerting Flow
+    Extract -.->|Job Status| Alerts
+    Transform -.->|Data Quality Tests| Alerts
 ```
 
 ## Key Technical Features

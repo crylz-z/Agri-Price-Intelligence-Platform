@@ -34,15 +34,15 @@ def load():
 
     # Write metrics for orchestrator to detect 0-row runs
     import tempfile
+
     status_file = os.path.join(tempfile.gettempdir(), "agri_pipeline_status.json")
     try:
         packages = len(load_info.loads)
     except Exception:
         packages = 0
-        
+
     with open(status_file, "w") as f:
         json.dump({"load_packages": packages}, f)
-
 
 
 if __name__ == "__main__":
