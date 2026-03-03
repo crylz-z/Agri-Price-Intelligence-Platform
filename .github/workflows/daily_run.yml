@@ -1,13 +1,13 @@
 name: Daily Price Extraction
 
 on:
-  schedule:
-    # Execution Window 1: 12:00 PM PHT (04:00 UTC)
-    - cron: '0 4 * * *'
-    # Execution Window 2: 05:00 PM PHT (09:00 UTC)
-    - cron: '0 9 * * *'
-    # Execution Window 3: 08:30 PM PHT (12:30 UTC)
-    - cron: '30 12 * * *'
+#   schedule:
+#     # Execution Window 1: 12:00 PM PHT (04:00 UTC)
+#     - cron: '0 4 * * *'
+#     # Execution Window 2: 05:00 PM PHT (09:00 UTC)
+#     - cron: '0 9 * * *'
+#     # Execution Window 3: 08:30 PM PHT (12:30 UTC)
+#     - cron: '30 12 * * *'
 
   workflow_dispatch:
 
