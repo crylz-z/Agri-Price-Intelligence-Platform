@@ -72,8 +72,6 @@ pre_commit_output.txt
 # Agent
 .agent/
 
-# dbt
-dbt_packages/
-target/
-logs/
-src/etl/dbt_project/.user.yml
+# Claude Code: commit the rules, keep local settings and skills private
+.claude/*
+!.claude/rules/

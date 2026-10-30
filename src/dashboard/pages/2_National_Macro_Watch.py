@@ -45,7 +45,7 @@ st.sidebar.markdown("### National Filters")
 
 available_dates = DataEngine.get_available_dates()
 if not available_dates:
-    st.error("No data available in S3 Silver layer.")
+    st.error("No data available in the clean layer.")
     st.stop()
 
 min_data_date = pd.to_datetime(available_dates[-1]).date()

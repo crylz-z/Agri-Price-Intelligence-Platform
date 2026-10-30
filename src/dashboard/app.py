@@ -1,9 +1,7 @@
 import streamlit as st
-import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
-from src.core import config
 
 load_dotenv()
 
@@ -28,9 +26,6 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
-
-CLEAN_DATA_DIR = os.path.join(config.DATA_DIR, "clean")
-REF_DATA_DIR = os.path.join(config.DATA_DIR, "reference")
 
 
 # ==========================================

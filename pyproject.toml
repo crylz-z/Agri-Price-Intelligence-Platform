@@ -1,31 +1,23 @@
 [project]
 name = "agri-price-intelligence-platform"
-version = "0.1.0"
-description = "Agri-Price Intelligence Platform: Real-time monitoring of agricultural commodity prices."
+version = "0.2.0"
+description = "Agri-Price Intelligence Platform: daily Philippine retail food prices, kept forever at $0."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "requests",
     "urllib3",
     "pandas",
-    "fastparquet",
     "streamlit",
     "altair",
     "beautifulsoup4",
-    "plotly",
     "folium",
     "streamlit-folium",
     "pyarrow",
     "structlog",
-    "pandera",
     "duckdb>=1.4.0",
     "python-dotenv",
-    "tenacity",
-    "boto3",
-    "dbt-core>=1.11.0",
-    "dbt-duckdb>=1.9.0",
-    "dlt[s3]>=1.22.0",
-    "geopy>=2.4.1",
+    "s3fs",
 ]
 
 [build-system]
@@ -37,7 +29,25 @@ packages = ["src"]
 
 [dependency-groups]
 dev = [
+  "mypy>=1.13",
   "pre-commit>=4.5.1",
   "pytest",
   "ruff>=0.15.1",
+  "types-requests",
 ]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+# The dashboard is frozen and untyped; strict typing covers the pipeline only.
+files = ["src/core", "src/etl"]
+
+[[tool.mypy.overrides]]
+module = ["pyarrow.*", "s3fs", "fsspec.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

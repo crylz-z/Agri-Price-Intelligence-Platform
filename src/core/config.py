@@ -1,5 +1,3 @@
-import os
-
 # Base Configuration
 BASE_URL = "http://www.bantaypresyo.da.gov.ph"
 TIMEOUT_SECONDS = 30
@@ -39,11 +37,3 @@ CATEGORY_MAP = {
     "9": "Spices",
     "10": "Other Commodities",
 }
-
-# Paths
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DATA_DIR = os.path.join(BASE_DIR, os.getenv("AGRI_DATA_DIR", "data"))
-RAW_DIR = os.path.join(DATA_DIR, "raw")
-CLEAN_DIR = os.path.join(DATA_DIR, "clean")
-METRICS_DIR = os.path.join(DATA_DIR, "metrics")
-LOGS_DIR = os.path.join(BASE_DIR, "logs")

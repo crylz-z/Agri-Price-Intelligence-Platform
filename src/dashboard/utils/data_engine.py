@@ -5,15 +5,23 @@ import streamlit as st
 from datetime import datetime, timedelta
 import random
 from dotenv import load_dotenv
+from src.core import storage
 
 # Load environment variables
 load_dotenv()
 
-# S3 Path Config
 S3_BUCKET = os.getenv("S3_BUCKET_NAME")
-SILVER_LAYER_PATH = (
-    f"s3://{S3_BUCKET}/silver/year=*/month=*/day=*/*.parquet" if S3_BUCKET else None
+CLEAN_PATH = (
+    f"s3://{S3_BUCKET}/clean/posting_date=*/prices.parquet" if S3_BUCKET else None
 )
+# Clean rows in the column shape the pages expect. `extract_dt` carries the DA
+# posting date (the date the price is for); filter on posting_date to prune files.
+PRICES = f"""(
+    SELECT posting_date, region_name, market_name,
+        commodity_group AS category, commodity_name AS commodity, price,
+        CAST(posting_date AS TIMESTAMP) AS extract_dt
+    FROM read_parquet('{CLEAN_PATH}', hive_partitioning=true)
+)"""
 
 
 # ==========================================
@@ -46,7 +54,7 @@ REGION_CENTERS = {
 class DataEngine:
     """
     OLAP Data Engine for Dashboard.
-    Uses DuckDB to query Parquet files directly from S3 Gold Layer.
+    Uses DuckDB to query Parquet files directly from the clean layer on R2.
     """
 
     @staticmethod
@@ -60,45 +68,21 @@ class DataEngine:
             return con
 
         try:
-            con.execute("INSTALL httpfs;")
-            con.execute("LOAD httpfs;")
-            con.execute(
-                "CREATE SECRET IF NOT EXISTS (TYPE s3, PROVIDER credential_chain);"
-            )
+            storage.configure_duckdb(con)
         except Exception as e:
             print(f"[ERROR] Failed to configure DuckDB S3: {e}")
 
         return con
 
     @staticmethod
-    def _get_partition_filters(start_date, end_date):
-        """
-        Generates SQL WHERE clause for partition pruning based on date range.
-        Assumes Hive-style partitioning: year=YYYY/month=MM/day=DD
-        Returns: string like "(year = '2023' AND month = '10' AND day IN ('01', '02')) OR ..."
-        """
-        filters = []
-        current = start_date
-        while current <= end_date:
-            y = str(current.year)
-            m = f"{current.month:02d}"
-            d = f"{current.day:02d}"
-            filters.append(f"(year = '{y}' AND month = '{m}' AND day = '{d}')")
-            current += timedelta(days=1)
-
-        return " OR ".join(filters) if filters else "1=1"
-
-    @staticmethod
     @st.cache_data(ttl=600)
     def get_market_snapshot(target_date_str, window_days=3, _cache_buster=2):
         """
-        Loads the 'Last Known Good Value' (LKGV) snapshot for a specific date from S3 Silver layer.
+        Loads the 'Last Known Good Value' (LKGV) snapshot for a specific date from the clean layer.
         """
         bucket = os.getenv("S3_BUCKET_NAME")
         if not bucket:
             return pd.DataFrame()
-
-        silver_path = f"s3://{bucket}/silver/year=*/month=*/day=*/*.parquet"
 
         try:
             datetime.strptime(target_date_str, "%Y-%m-%d")
@@ -106,11 +90,9 @@ class DataEngine:
             # This ensures availability is not restricted by a fixed window during data gaps.
             con = DataEngine._get_connection()
             latest_available_query = f"""
-                SELECT MAX(CAST(extract_dt AS DATE)) as latest_dt
-                FROM read_parquet('{silver_path}', union_by_name=true, hive_partitioning=1)
-                WHERE CAST(extract_dt AS DATE) <= '{target_date_str}'
-                  AND CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
-                  AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'
+                SELECT MAX(posting_date) as latest_dt
+                FROM {PRICES}
+                WHERE posting_date <= DATE '{target_date_str}'
             """
             latest_dt_df = con.sql(latest_available_query).df()
 
@@ -122,32 +104,11 @@ class DataEngine:
             lkgv_date_str = lkgv_date.strftime("%Y-%m-%d")
 
             # 2. Load all records for the identified 'Last Known Good Date'
+            # (clean already holds one row per market and commodity per date).
             query = f"""
-            WITH daily_data AS (
-                SELECT
-                    region_name,
-                    market_name,
-                    category,
-                    commodity,
-                    price,
-                    extract_dt
-                FROM read_parquet('{silver_path}', union_by_name=true, hive_partitioning=1)
-                WHERE CAST(extract_dt AS DATE) = '{lkgv_date_str}'
-                  AND CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
-                  AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'
-            ),
-            ranked AS (
-                SELECT
-                    *,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY region_name, market_name, commodity
-                        ORDER BY extract_dt DESC
-                    ) as rn
-                FROM daily_data
-            )
-            SELECT * EXCLUDE (rn)
-            FROM ranked
-            WHERE rn = 1
+            SELECT * EXCLUDE (posting_date)
+            FROM {PRICES}
+            WHERE posting_date = DATE '{lkgv_date_str}'
             """
 
             df = con.sql(query).df()
@@ -210,13 +171,11 @@ class DataEngine:
         commodity, region, days_back=30, end_date_str=None, _cache_buster=1
     ):
         """
-        Fetches time-series data for a commodity/region pair from S3 Silver layer.
+        Fetches time-series data for a commodity/region pair from the clean layer.
         """
         bucket = os.getenv("S3_BUCKET_NAME")
         if not bucket:
             return pd.DataFrame()
-
-        silver_path = f"s3://{bucket}/silver/year=*/month=*/day=*/*.parquet"
 
         if end_date_str:
             try:
@@ -230,9 +189,6 @@ class DataEngine:
         start_date_str = start_date.strftime("%Y-%m-%d")
         end_date_formatted = end_date.strftime("%Y-%m-%d")
 
-        # Generator partition pruning filter
-        partition_filter = DataEngine._get_partition_filters(start_date, end_date)
-
         region_clause = f"AND region_name = '{region}'" if region else ""
 
         query = f"""
@@ -242,13 +198,9 @@ class DataEngine:
             region_name,
             market_name,
             commodity
-        FROM read_parquet('{silver_path}', union_by_name=true, hive_partitioning=1)
+        FROM {PRICES}
         WHERE
-            ({partition_filter})
-            AND CAST(extract_dt AS VARCHAR) NOT LIKE '%<%'
-            AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'
-            AND TRY_CAST(extract_dt AS DATE) >= '{start_date_str}'
-            AND TRY_CAST(extract_dt AS DATE) <= '{end_date_formatted}'
+            posting_date BETWEEN DATE '{start_date_str}' AND DATE '{end_date_formatted}'
             AND commodity = '{commodity}'
             {region_clause}
         ORDER BY extract_dt ASC
@@ -285,10 +237,8 @@ class DataEngine:
     @st.cache_data
     def load_reference_data():
         """Loads geospatial market coordinates safely."""
-        from src.core import config
-
         REF_DATA_DIR = os.path.join(
-            config.BASE_DIR, "src", "dashboard", "assets", "reference"
+            os.path.dirname(os.path.dirname(__file__)), "assets", "reference"
         )
 
         # 1. GEO DATA
@@ -303,16 +253,14 @@ class DataEngine:
     @staticmethod
     def get_date_range():
         """
-        Efficiently polls the S3 Silver Parquet dataset to find the absolute MIN and MAX dates.
+        Efficiently polls the clean layer to find the absolute MIN and MAX dates.
         """
-        if not SILVER_LAYER_PATH:
+        if not CLEAN_PATH:
             return None, None
 
         query = (
-            "SELECT MIN(extract_dt) as min_dt, MAX(extract_dt) as max_dt "
-            f"FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true) "
-            "WHERE CAST(extract_dt AS VARCHAR) NOT LIKE '%<%' "
-            "AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'"
+            "SELECT MIN(posting_date) as min_dt, MAX(posting_date) as max_dt "
+            f"FROM {PRICES}"
         )
 
         try:
@@ -334,18 +282,15 @@ class DataEngine:
     @st.cache_data(ttl=600)
     def get_available_dates():
         """
-        Scans S3 Silver layer partitions for available dates.
+        Scans the clean layer partitions for available dates.
         Strictly ordered by date descending for UI selection.
         """
-        if not SILVER_LAYER_PATH:
+        if not CLEAN_PATH:
             return []
 
         query = (
-            f"SELECT DISTINCT CAST(extract_dt AS DATE) as available_date "
-            f"FROM read_parquet('{SILVER_LAYER_PATH}', union_by_name=true) "
-            "WHERE CAST(extract_dt AS VARCHAR) NOT LIKE '%<%' "
-            "AND CAST(extract_dt AS VARCHAR) NOT LIKE '%>%'"
-            "ORDER BY 1 DESC"
+            "SELECT DISTINCT posting_date as available_date "
+            f"FROM {PRICES} ORDER BY 1 DESC"
         )
 
         try:
