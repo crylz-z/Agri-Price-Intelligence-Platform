@@ -39,6 +39,15 @@ dev = [
 [tool.ruff]
 target-version = "py312"
 
+[tool.ruff.lint]
+# DTZ: every "now" and "today" must carry a timezone (Asia/Manila).
+extend-select = ["DTZ"]
+
+[tool.ruff.lint.per-file-ignores]
+# The dashboard pages are frozen; only DataEngine is edited.
+"src/dashboard/app.py" = ["DTZ"]
+"src/dashboard/pages/*" = ["DTZ"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true

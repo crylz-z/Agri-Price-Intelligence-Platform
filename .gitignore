@@ -1,77 +1,34 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
+.venv/
 *.egg-info/
-.installed.cfg
-*.egg
+build/
+dist/
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
+# Tool caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
 .coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
+htmlcov/
 
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Environments
+# Secrets (copy .env.example)
 .env
-.venv
-env/
-venv/
-ENV/
 
-# IDEs
+# Editors and OS
 .vscode/
 .idea/
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Project Specific
-logs/
-data/*.tmp
+# Logs and scratch
 *.log
-logs/*.txt
-reports/*.txt
-data/clean/
-
-# Sandbox / Validation
-sandbox/
 tmp/
-*.tmp
-audit_log.txt
-pre_commit_output.txt
 
-# Agent
-.agent/
-
-# Claude Code: commit the rules, keep local settings and skills private
-.claude/*
-!.claude/rules/
+# Claude Code: CLAUDE.md and .claude/rules/ are shared with the repo.
+# Personal settings, skills and session notes stay local.
+.claude/settings.local.json
+.claude/skills/
+.plans/
+handoff.md

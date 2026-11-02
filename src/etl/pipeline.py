@@ -55,11 +55,10 @@ def _scrape_date(path: str) -> date:
     return date.fromisoformat(path.split("scrape_date=")[1][:10])
 
 
-def _raw_paths(fs: AbstractFileSystem, root: str, today: date) -> list[str]:
+def _raw_paths(fs: AbstractFileSystem, root: str, oldest: date) -> list[str]:
     # One flat, paginated ListObjectsV2 (1 Class A op per 1000 objects). glob() would
     # list each scrape_date= prefix separately. shortcut: lists all of raw/, switch to
     # per-day keys if raw/ passes ~5000 objects.
-    oldest = today - timedelta(days=WINDOW_DAYS)
     paths = fs.find(f"{root}/raw")
     return sorted(
         p for p in paths if p.endswith(".parquet") and _scrape_date(p) >= oldest
@@ -92,8 +91,13 @@ def run(
         raise ChecksFailed("0 rows scraped")
     today = now.astimezone(PHT).date()
 
-    prior_paths = _raw_paths(fs, root, today)
     run_table = to_table(records)
+    # A stale region rebuilds an old posting date, so read back to that date: rows for
+    # posting date D can only sit in scrape dates >= D. Otherwise the rebuild would
+    # drop other regions' rows for D.
+    oldest_posted: date = pc.min(run_table["posting_date"]).as_py()
+    oldest = min(today - timedelta(days=WINDOW_DAYS), oldest_posted)
+    prior_paths = _raw_paths(fs, root, oldest)
     _write(fs, f"{root}/raw/scrape_date={today}/run={now:%H%M%S}.parquet", run_table)
 
     prior = [_read(fs, p) for p in prior_paths]

@@ -2,7 +2,8 @@ import pandas as pd
 import os
 import duckdb
 import streamlit as st
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 import random
 from dotenv import load_dotenv
 from src.core import storage
@@ -85,7 +86,7 @@ class DataEngine:
             return pd.DataFrame()
 
         try:
-            datetime.strptime(target_date_str, "%Y-%m-%d")
+            date.fromisoformat(target_date_str)
             # 1. Retrieve absolute latest available date in S3 that is <= target_date
             # This ensures availability is not restricted by a fixed window during data gaps.
             con = DataEngine._get_connection()
@@ -177,13 +178,14 @@ class DataEngine:
         if not bucket:
             return pd.DataFrame()
 
+        today = datetime.now(ZoneInfo("Asia/Manila")).date()
         if end_date_str:
             try:
-                end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+                end_date = date.fromisoformat(end_date_str)
             except Exception:
-                end_date = datetime.now()
+                end_date = today
         else:
-            end_date = datetime.now()
+            end_date = today
 
         start_date = end_date - timedelta(days=days_back)
         start_date_str = start_date.strftime("%Y-%m-%d")

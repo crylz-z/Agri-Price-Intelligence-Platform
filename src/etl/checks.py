@@ -39,18 +39,25 @@ def check(
 
     if n := count(f"SELECT count(*) - count(DISTINCT ({KEY})) FROM clean"):
         errors.append(f"{n} duplicate keys in clean")
+    # The source repeating a key (e.g. a market listed twice) is collapsed by clean.
+    if n := count(f"SELECT count(*) - count(DISTINCT ({KEY})) FROM run"):
+        warnings.append(f"{n} duplicate keys within this run")
     nulls = " OR ".join(f"{c.strip()} IS NULL" for c in KEY.split(","))
     if n := count(f"SELECT count(*) FROM clean WHERE {nulls}"):
         errors.append(f"{n} clean rows with a null key column")
     if n := count("SELECT count(*) FROM clean WHERE price IS NULL OR price <= 0"):
         errors.append(f"{n} clean rows with price <= 0")
 
+    if n := count(f"SELECT count(*) FROM run WHERE posting_date > DATE '{today}'"):
+        errors.append(f"{n} rows with posting_date after {today}")
+
+    # DA leaves some regions unposted for weeks; that is the source, not our bug.
     oldest = today - timedelta(days=MAX_POSTING_AGE_DAYS)
-    if n := count(
-        "SELECT count(*) FROM run "
-        f"WHERE posting_date > DATE '{today}' OR posting_date < DATE '{oldest}'"
-    ):
-        errors.append(f"{n} rows with posting_date outside {oldest}..{today}")
+    for region, age in con.sql(
+        f"SELECT region_name, DATE '{today}' - max(posting_date) FROM run "
+        f"GROUP BY 1 HAVING max(posting_date) < DATE '{oldest}' ORDER BY 2 DESC"
+    ).fetchall():
+        warnings.append(f"{region} last posted {age} days ago")
 
     regions = count("SELECT count(DISTINCT region_id) FROM run")
     if regions < MIN_REGIONS:

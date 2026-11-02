@@ -66,17 +66,28 @@ def make_session() -> requests.Session:
 
 def parse_posting_date(text: str) -> date:
     """'\\r\\nOctober 28, 2026' -> date(2026, 10, 28); raises ValueError otherwise."""
-    return datetime.strptime(text.strip(), "%B %d, %Y").date()
+    return datetime.strptime(text.strip(), "%B %d, %Y").date()  # noqa: DTZ007 date only
 
 
 def parse_markets(html: str) -> list[str]:
-    """Market names are the <th class="text-wrap"> cells of the header row."""
+    """Market names are the <th class="text-wrap"> cells of the header row.
+
+    DA lists some markets twice (Region III: Baler, Tarlac City, San Jose City), each
+    column with its own prices and no id to tell them apart, so the nth repeat of a
+    name becomes "<name> #n" in column order.
+    """
     soup = BeautifulSoup(html, "html.parser")
-    return [
+    names = [
         name
         for cell in soup.find_all(["td", "th"], class_="text-wrap")
         if (name := cell.get_text(strip=True))
     ]
+    seen: dict[str, int] = {}
+    markets = []
+    for name in names:
+        seen[name] = seen.get(name, 0) + 1
+        markets.append(name if seen[name] == 1 else f"{name} #{seen[name]}")
+    return markets
 
 
 def parse_price_rows(

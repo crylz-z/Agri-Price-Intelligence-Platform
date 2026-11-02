@@ -30,6 +30,14 @@ def test_parse_markets_skips_label_columns():
     assert not any("SPECIFICATIONS" in m or "COMMODITY" in m for m in markets)
 
 
+def test_parse_markets_labels_repeated_names():
+    # Region III lists some markets twice, each column with its own prices.
+    html = "".join(
+        f'<th class="text-wrap">{m}</th>' for m in ["BALER", "TARLAC", "BALER"]
+    )
+    assert scraper.parse_markets(html) == ["BALER", "TARLAC", "BALER #2"]
+
+
 def test_parse_price_rows_skips_na_cells():
     rows = scraper.parse_price_rows(PRICE_HTML, scraper.parse_markets(HEADER_HTML))
     # 17 commodities x 38 markets, minus 319 "N/A" cells

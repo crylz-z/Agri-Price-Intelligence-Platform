@@ -108,12 +108,39 @@ def test_missing_regions_fail(lake):
         pipeline.run(fs, root, make_records(regions=few), NOW)
 
 
-@pytest.mark.parametrize("days", [1, -15])
-def test_posting_date_out_of_range_fails(lake, days):
+def test_future_posting_date_fails(lake):
     fs, root = lake
-    posted = POSTED + timedelta(days=days)
+    posted = POSTED + timedelta(days=1)
     with pytest.raises(pipeline.ChecksFailed, match="posting_date"):
         pipeline.run(fs, root, make_records(posted=posted), NOW)
+
+
+def test_stale_region_warns_and_publishes(lake):
+    fs, root = lake
+    stale_id = next(iter(REGION_MAP))
+    records = make_records()
+    for r in records:
+        if r["region_id"] == stale_id:
+            r["posting_date"] = POSTED - timedelta(days=51)
+    warnings = pipeline.run(fs, root, records, NOW)
+    assert any(REGION_MAP[stale_id] in w and "51 days" in w for w in warnings)
+    assert read_clean(fs, root).num_rows == (len(REGION_MAP) - 1) * 3
+
+
+def test_stale_partition_keeps_other_regions_rows(lake):
+    fs, root = lake
+    old = POSTED - timedelta(days=20)
+    then = NOW - timedelta(days=20)
+    pipeline.run(fs, root, make_records(now=then, posted=old), then)
+
+    stale_id = next(iter(REGION_MAP))
+    records = make_records()
+    for r in records:
+        if r["region_id"] == stale_id:
+            r["posting_date"] = old
+    pipeline.run(fs, root, records, NOW)
+
+    assert read_clean(fs, root, old).num_rows == len(REGION_MAP) * 3
 
 
 def test_row_drop_warns_until_window_is_full_then_fails(lake):
@@ -140,6 +167,14 @@ def test_price_outlier_only_warns(lake):
     records[0]["price"] = 100_000.0
     warnings = pipeline.run(fs, root, records, NOW)
     assert any("outlier" in w for w in warnings)
+
+
+def test_duplicate_keys_within_run_only_warn(lake):
+    fs, root = lake
+    records = make_records()
+    records.append({**records[0], "price": 999.0})
+    warnings = pipeline.run(fs, root, records, NOW)
+    assert any("1 duplicate keys within this run" in w for w in warnings)
 
 
 def test_checks_catch_duplicate_and_null_keys():
