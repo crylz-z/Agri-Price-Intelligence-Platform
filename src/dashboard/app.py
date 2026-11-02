@@ -7,7 +7,9 @@ import streamlit as st
 
 from src.dashboard.views import compare_page, trend_page
 
-st.set_page_config(page_title="APIP: PH retail food prices", layout="wide")
+st.set_page_config(
+    page_title="APIP: PH retail food prices", page_icon="🌾", layout="wide"
+)
 st.navigation(
     [
         st.Page(trend_page, title="Price trend", url_path="trend", default=True),

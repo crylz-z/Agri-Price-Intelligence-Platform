@@ -4,7 +4,7 @@
 Python pipeline + dashboard for Philippine monthly retail food prices from PSA OpenSTAT (`https://openstat.psa.gov.ph/PXWeb/api/v1/en/DB/2M/2018NEW/`). `src/etl/pipeline.py` runs `src/etl/ingest.py`, which stores each new PSA release as an immutable CSV snapshot on Cloudflare R2, then runs `dbt build` (`dbt/`, dbt Core + dbt-duckdb) only if ingest wrote something. dbt tests gate the mart `mart/retail_prices_monthly.parquet`. A 2-page Streamlit dashboard (`src/dashboard/`) reads the mart. GitHub Actions (`.github/workflows/daily_run.yml`) runs the gate (ruff, mypy, pytest, dbt parse) on pushes and PRs, and the pipeline daily at 10:00 PHT and on manual dispatch. Terms: `GLOSSARY.md`; tool choices: `docs/adr.md`.
 
 ## Quick Start
-`make` is not installed. Run every tool as `uv run python -m <tool>`: it matches CI and the docs (Smart App Control, which blocked venv `.exe` shims, has been off since 2026-11-02).
+`make` is not installed. Run every tool as `uv run python -m <tool>`: it matches CI, the docs and the pre-commit hooks.
 - Test: `uv run python -m pytest` · Single: `uv run python -m pytest tests/test_ingest.py::<name>`
 - Lint + types: before reporting done, run `uv run python -m pre_commit run --all-files` (ruff, mypy; the same hooks run on `git commit` and in CI).
 - dbt: `uv run python -m dbt.cli.main build --project-dir dbt --profiles-dir dbt` (reads and writes R2).

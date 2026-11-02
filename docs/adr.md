@@ -1,6 +1,6 @@
 # Architecture decisions
 
-The constraint behind every entry: a reliable, tested pipeline that costs $0 a month and that one person can run. Format and gate: `.claude/skills/domain-modeling/ADR-FORMAT.md`.
+The constraint behind every entry: a reliable, tested pipeline that costs $0 a month and that one person can run.
 
 ## 1. PSA OpenSTAT monthly prices, not DA Bantay Presyo daily
 In November 2026 DA's site went unreachable from about 40 test locations worldwide, and it keeps no history, so every outage is a permanent gap. PSA is an official API with region and province data from 2018 that can be downloaded again at any time. The cost is monthly data that arrives about a month late.
@@ -23,7 +23,7 @@ PSA revises past months. Keeping `raw/table=<id>/updated=<ts>.csv` exactly as re
 ## 5. DuckDB through `s3fs`
 An embedded SQL engine over files on R2 serves dbt, the tests and ad-hoc queries, with no server. The dashboard fetches the 3 MB mart in one GET instead: DuckDB over s3fs took 57 range reads for it.
 - **Not Spark:** it's built for data spread across many machines; this is a few MB.
-- **Not DuckDB's `httpfs`:** Windows Smart App Control blocked the extension during development, and `s3fs` was proven against R2.
+- **Not DuckDB's `httpfs`:** `s3fs` is proven against R2 and shares one config (`src/core/storage.py`) with ingest and the dashboard. It was first chosen when Windows Smart App Control blocked the extension.
 
 ## 6. dbt Core 1.x with dbt-duckdb models and tests the data
 A staging model and one mart, with dbt tests that fail the run before bad data is published. The mart is written to R2 as Parquet. pytest covers the ingest code.
@@ -34,3 +34,8 @@ A staging model and one mart, with dbt tests that fail the run before bad data i
 ## 7. GitHub Actions daily cron, no orchestrator
 One job a day (ingest, then dbt only if something changed) is free on a public repo and emails on failure. A run with no changes costs 1 API call and 11 R2 HEADs. GitHub pauses schedules after 60 days without commits; that loses no data, because PSA keeps history.
 - **Not Airflow, Dagster or Prefect:** a scheduler server to host and monitor, for a single two-step job.
+
+## 8. Streamlit on Streamlit Community Cloud for the dashboard
+The dashboard is 2 Python pages over one 3 MB mart, hosted free from the GitHub repo with a read-only R2 token in Streamlit's secrets. The cost is a wake-up page after 12 hours without visitors.
+- **Not Vercel:** it can't run Streamlit's long-running server, so it would mean rewriting the dashboard as a static JavaScript site.
+- **Not Evidence or another static DuckDB-WASM site:** no sleep and no keys online, but it replaces tested Python code with a Node build for the same 2 charts.

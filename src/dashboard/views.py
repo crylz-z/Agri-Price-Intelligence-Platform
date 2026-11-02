@@ -23,7 +23,9 @@ def footer(df: pd.DataFrame) -> None:
     st.caption(
         "Source: Philippine Statistics Authority, OpenSTAT retail prices of "
         f"agricultural commodities. Latest release {released:%Y-%m-%d}. "
-        "Prices in pesos per the unit in the commodity name."
+        "Prices in pesos per the unit in the commodity name. "
+        "Negros Island Region and Sulu values before 2024 are PSA back-casts to "
+        "the 2024 boundaries. Many region and province months have no price."
     )
 
 

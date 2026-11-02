@@ -1,7 +1,7 @@
 # Fast checks at commit time (< 3 s). pytest runs in CI before merge.
 repos:
-  # Every hook runs through `python -m`: Smart App Control blocks the unsigned
-  # .exe shims in .venv. Ruff and mypy use the uv.lock versions.
+  # Local hooks run as `uv run python -m`, like the docs and CI, so ruff and
+  # mypy use the uv.lock versions.
   - repo: local
     hooks:
       - id: trailing-whitespace
