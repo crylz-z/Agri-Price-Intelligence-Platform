@@ -2,25 +2,30 @@
 paths:
   - "src/etl/**"
   - "src/core/**"
-  - "sql/**"
+  - "dbt/**"
   - ".github/workflows/**"
 ---
 
 # Pipeline rules
 
 ## Layer contract
-- Raw: `s3://$S3_BUCKET_NAME/raw/scrape_date=YYYY-MM-DD/run=HHMMSS.parquet`, one object per run, never rewritten. Schema is `pipeline.RAW_SCHEMA`.
-- Clean: `clean/posting_date=YYYY-MM-DD/prices.parquet`. Key `(posting_date, region_id, market_name, commodity_name)`, latest `extract_dt` wins. Built by `sql/clean.sql` from raw scrape dates back to `min(today - 14 days, oldest posting_date in the run)`; only posting dates in this run are rewritten. The wider window matters: a stale region rebuilds an old posting date, and a 14-day window would drop other regions' rows for it.
-- Checks: a future posting date is an error; a region whose latest posting is over 14 days old is a warning (DA leaves some regions unposted for weeks, e.g. BARMM 51 days on 2026-10-30). Posting date is per region, identical across all 10 categories (checked live 2026-10-30).
-- Order in `pipeline.run`: 0 rows → fail; write raw; build clean in memory; `checks.check`; write clean only if there are no errors.
+- Raw: `s3://$S3_BUCKET_NAME/raw/table=<id>/updated=<YYYYMMDDTHHMMSS>.csv`, one per PSA release, stored as returned (Windows-1252, CRLF, missing values `.` or `..`), never rewritten. `<id>` drops PSA's `.px`; `updated` is PSA's timestamp without separators.
+- Mart: `mart/retail_prices_monthly.parquet`, key `(month, geo_code, commodity)`, rebuilt whole by dbt from the latest snapshot per table.
+- Order in `pipeline.main`: ingest; if it wrote anything (or `--build`), `dbt build`; a failed build exits 1.
 
-## Scraper
-- `commodity_name` is `"<name> - <specifications>"`; `commodity_group` is the `CATEGORY_MAP` name.
-- `posting_date` is parsed from the date endpoint (`"October 28, 2026"`); an unparsable date fails that region.
-- Every `tbl_price_get_comm_*_rice.php` endpoint serves any category id 1–10; an empty id returns nothing. Market names are `<th class="text-wrap">` cells; `N/A` cells are skipped. A repeated market name (Region III lists Baler, Tarlac City and San Jose City twice, each column with its own prices) becomes `"<name> #2"` in column order; raw before 2026-10-31 has the unlabelled duplicates.
-- Honest bot: fixed `apip/<version>` User-Agent, sequential, fixed delay. Don't add UA rotation, spoofed headers or jitter. robots.txt was 404 on 2026-10-30.
+## Ingest (`src/etl/ingest.py`)
+- Change detection is `storage.exists`: one HEAD. Never use s3fs `exists()`/`info()` on R2: a miss adds a ListObjects (Class A). Never list R2 in ingest.
+- `download` refuses any body that doesn't start with `"Geolocation","Commodity",`, so an error page can't become an immutable snapshot.
+- Honest bot: fixed `apip/<version>` User-Agent, sequential, 1 s delay. Cloudflare 403s bare `urllib` but serves `requests` with this UA. Don't add UA rotation, spoofed headers or jitter.
+
+## dbt (`dbt/`)
+- Run as `uv run python -m dbt.cli.main <cmd> --project-dir dbt --profiles-dir dbt`; bare `python -m dbt` has no `__main__`.
+- R2 access goes through the plugin `src/etl/dbt_storage.py` → `storage.configure_duckdb`; don't put S3 settings in `profiles.yml`.
+- `external` models are written **before** their own tests run. Put every blocking test on `stg_`/`int_` (table) models, so a failure skips the mart and R2 keeps the last good one.
+- `psa_snapshot_files()` picks the newest 2 snapshots per table with one `glob()` (1 list); staging reads only those files.
+- Geo codes come from `seeds/geolocations.csv` (PSGC, from table metadata on 2026-11-02, identical in all 11 tables). PSA's label case differs across tables (`Philippines` vs `PHILIPPINES`): join on `lower()`.
+- `lake_root` var overrides `s3://$S3_BUCKET_NAME` for a local build; DuckDB won't create the local `mart/` folder.
 
 ## Known limits
-- `_raw_paths` lists all of `raw/` in one paginated call; revisit past ~5000 objects.
-- The price outlier warning uses 10× the commodity median; replace with per-commodity ceilings once 2 weeks of data exist.
-- Cadence review due ~2026-11-13: measure `extract_dt - posting_date` per region in raw and pick the run frequency.
+- Staging reads 2 snapshots × 11 tables (~25 MB) from R2 on each build, about 20 s.
+- DuckDB over s3fs reads Parquet in many small range requests (57 for the 3 MB mart). Code that reads the whole mart should `cat_file` it once, as `src/dashboard/data.py` does.

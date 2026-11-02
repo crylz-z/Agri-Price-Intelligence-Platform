@@ -1,17 +1,21 @@
-name: Daily Price Extraction
+name: Daily PSA Prices
 
 on:
   schedule:
-    - cron: '0 4 * * *'    # 12:00 PHT
-    - cron: '30 12 * * *'  # 20:30 PHT
+    - cron: '0 2 * * *'    # 10:00 PHT
   workflow_dispatch:
+    inputs:
+      build:
+        description: Run dbt even if PSA has no new release (e.g. after a model fix)
+        type: boolean
+        default: false
   push:
     branches: [main]
   pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  # Never cancel a running scrape; a failed run is reported by GitHub's failure email.
+  # Never cancel a running pipeline; a failed run is reported by GitHub's failure email.
   cancel-in-progress: false
 
 jobs:
@@ -30,14 +34,15 @@ jobs:
     # The same hooks as `git commit`: one list of checks in .pre-commit-config.yaml.
     - run: uv run python -m pre_commit run --all-files --show-diff-on-failure
     - run: uv run python -m pytest -q
+    # Compiles every model and test without touching R2.
+    - run: uv run python -m dbt.cli.main parse --project-dir dbt --profiles-dir dbt
 
-  # Schedule and manual runs: scrape only. main already passed the gate, and the
-  # site keeps no history, so a lint failure must never cost a day of prices.
+  # Schedule and manual runs: ingest, then dbt only when PSA released something.
+  # A run with no release costs 1 PSA GET and 11 R2 HEADs (Class B).
   pipeline:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    # ~360 polite sequential requests take about 8-25 minutes.
-    timeout-minutes: 90
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -46,11 +51,11 @@ jobs:
       with:
         enable-cache: true
     - run: uv sync --locked --no-dev
-    - name: Scrape, publish raw and clean to R2
+    - name: Ingest PSA snapshots to R2, build the mart with dbt
       env:
         S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
         S3_ENDPOINT_URL: ${{ secrets.S3_ENDPOINT_URL }}
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: auto
-      run: uv run --no-dev python -m src.etl.pipeline
+      run: uv run --no-dev python -m src.etl.pipeline ${{ inputs.build && '--build' || '' }}

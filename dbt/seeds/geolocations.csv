@@ -1,0 +1,120 @@
+geo_code,geolocation,geo_level
+000000000,Philippines,national
+130000000,NCR - National Capital Region,region
+140000000,CAR - Cordillera Administrative Region,region
+140100000,Abra,province
+148100000,Apayao,province
+141100000,Benguet,province
+142700000,Ifugao,province
+143200000,Kalinga,province
+144400000,Mountain Province,province
+141102000,City of Baguio,province
+010000000,I - Ilocos Region,region
+012800000,Ilocos Norte,province
+012900000,Ilocos Sur,province
+013300000,La Union,province
+015500000,Pangasinan,province
+020000000,II - Cagayan Valley,region
+020900000,Batanes,province
+021500000,Cagayan,province
+023100000,Isabela,province
+025000000,Nueva Vizcaya,province
+025700000,Quirino,province
+030000000,III - Central Luzon,region
+037700000,Aurora,province
+030800000,Bataan,province
+031400000,Bulacan,province
+034900000,Nueva Ecija,province
+035400000,Pampanga,province
+036900000,Tarlac,province
+037100000,Zambales,province
+035401000,City of Angeles,province
+037107000,City of Olongapo,province
+040000000,IV-A - CALABARZON,region
+041000000,Batangas,province
+042100000,Cavite,province
+043400000,Laguna,province
+045600000,Quezon,province
+045800000,Rizal,province
+045624000,City of Lucena,province
+170000000,MIMAROPA Region,region
+174000000,Marinduque,province
+175100000,Occidental Mindoro,province
+175200000,Oriental Mindoro,province
+175300000,Palawan,province
+175900000,Romblon,province
+175316000,City of Puerto Princesa,province
+050000000,V - Bicol Region,region
+050500000,Albay,province
+051600000,Camarines Norte,province
+051700000,Camarines Sur,province
+052000000,Catanduanes,province
+054100000,Masbate,province
+056200000,Sorsogon,province
+060000000,VI - Western Visayas,region
+060400000,Aklan,province
+060600000,Antique,province
+061900000,Capiz,province
+067900000,Guimaras,province
+063000000,Iloilo,province
+063022000,City of Iloilo,province
+180000000,Negros Island Region (NIR),region
+064500000,Negros Occidental,province
+074600000,Negros Oriental,province
+076100000,Siquijor,province
+064501000,City of Bacolod,province
+070000000,VII - Central Visayas,region
+071200000,Bohol,province
+072200000,Cebu,province
+072217000,City of Cebu,province
+072226000,City of Lapu-lapu,province
+072230000,City of Mandaue,province
+080000000,VIII - Eastern Visayas,region
+087800000,Biliran,province
+082600000,Eastern Samar,province
+083700000,Leyte,province
+084800000,Northern Samar,province
+086000000,Samar,province
+086400000,Southern Leyte,province
+083747000,City of Tacloban,province
+090000000,IX - Zamboanga Peninsula,region
+097200000,Zamboanga del Norte,province
+097300000,Zamboanga del Sur,province
+098300000,Zamboanga Sibugay,province
+099701000,City of Isabela,province
+097332000,Zamboanga City,province
+100000000,X - Northern Mindanao,region
+101300000,Bukidnon,province
+101800000,Camiguin,province
+103500000,Lanao del Norte,province
+104200000,Misamis Occidental,province
+104300000,Misamis Oriental,province
+104305000,City of Cagayan De Oro,province
+103504000,City of Iligan,province
+110000000,XI - Davao Region,region
+118200000,Davao de Oro (Compostela Valley),province
+112300000,Davao del Norte,province
+112400000,Davao del Sur,province
+118600000,Davao Occidental,province
+112500000,Davao Oriental,province
+112402000,City of Davao,province
+120000000,XII - SOCCSKSARGEN,region
+124700000,Cotabato (North Cotabato),province
+128000000,Sarangani,province
+126300000,South Cotabato,province
+126500000,Sultan Kudarat,province
+126303000,City of General Santos,province
+160000000,XIII - Caraga,region
+160200000,Agusan del Norte,province
+160300000,Agusan del Sur,province
+168500000,Dinagat Islands,province
+166700000,Surigao del Norte,province
+166800000,Surigao del Sur,province
+160202000,City of Butuan,province
+150000000,BARMM - Bangsamoro Autonomous Region in Muslim Mindanao,region
+150700000,Basilan,province
+153600000,Lanao del Sur,province
+153800000,Maguindanao,province
+156600000,Sulu,province
+157000000,Tawi-Tawi,province
+129804000,City of Cotabato,province

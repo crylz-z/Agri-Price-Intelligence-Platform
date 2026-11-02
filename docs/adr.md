@@ -21,7 +21,7 @@ PSA revises past months. Keeping `raw/table=<id>/updated=<ts>.csv` exactly as re
 - **Not overwriting a single copy:** it uses less storage but throws away the revision trail.
 
 ## 5. DuckDB through `s3fs`
-An embedded SQL engine over Parquet on R2 serves the pipeline, the tests and the dashboard, with no server.
+An embedded SQL engine over files on R2 serves dbt, the tests and ad-hoc queries, with no server. The dashboard fetches the 3 MB mart in one GET instead: DuckDB over s3fs took 57 range reads for it.
 - **Not Spark:** it's built for data spread across many machines; this is a few MB.
 - **Not DuckDB's `httpfs`:** Windows Smart App Control blocked the extension during development, and `s3fs` was proven against R2.
 

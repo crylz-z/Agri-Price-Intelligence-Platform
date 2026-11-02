@@ -1,0 +1,67 @@
+version: 2
+
+models:
+  - name: stg_psa__retail_prices
+    description: >
+      The latest (snapshot_rank 1) and previous (2) snapshot of every PSA retail
+      price table, one row per geolocation, commodity and month, empty cells kept.
+    columns:
+      - name: table_id
+        data_tests:
+          - not_null
+          # A table PSA adds is a dimension change: add it to seeds/psa_tables.csv.
+          - relationships:
+              arguments:
+                to: ref('psa_tables')
+                field: table_id
+      - name: geo_level
+        description: national, region or province, from the label's indent.
+        data_tests:
+          - not_null
+      - name: commodity
+        data_tests:
+          - not_null
+      - name: month
+        data_tests:
+          - not_null
+
+  - name: int_retail_prices
+    description: The latest snapshot's non-empty prices, with geo codes and groups.
+    columns:
+      - name: geo_code
+        description: PSGC code from seeds/geolocations.csv; null means PSA used a new label.
+        data_tests:
+          - not_null
+      - name: commodity_group
+        data_tests:
+          - not_null
+
+  - name: retail_prices_monthly
+    description: >
+      Monthly retail price per commodity and geolocation, from the latest PSA
+      release. Key (month, geo_code, commodity). Written to R2 as Parquet.
+    columns:
+      - name: month
+        description: First day of the month the price describes.
+      - name: geo_code
+        description: PSGC code of the geolocation.
+      - name: geolocation
+        description: PSA's label, without the indent.
+      - name: geo_level
+        description: national, region or province (province includes cities).
+      - name: commodity_group
+        description: PSA's group, one per table, e.g. Cereals.
+      - name: commodity
+        description: PSA's name with its unit, e.g. RICE, WELL-MILLED, 1 KG.
+      - name: price
+        description: Average retail price in pesos per the commodity's unit.
+      - name: released_at
+        description: PSA's `updated` time of the release the price comes from.
+
+seeds:
+  - name: geolocations
+    description: >
+      PSGC code, label and geo level of PSA's 119 retail geolocations, from the
+      table metadata (GET on a table) on 2026-11-02. Identical in all 11 tables.
+  - name: psa_tables
+    description: PSA retail price table ids and the commodity group each publishes.

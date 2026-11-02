@@ -8,6 +8,7 @@ import os
 
 import duckdb
 import s3fs
+from fsspec import AbstractFileSystem
 
 
 def endpoint_url() -> str | None:
@@ -30,6 +31,18 @@ def filesystem() -> s3fs.S3FileSystem:
     return s3fs.S3FileSystem(
         endpoint_url=endpoint_url(), client_kwargs={"region_name": region()}
     )
+
+
+def exists(fs: AbstractFileSystem, path: str) -> bool:
+    """One HEAD (Class B). s3fs's own exists() adds a ListObjects (Class A) on a miss."""
+    if not isinstance(fs, s3fs.S3FileSystem):
+        return bool(fs.exists(path))
+    bucket, key, _ = fs.split_path(path)
+    try:
+        fs.call_s3("head_object", Bucket=bucket, Key=key)
+    except FileNotFoundError:
+        return False
+    return True
 
 
 def configure_duckdb(con: duckdb.DuckDBPyConnection) -> None:

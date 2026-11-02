@@ -6,9 +6,6 @@ paths:
 
 # Dashboard rules
 
-- The dashboard is frozen. All data access goes through `src/dashboard/utils/data_engine.py` `DataEngine`; pages and components only render DataFrames.
-- `DataEngine` reads `clean/` through the `PRICES` subquery, which renames columns to the old page shape: `commodity_group→category`, `commodity_name→commodity`, and `extract_dt` = the posting date as a timestamp. Filter on `posting_date` so DuckDB prunes partitions.
-- Methods are wrapped in `st.cache_data`; underscore-prefixed args are excluded from the cache key. They still run outside Streamlit, which `tests/test_data_engine.py` relies on.
-- "Today" defaults to Manila time; when the selected date has no data, pages fall back to the latest earlier date (LKGV).
-- `enrich_with_geo` adds random lat/lon jitter to markets without coordinates; those pins are not real locations. Remove before any public demo.
-- Every uncached query globs `clean/` (R2 list + reads); keep cache TTLs.
+- All data access is `src/dashboard/data.py`: `load_mart()` fetches the mart in one `cat_file` (1 GET) and caches it for 6 h with `st.cache_data`. Pages in `views.py` only filter and chart DataFrames; keep filtering helpers in `data.py`, where `tests/test_dashboard_data.py` covers them.
+- `app.py` only wires `st.navigation`. Test a page with `AppTest.from_string("from src.dashboard.views import trend_page\ntrend_page()")`; `AppTest.switch_page` can't reach function pages.
+- Scope is 2 pages (trend, area comparison). New pages and hosting are backlog items in the spec.

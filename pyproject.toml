@@ -1,7 +1,7 @@
 [project]
 name = "agri-price-intelligence-platform"
 version = "0.2.0"
-description = "Agri-Price Intelligence Platform: daily Philippine retail food prices, kept forever at $0."
+description = "Agri-Price Intelligence Platform: monthly Philippine retail food prices from PSA OpenSTAT, kept at $0."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
@@ -10,14 +10,13 @@ dependencies = [
     "pandas",
     "streamlit",
     "altair",
-    "beautifulsoup4",
-    "folium",
-    "streamlit-folium",
     "pyarrow",
     "structlog",
     "duckdb>=1.4.0",
     "python-dotenv",
     "s3fs",
+    "dbt-core>=1.12,<2",
+    "dbt-duckdb>=1.11",
 ]
 
 [build-system]
@@ -30,6 +29,7 @@ packages = ["src"]
 [dependency-groups]
 dev = [
   "mypy>=1.13",
+  "pandas-stubs~=2.3.0",
   "pre-commit>=4.5.1",
   "pytest",
   "ruff>=0.15.1",
@@ -43,16 +43,10 @@ target-version = "py312"
 # DTZ: every "now" and "today" must carry a timezone (Asia/Manila).
 extend-select = ["DTZ"]
 
-[tool.ruff.lint.per-file-ignores]
-# The dashboard pages are frozen; only DataEngine is edited.
-"src/dashboard/app.py" = ["DTZ"]
-"src/dashboard/pages/*" = ["DTZ"]
-
 [tool.mypy]
 python_version = "3.12"
 strict = true
-# The dashboard is frozen and untyped; strict typing covers the pipeline only.
-files = ["src/core", "src/etl"]
+files = ["src/core", "src/etl", "src/dashboard"]
 
 [[tool.mypy.overrides]]
 module = ["pyarrow.*", "s3fs", "fsspec.*"]

@@ -1,0 +1,28 @@
+name: apip
+version: "0.2.0"
+config-version: 2
+profile: apip
+
+# Tests sit on the table models, never on the external mart: dbt-duckdb writes an
+# external file before its own tests run, so a failing upstream test is what keeps
+# bad data off R2 (dbt build skips everything downstream of it).
+models:
+  apip:
+    staging:
+      +materialized: table
+    intermediate:
+      +materialized: table
+    marts:
+      +materialized: external
+
+seeds:
+  apip:
+    geolocations:
+      +column_types:
+        geo_code: varchar
+        geolocation: varchar
+        geo_level: varchar
+    psa_tables:
+      +column_types:
+        table_id: varchar
+        commodity_group: varchar

@@ -1,10 +1,11 @@
 """Read-only SQL over the lake, for checks and analysis.
 
-    uv run python -m src.etl.query "SELECT region_name, max(posting_date) FROM raw GROUP BY 1"
+    uv run python -m src.etl.query "SELECT \"table\", updated, count(*) FROM raw GROUP BY ALL"
 
-Views: `raw` (every run, plus `scrape_date` and `run` from the path) and `clean`.
-Each view the query names lists its prefix (1 Class A op on R2), so run queries by
-hand, never in a loop.
+Views: `raw`, every snapshot as PSA returned it (one column per month) plus `table`
+and `updated` from the path; `mart`, the dbt mart `retail_prices_monthly`. A view the
+query names may list its prefix (1 Class A op on R2), so run queries by hand, never
+in a loop.
 """
 
 import re
@@ -18,11 +19,20 @@ from src.core import storage
 
 READ_ONLY = ("SELECT", "WITH", "DESCRIBE", "SUMMARIZE", "FROM")
 GLOBS = {
-    "raw": "raw/scrape_date=*/run=*.parquet",
-    "clean": "clean/posting_date=*/prices.parquet",
+    "raw": "raw/table=*/updated=*.csv",
+    "mart": "mart/retail_prices_monthly.parquet",
 }
-# run=HHMMSS is a file name, not a folder, so hive partitioning skips it.
-EXTRA = {"raw": ", regexp_extract(filename, 'run=(\\d+)', 1) AS run", "clean": ""}
+# PSA marks missing values "." or ".."; its CSV is Windows-1252, close enough to
+# latin-1 for reading. updated=... is a file name, so hive partitioning skips it.
+READERS = {
+    "raw": "read_csv('{path}', hive_partitioning=true, union_by_name=true, "
+    "filename=true, encoding='latin-1', nullstr=['.', '..'])",
+    "mart": "read_parquet('{path}', filename=true)",
+}
+EXTRA = {
+    "raw": ", regexp_extract(filename, 'updated=(\\w+)\\.csv', 1) AS updated",
+    "mart": "",
+}
 
 
 def connect(root: str, names: Iterable[str] = GLOBS) -> duckdb.DuckDBPyConnection:
@@ -32,10 +42,10 @@ def connect(root: str, names: Iterable[str] = GLOBS) -> duckdb.DuckDBPyConnectio
     if root.startswith("s3://"):
         storage.configure_duckdb(con)
     for name in names:
-        glob = GLOBS[name]
+        reader = READERS[name].format(path=f"{root}/{GLOBS[name]}")
         con.execute(
             f"CREATE VIEW {name} AS SELECT * EXCLUDE (filename){EXTRA[name]} "
-            f"FROM read_parquet('{root}/{glob}', hive_partitioning=true, filename=true)"
+            f"FROM {reader}"
         )
     return con
 
@@ -54,6 +64,8 @@ def main() -> None:
     sql = sys.argv[1]
     used = [n for n in GLOBS if re.search(rf"\b{n}\b", sql, re.IGNORECASE)]
     con = connect(storage.root(), used)  # keep a reference: .show() needs it open
+    # .show() draws box characters a cp1252 Windows console can't encode.
+    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
     con.sql(sql).show(max_rows=100)
 
 
