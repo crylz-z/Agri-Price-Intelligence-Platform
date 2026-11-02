@@ -1,0 +1,12 @@
+apip:
+  target: lake
+  outputs:
+    lake:
+      type: duckdb
+      path: ":memory:"
+      threads: 1
+      settings:
+        TimeZone: Asia/Manila
+      # R2 access comes from src/core/storage.py, the only home of storage settings.
+      plugins:
+        - module: src.etl.dbt_storage

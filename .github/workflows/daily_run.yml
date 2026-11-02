@@ -1,90 +1,61 @@
-name: Daily Price Extraction
+name: Daily PSA Prices
 
 on:
-#   schedule:
-#     # Execution Window 1: 12:00 PM PHT (04:00 UTC)
-#     - cron: '0 4 * * *'
-#     # Execution Window 2: 05:00 PM PHT (09:00 UTC)
-#     - cron: '0 9 * * *'
-#     # Execution Window 3: 08:30 PM PHT (12:30 UTC)
-#     - cron: '30 12 * * *'
-
+  schedule:
+    - cron: '0 2 * * *'    # 10:00 PHT
   workflow_dispatch:
-
+    inputs:
+      build:
+        description: Run dbt even if PSA has no new release (e.g. after a model fix)
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  # Do NOT cancel in-progress runs. Extraction takes 1-2h; a new trigger must not kill a running job.
+  # Never cancel a running pipeline; a failed run is reported by GitHub's failure email.
   cancel-in-progress: false
 
 jobs:
-  extract-and-transform:
+  # Pushes and PRs: the full gate before merge.
+  quality:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    # 6-hour ceiling. The slowest observed run was ~2h; this provides a safe upper bound.
-    timeout-minutes: 360
     permissions:
       contents: read
-      id-token: write
-
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v5
+    - uses: actions/checkout@v4
+    - uses: astral-sh/setup-uv@v6
       with:
-        python-version: '3.12'
-        cache: 'pip'
-        cache-dependency-path: 'uv.lock'
+        enable-cache: true
+    - run: uv sync --locked
+    # The same hooks as `git commit`: one list of checks in .pre-commit-config.yaml.
+    - run: uv run python -m pre_commit run --all-files --show-diff-on-failure
+    - run: uv run python -m pytest -q
+    # Compiles every model and test without touching R2.
+    - run: uv run python -m dbt.cli.main parse --project-dir dbt --profiles-dir dbt
 
-    - name: Install Dependencies
-      run: |
-        pip install uv
-        uv pip install -e . --system
-
-    - name: Run Core Unit Tests (Pytest)
-      run: uv run pytest tests/ -v
-
-    - name: Configure AWS Credentials (OIDC)
-      uses: aws-actions/configure-aws-credentials@v4
+  # Schedule and manual runs: ingest, then dbt only when PSA released something.
+  # A run with no release costs 1 PSA GET and 11 R2 HEADs (Class B).
+  pipeline:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@v4
+    - uses: astral-sh/setup-uv@v6
       with:
-        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-        aws-region: ${{ vars.AWS_DEFAULT_REGION }}
-
-    - name: Pre-Flight S3 Connection Test
-      run: python scripts/preflight_check.py
+        enable-cache: true
+    - run: uv sync --locked --no-dev
+    - name: Ingest PSA snapshots to R2, build the mart with dbt
       env:
         S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-        AWS_DEFAULT_REGION: ${{ vars.AWS_DEFAULT_REGION }}
-
-    - name: Run ELT Lakehouse Pipeline
-      # run_pipeline.py enforces WAP order: dlt → dbt deps → dbt build.
-      # dbt build runs models then tests; any test failure halts the pipeline
-      # and triggers a Discord alert before bad data reaches the Gold layer.
-      run: python scripts/run_pipeline.py
-      env:
-        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-        AWS_DEFAULT_REGION: ${{ vars.AWS_DEFAULT_REGION }}
-        AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
-        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-
-    - name: Finalize Status Notification
-      if: always()
-      run: |
-        python -c "
-        import os, requests
-        url = os.getenv('DISCORD_WEBHOOK_URL')
-        if not url: exit(0)
-        status = '${{ job.status }}'
-        color = 65280 if status == 'success' else 16711680 if status == 'failure' else 16776960
-        payload = {
-            'embeds': [{
-                'title': f'Agri-Price Pipeline Final Status: {status.upper()}',
-                'description': f'The daily ELT process finished with status: **{status}**.\n[View GitHub Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})',
-                'color': color
-            }]
-        }
-        requests.post(url, json=payload, timeout=10)
-        "
-      env:
-        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        S3_ENDPOINT_URL: ${{ secrets.S3_ENDPOINT_URL }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: auto
+      run: uv run --no-dev python -m src.etl.pipeline ${{ inputs.build && '--build' || '' }}

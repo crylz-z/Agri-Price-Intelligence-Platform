@@ -1,95 +1,66 @@
 # Agri-Price Intelligence Platform
 
-**Executive Summary**
-The Agri-Price Intelligence Platform is an enterprise-grade analytical suite designed to monitor and visualize national agricultural price disparities across the Philippines. By leveraging a high-frequency automated ETL pipeline and a distributed Medallion Data Lake, the platform provides real-time "Visual Intelligence" into regional market dynamics, identifying price gouging via statistical anomaly detection and tracking temporal patterns for strategic procurement.
-
-## Architecture
-The platform follows a modern Data Lakehouse pattern with a strictly tiered Medallion Architecture and integrated monitoring.
+Monthly retail food prices for the Philippines (national, 18 regions and 100 provinces and cities, 197 commodities, from January 2018) from the Philippine Statistics Authority. A daily job stores each PSA release unchanged on Cloudflare R2, a dbt project models and tests it, and a Streamlit dashboard shows the result. It costs $0 to run.
 
 ```mermaid
-graph TD
-    %% Core Nodes
-    Source[("DA Bantay Presyo (Gov Website)")]
-    Extract["Pipeline & Extractor (GitHub Actions + dlt)"]
-    S3[("Data Lake (Amazon S3)")]
-    Transform["Transforms & Audits (DuckDB + dbt)"]
-    Dashboard["Analytics UI (Streamlit)"]
-    Alerts(("Discord Alerts"))
-
-    %% Styling
-    classDef source fill:#ff9,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
-    classDef compute fill:#d2e5ff,stroke:#5c8bc0,stroke-width:2px
-    classDef storage fill:#ffecd2,stroke:#d08f4b,stroke-width:2px
-    classDef final fill:#e2f0cb,stroke:#8fb96c,stroke-width:2px
-    classDef ui fill:#e1d5e7,stroke:#9673a6,stroke-width:2px
-    classDef alert fill:#5865F2,stroke:#fff,color:#fff,stroke-width:2px
-
-    %% Apply Styles
-    class Source source
-    class Extract,Transform compute
-    class S3 storage
-    class Dashboard ui
-    class Alerts alert
-
-    %% Flow
-    Source -->|Scrapes via Python dlt| Extract
-    Extract -->|Loads Raw Parquet| S3
-    S3 -->|Queries directly| Transform
-    Transform -->|Exposes Clean Data| Dashboard
-
-    %% Alerting Flow
-    Extract -.->|Job Status| Alerts
-    Transform -.->|Data Quality Tests| Alerts
+graph LR
+    PSA[("PSA OpenSTAT API")] -->|ingest.py, only new releases| RAW[("R2 raw/<br/>1 CSV snapshot per release")]
+    RAW -->|dbt build: staging, tests| MART[("R2 mart/<br/>retail_prices_monthly.parquet")]
+    MART --> UI["Streamlit dashboard"]
+    CRON["GitHub Actions<br/>daily cron"] -.-> PSA
 ```
 
-## Key Technical Features
-*   **Medallion Data Lake**: Automated pipeline segregates data into **Bronze** (Raw JSON), **Silver** (Cleaned Parquet), and **Gold** (Analytic Views) to ensure data lineage and integrity.
-*   **Statistical Anomaly Detection**: Utilizes dynamic **Z-Score clustering** instead of static benchmarks to identify price outliers and market-level price gouging in real-time.
-*   **Temporal Analytics Overhaul**: Features a specialized **Price Volatility Envelope** (Min/Max/Mean spread) and a **Calendar Price Intensity Matrix** (Heatmap) for advanced seasonal and day-of-week pattern recognition.
-*   **Enterprise UI/UX**: Radical high-end aesthetics using a strictly enforced **Teal (#0d9488) / Coral (#e11d48) / Slate (#64748b)** palette and a zero-emoji technical communication policy.
-*   **FinOps & Performance**: DuckDB-powered backend enables direct S3 Parquet querying with tiered caching for near-instant UI responsiveness.
-*   **Proactive Alerting**: Integrated Discord/Slack webhook engine for real-time pipeline status, error reporting, and completion telemetry.
+## How it works
+- **Ingest** (`src/etl/ingest.py`): one GET lists PSA's 11 retail price tables with their `updated` time. A table is downloaded only when R2 doesn't have that release yet, checked with a single HEAD. A day with no new release makes 1 PSA call and 11 HEADs.
+- **Raw** (`raw/table=<id>/updated=<YYYYMMDDTHHMMSS>.csv`): each table exactly as PSA returned it, never rewritten. PSA revises past months, so keeping every release makes each number traceable to its source.
+- **Model** (`dbt/`, dbt Core + dbt-duckdb):
+  - `stg_psa__retail_prices` unpivots the month columns of the latest two snapshots per table.
+  - `int_retail_prices` adds PSGC geo codes from a seed.
+  - `retail_prices_monthly`, keyed on `(month, geo_code, commodity)`, is written to R2 as Parquet.
+- **Tests that block publishing**:
+  - a table or geolocation is missing, or PSA adds an unknown one
+  - duplicate keys
+  - `price <= 0`
+  - a release with far fewer filled cells than the one before
 
-## Tech Stack
-*   **Language**: Python 3.12
-*   **Compute**: DuckDB (Vectorized SQL Engine)
-*   **Storage**: AWS S3 (Hive-partitioned Parquet)
-*   **Orchestration**: GitHub Actions (Daily Cron)
-*   **Visualization**: Streamlit, Altair, Folium
-*   **Engineering**: dlt (Extract/Load), dbt (Transform & Audit)
-*   **Monitoring**: Discord/Webhook API
+  All tests run upstream of the mart, so a failure skips the write and R2 keeps the last good mart. A latest month more than 3 months old only warns.
+- **pytest** covers ingest (change detection, HEAD-only R2 checks, rejecting non-CSV responses), the pipeline's dbt trigger and the dashboard's data layer, all without network.
+- **Dashboard** (`src/dashboard/`): a price trend per commodity and a region/province comparison for one month. It fetches the 3 MB mart in a single request.
+- **$0 on R2**: a month has 11 snapshot writes, 1 mart write and about 30 HEADs a day, well inside the free tier. See `docs/cloudfare-agent-notes/free-tier-r2.md`. The reasons behind each tool are in `docs/adr.md`; the terms are defined in `GLOSSARY.md`.
 
-## Local Setup
+## Run it
+Needs [uv](https://docs.astral.sh/uv/). Copy `.env.example` to `.env` and fill in an R2 bucket and API token.
 
-### 1. Prerequisites
-*   Python 3.12+
-*   AWS Account with S3 Read/Write permissions
-
-### 2. Configuration
-Create a `.env` file in the root directory with your credentials:
-```env
-# AWS Infrastructure
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_DEFAULT_REGION=ap-southeast-2
-S3_BUCKET_NAME=your-data-lake-bucket
-
-# Alerting (Optional)
-DISCORD_WEBHOOK_URL=your_discord_webhook_url
-```
-
-### 3. Execution
-Install dependencies and launch the platform:
 ```bash
-# Install core and dev dependencies
-uv pip install -e .
+uv sync
+uv run python -m pre_commit install   # ruff + mypy on every commit
+uv run python -m pytest               # no network
+uv run python -m src.etl.pipeline     # ingest; dbt build only if PSA released something
+uv run python -m src.etl.pipeline --build   # always run dbt
+uv run python -m streamlit run src/dashboard/app.py
+```
 
-# Run the full pipeline (Extract -> Load -> Transform -> Audit)
-$env:PYTHONPATH="."; python scripts/run_pipeline.py
+dbt on its own, from the repo root:
 
-# Launch the Executive Dashboard
-streamlit run src/dashboard/app.py
+```bash
+uv run python -m dbt.cli.main build --project-dir dbt --profiles-dir dbt
+# against a local copy of raw/ (needs <dir>/mart/ to exist):
+uv run python -m dbt.cli.main build --project-dir dbt --profiles-dir dbt --vars "{lake_root: '<dir>'}"
+```
+
+## Sample queries
+`src/etl/query.py` runs read-only SQL over the `raw` and `mart` views:
+
+```bash
+# National well-milled rice, last 12 months
+uv run python -m src.etl.query "SELECT month, price FROM mart WHERE geo_code = '000000000' AND commodity = 'RICE, WELL-MILLED, 1 KG' ORDER BY month DESC LIMIT 12"
+
+# Most expensive regions for one commodity in the latest month
+uv run python -m src.etl.query "SELECT geolocation, price FROM mart WHERE geo_level = 'region' AND commodity = 'RICE, WELL-MILLED, 1 KG' AND month = (SELECT max(month) FROM mart) ORDER BY price DESC"
+
+# Which release each table's latest snapshot comes from
+uv run python -m src.etl.query "SELECT \"table\", max(updated) FROM raw GROUP BY ALL ORDER BY 1"
 ```
 
 ---
-*Data Source: [DA Bantay Presyo](http://www.bantaypresyo.da.gov.ph/) | Built for Scalable Market Intelligence.*
+Data: [PSA OpenSTAT](https://openstat.psa.gov.ph/), Retail Prices of Agricultural Commodities by Geolocation, Commodity, Year and Period (2018 onward).

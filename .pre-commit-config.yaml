@@ -1,18 +1,39 @@
+# Fast checks at commit time (< 3 s). pytest runs in CI before merge.
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+  # Local hooks run as `uv run python -m`, like the docs and CI, so ruff and
+  # mypy use the uv.lock versions.
+  - repo: local
     hooks:
       - id: trailing-whitespace
+        name: trim trailing whitespace
+        entry: uv run --with pre-commit-hooks==6.0.0 python -m pre_commit_hooks.trailing_whitespace_fixer
+        language: system
+        types: [text]
       - id: end-of-file-fixer
+        name: fix end of files
+        entry: uv run --with pre-commit-hooks==6.0.0 python -m pre_commit_hooks.end_of_file_fixer
+        language: system
+        types: [text]
+        exclude: ^tests/fixtures/  # live responses, kept byte for byte
       - id: check-yaml
-
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.0
-    hooks:
-      - id: ruff
+        name: check yaml
+        entry: uv run --with pre-commit-hooks==6.0.0 python -m pre_commit_hooks.check_yaml
+        language: system
+        types: [yaml]
+      - id: ruff-check
+        name: ruff check
+        entry: uv run python -m ruff check --fix
+        language: system
+        types_or: [python, pyi]
       - id: ruff-format
-
-  - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.2
-    hooks:
-      - id: gitleaks
+        name: ruff format
+        entry: uv run python -m ruff format
+        language: system
+        types_or: [python, pyi]
+      - id: mypy
+        name: mypy
+        entry: uv run python -m mypy
+        language: system
+        types: [python]
+        pass_filenames: false
+# Secrets: GitHub secret scanning with push protection, not a local hook.

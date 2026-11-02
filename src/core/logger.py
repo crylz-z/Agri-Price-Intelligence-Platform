@@ -1,9 +1,12 @@
 import sys
 import structlog
 import logging
+from typing import Any
+
+from structlog.typing import Processor
 
 
-def get_logger(name):
+def get_logger(name: str) -> Any:
     """
     Configures and returns a structlog logger.
 
@@ -14,7 +17,7 @@ def get_logger(name):
     """
 
     # Configure shared processors
-    processors = [
+    processors: list[Processor] = [
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.StackInfoRenderer(),
