@@ -1,0 +1,80 @@
+geo_code,region,wage_order,tranche,effective_date,daily_wage,source_url
+010000000,I - Ilocos Region,RB I-22,1,2023-11-06,435,https://nwpc.dole.gov.ph/wp-content/uploads/2023/10/01.-Wage-Order-No.-RB-1-22.pdf
+010000000,I - Ilocos Region,RB I-23,1,2024-11-07,468,https://nwpc.dole.gov.ph/wp-content/uploads/2024/10/Wage-Order-No.-RB1-23.pdf
+010000000,I - Ilocos Region,RB I-24,1,2025-11-19,505,https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RB-1-24.pdf
+020000000,II - Cagayan Valley,RTWPB II-22,1,2023-10-16,435,https://nwpc.dole.gov.ph/wp-content/uploads/2023/09/Wage-Order-No.-RTWPB-2-22-1.pdf
+020000000,II - Cagayan Valley,RTWPB II-22,2,2024-04-01,450,https://nwpc.dole.gov.ph/wp-content/uploads/2023/09/Wage-Order-No.-RTWPB-2-22-1.pdf
+020000000,II - Cagayan Valley,RTWPB II-23,1,2024-10-17,480,https://nwpc.dole.gov.ph/wp-content/uploads/2024/10/01.-Wage-Order-No.-RTWPB-2-23.pdf
+020000000,II - Cagayan Valley,RTWPB II-24,1,2025-11-05,500,https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RTWPB-2-24.pdf
+030000000,III - Central Luzon,RB III-24,1,2023-10-16,500,https://nwpc.dole.gov.ph/wp-content/uploads/2023/09/Wage-Order-No.-RBIII-24.pdf
+030000000,III - Central Luzon,RB III-25,1,2024-10-17,525,https://nwpc.dole.gov.ph/wp-content/uploads/2024/10/01.-Wage-Order-No.-RBIII-25.pdf
+030000000,III - Central Luzon,RB III-25,2,2025-04-16,550,https://nwpc.dole.gov.ph/wp-content/uploads/2024/10/01.-Wage-Order-No.-RBIII-25.pdf
+030000000,III - Central Luzon,RB III-26,1,2025-10-30,570,https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RBIII-26.pdf
+030000000,III - Central Luzon,RB III-26,2,2026-04-16,600,https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RBIII-26.pdf
+040000000,IV-A - CALABARZON,IV-A-20,1,2023-09-24,520,https://nwpc.dole.gov.ph/wp-content/uploads/2023/09/Wage-Order-No.-IVA-20.pdf
+040000000,IV-A - CALABARZON,IV-A-21,1,2024-09-30,560,https://nwpc.dole.gov.ph/wp-content/uploads/2024/09/Wage-Order-No.-IVA-21.pdf
+040000000,IV-A - CALABARZON,IV-A-21,2,2025-04-01,560,https://nwpc.dole.gov.ph/wp-content/uploads/2024/09/Wage-Order-No.-IVA-21.pdf
+040000000,IV-A - CALABARZON,IV-A-22,1,2025-10-05,600,https://nwpc.dole.gov.ph/wp-content/uploads/2025/09/Wage-Order-No.-IVA-22_compressed.pdf
+040000000,IV-A - CALABARZON,IV-A-22,2,2026-04-01,600,https://nwpc.dole.gov.ph/wp-content/uploads/2025/09/Wage-Order-No.-IVA-22_compressed.pdf
+050000000,V - Bicol Region,RB V-21,1,2023-12-01,395,https://nwpc.dole.gov.ph/wp-content/uploads/2023/11/Wage-Order-RBV-21.pdf
+050000000,V - Bicol Region,RB V-22,1,2025-04-05,415,https://nwpc.dole.gov.ph/wp-content/uploads/2025/03/Wage-Order-No.-RBV-22.pdf
+050000000,V - Bicol Region,RB V-22,2,2025-12-01,435,https://nwpc.dole.gov.ph/wp-content/uploads/2025/03/Wage-Order-No.-RBV-22.pdf
+050000000,V - Bicol Region,RB V-23,1,2026-04-08,455,https://nwpc.dole.gov.ph/wp-content/uploads/2026/03/Wage-Order-No.-RBV-23.pdf
+050000000,V - Bicol Region,RB V-23,2,2026-12-01,480,https://nwpc.dole.gov.ph/wp-content/uploads/2026/03/Wage-Order-No.-RBV-23.pdf
+060000000,VI - Western Visayas,RB VI-27,1,2023-11-16,480,https://nwpc.dole.gov.ph/wp-content/uploads/2023/10/Wage-Order-No.-RBVI-27.pdf
+060000000,VI - Western Visayas,RB VI-28,1,2024-11-17,513,https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Wage-Order-No.-RBVI-28.pdf
+060000000,VI - Western Visayas,RB VI-29,1,2025-11-19,550,https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RBVI-29.pdf
+070000000,VII - Central Visayas,RO VII-24,1,2023-10-01,468,https://nwpc.dole.gov.ph/wp-content/uploads/2023/09/RTWPB-VII-Wage-Order-No.-ROVII-24.pdf
+070000000,VII - Central Visayas,RO VII-25,1,2024-10-02,501,https://nwpc.dole.gov.ph/wp-content/uploads/2024/09/Wage-Order-No.-ROVII-25.pdf
+070000000,VII - Central Visayas,RO VII-26,1,2025-10-04,540,https://nwpc.dole.gov.ph/wp-content/uploads/2025/09/Wage-Order-No.-ROVII-26.pdf
+070000000,VII - Central Visayas,RO VII-27,1,2026-10-14,582,https://nwpc.dole.gov.ph/wp-content/uploads/2026/09/Wage-Order-No.-ROVII-27.pdf
+080000000,VIII - Eastern Visayas,RB VIII-23,1,2023-11-30,405,https://nwpc.dole.gov.ph/wp-content/uploads/2023/11/Wage-Order-No.-RBVIII-23.pdf
+080000000,VIII - Eastern Visayas,RB VIII-24,1,2024-12-02,420,https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Wage-Order-No.-RB-VIII-24.pdf
+080000000,VIII - Eastern Visayas,RB VIII-24,2,2025-06-01,435,https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Wage-Order-No.-RB-VIII-24.pdf
+080000000,VIII - Eastern Visayas,RB VIII-25,1,2025-12-08,452,https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RB-VIII-25.pdf
+080000000,VIII - Eastern Visayas,RB VIII-25,2,2026-06-01,470,https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RB-VIII-25.pdf
+090000000,IX - Zamboanga Peninsula,RIX-22,1,2023-11-12,381,https://nwpc.dole.gov.ph/wp-content/uploads/2023/11/Wage-Order-No.-RIX-22.pdf
+090000000,IX - Zamboanga Peninsula,RIX-22,2,2024-02-01,381,https://nwpc.dole.gov.ph/wp-content/uploads/2023/11/Wage-Order-No.-RIX-22.pdf
+090000000,IX - Zamboanga Peninsula,RIX-23,1,2024-12-12,414,https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Wage-Order-No.-RIX-23.pdf
+090000000,IX - Zamboanga Peninsula,RIX-24,1,2026-01-01,439,https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RIX-24.pdf
+090000000,IX - Zamboanga Peninsula,RIX-24,2,2026-06-01,464,https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RIX-24.pdf
+100000000,X - Northern Mindanao,RX-21,2,2022-12-16,405,https://nwpc.dole.gov.ph/wp-content/uploads/2023/04/Published-WO-No.-RX-21.pdf
+100000000,X - Northern Mindanao,RX-22,1,2024-01-11,428,https://nwpc.dole.gov.ph/wp-content/uploads/2023/12/Wage-Order-No.-RX-22_revised.pdf
+100000000,X - Northern Mindanao,RX-22,2,2024-07-01,438,https://nwpc.dole.gov.ph/wp-content/uploads/2023/12/Wage-Order-No.-RX-22_revised.pdf
+100000000,X - Northern Mindanao,RX-23,1,2025-01-12,461,https://nwpc.dole.gov.ph/wp-content/uploads/2024/12/Wage-Order-No.-RX-23_compressed.pdf
+100000000,X - Northern Mindanao,RX-23,2,2025-07-01,461,https://nwpc.dole.gov.ph/wp-content/uploads/2024/12/Wage-Order-No.-RX-23_compressed.pdf
+100000000,X - Northern Mindanao,RX-24,1,2026-01-16,486,https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RX-24.pdf
+100000000,X - Northern Mindanao,RX-24,2,2026-05-01,500,https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RX-24.pdf
+110000000,XI - Davao Region,RB XI-21,2,2023-01-01,443,https://nwpc.dole.gov.ph/wp-content/uploads/2023/04/Published-WO-No.-RB-XI-21.pdf
+110000000,XI - Davao Region,RB XI-22,1,2024-03-06,462,https://nwpc.dole.gov.ph/wp-content/uploads/2024/02/Wage-Order-No.-RB-XI-22.pdf
+110000000,XI - Davao Region,RB XI-22,2,2024-09-01,481,https://nwpc.dole.gov.ph/wp-content/uploads/2024/02/Wage-Order-No.-RB-XI-22.pdf
+110000000,XI - Davao Region,RB XI-23,1,2025-03-07,510,https://nwpc.dole.gov.ph/wp-content/uploads/2025/02/Wage-Order-No.-RB-XI-23.pdf
+110000000,XI - Davao Region,RB XI-24,1,2026-03-13,525,https://nwpc.dole.gov.ph/wp-content/uploads/2026/02/Wage-Order-No.-RB-XI-24.pdf
+110000000,XI - Davao Region,RB XI-24,2,2026-09-01,540,https://nwpc.dole.gov.ph/wp-content/uploads/2026/02/Wage-Order-No.-RB-XI-24.pdf
+120000000,XII - SOCCSKSARGEN,RB XII-23,1,2023-10-16,390,https://nwpc.dole.gov.ph/wp-content/uploads/2023/09/Wage-Order-No.-RB-XII-23.pdf
+120000000,XII - SOCCSKSARGEN,RB XII-23,2,2024-01-01,403,https://nwpc.dole.gov.ph/wp-content/uploads/2023/09/Wage-Order-No.-RB-XII-23.pdf
+120000000,XII - SOCCSKSARGEN,RB XII-24,1,2024-10-17,417,https://nwpc.dole.gov.ph/wp-content/uploads/2024/10/01.-Wage-Order-No.-RBXII-24.pdf
+120000000,XII - SOCCSKSARGEN,RB XII-24,2,2025-01-01,430,https://nwpc.dole.gov.ph/wp-content/uploads/2024/10/01.-Wage-Order-No.-RBXII-24.pdf
+120000000,XII - SOCCSKSARGEN,RB XII-25,1,2025-11-02,450,https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RBXII-25.pdf
+120000000,XII - SOCCSKSARGEN,RB XII-25,2,2025-12-15,460,https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RBXII-25.pdf
+130000000,NCR - National Capital Region,NCR-24,1,2023-07-16,610,https://nwpc.dole.gov.ph/wp-content/uploads/2023/07/WO-NCR-24.pdf
+130000000,NCR - National Capital Region,NCR-25,1,2024-07-17,645,https://nwpc.dole.gov.ph/wp-content/uploads/2024/07/Published-WO-No.-NCR-25.pdf
+130000000,NCR - National Capital Region,NCR-26,1,2025-07-18,695,https://nwpc.dole.gov.ph/wp-content/uploads/2025/06/01.-Wage-Order-No.-NCR-26.pdf
+130000000,NCR - National Capital Region,NCR-28,1,2026-09-26,755,https://nwpc.dole.gov.ph/wp-content/uploads/2026/09/Wage-Order-No.-NCR-28.pdf
+140000000,CAR - Cordillera Administrative Region,CAR-22,1,2023-12-05,430,https://nwpc.dole.gov.ph/wp-content/uploads/2023/11/Wage-Order-No.-CAR-22.pdf
+140000000,CAR - Cordillera Administrative Region,CAR-23,1,2024-12-24,470,https://nwpc.dole.gov.ph/wp-content/uploads/2024/12/Wage-Order-No.-CAR-23_compressed.pdf
+140000000,CAR - Cordillera Administrative Region,CAR-24,1,2025-12-30,505,https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-CAR-24.pdf
+150000000,BARMM - Bangsamoro Autonomous Region in Muslim Mindanao,BARMM-02,1,2022-07-21,341,https://nwpc.dole.gov.ph/wp-content/uploads/2023/04/Published-WO-No.-BARMM-02.pdf
+150000000,BARMM - Bangsamoro Autonomous Region in Muslim Mindanao,BARMM-03,1,2024-02-28,361,https://nwpc.dole.gov.ph/wp-content/uploads/2024/02/Wage-Order-No.-BARMM-03.pdf
+150000000,BARMM - Bangsamoro Autonomous Region in Muslim Mindanao,BARMM-04,1,2025-07-17,411,https://nwpc.dole.gov.ph/wp-content/uploads/2025/07/Wage-Order-No.-BARMM-04.pdf
+150000000,BARMM - Bangsamoro Autonomous Region in Muslim Mindanao,BARMM-05,1,2026-08-06,436,https://nwpc.dole.gov.ph/wp-content/uploads/2026/07/Wage-Order-No.-BARMM-05.pdf
+150000000,BARMM - Bangsamoro Autonomous Region in Muslim Mindanao,BARMM-05,2,2026-12-01,461,https://nwpc.dole.gov.ph/wp-content/uploads/2026/07/Wage-Order-No.-BARMM-05.pdf
+160000000,XIII - Caraga,RXIII-18,1,2024-01-01,370,https://nwpc.dole.gov.ph/wp-content/uploads/2023/12/Wage-Order-No.-RXIII-18.pdf
+160000000,XIII - Caraga,RXIII-18,2,2024-05-01,385,https://nwpc.dole.gov.ph/wp-content/uploads/2023/12/Wage-Order-No.-RXIII-18.pdf
+160000000,XIII - Caraga,RXIII-19,1,2025-01-02,415,https://nwpc.dole.gov.ph/wp-content/uploads/2024/12/Wage-Order-No.-RXIII-19-1.pdf
+160000000,XIII - Caraga,RXIII-19,2,2025-05-01,435,https://nwpc.dole.gov.ph/wp-content/uploads/2024/12/Wage-Order-No.-RXIII-19-1.pdf
+160000000,XIII - Caraga,RXIII-20,1,2026-01-03,455,https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RXIII-20.pdf
+160000000,XIII - Caraga,RXIII-20,2,2026-05-01,475,https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RXIII-20.pdf
+170000000,MIMAROPA Region,MIMAROPA-11,1,2023-12-07,395,https://nwpc.dole.gov.ph/wp-content/uploads/2023/11/Wage-Order-No.-RB-MIMAROPA-11.pdf
+170000000,MIMAROPA Region,MIMAROPA-12,1,2024-12-23,430,https://nwpc.dole.gov.ph/wp-content/uploads/2024/12/Wage-Order-No.-RB-MIMAROPA-12_compressed.pdf
+170000000,MIMAROPA Region,MIMAROPA-13,1,2026-01-01,455,https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-MIMAROPA-13.pdf

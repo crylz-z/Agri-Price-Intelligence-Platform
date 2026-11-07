@@ -7,13 +7,13 @@ Monthly retail food prices for the Philippines (national, 18 regions and 100 pro
 ```mermaid
 graph LR
     PSA[("PSA OpenSTAT API")] -->|ingest.py, only new releases| RAW[("R2 raw/<br/>1 CSV snapshot per release")]
-    RAW -->|dbt build: staging, intermediate, tests| MART[("R2 mart/<br/>4 Parquet marts")]
+    RAW -->|dbt build: staging, intermediate, tests| MART[("R2 mart/<br/>5 Parquet marts")]
     MART --> UI["Streamlit dashboard<br/>3 pages"]
     CRON["GitHub Actions<br/>daily cron"] -.-> PSA
 ```
 
 ## How it works
-- **Ingest** (`src/etl/ingest.py`): one GET lists PSA's 11 retail price tables with their `updated` time. A table is downloaded only when R2 doesn't have that release yet, checked with a single HEAD. A day with no new release makes 1 PSA call and 11 HEADs.
+- **Ingest** (`src/etl/ingest.py`): one GET per PSA folder lists the 11 retail price tables and the 8 farmgate tables used, with their `updated` time. A table is downloaded only when R2 doesn't have that release yet, checked with a single HEAD. A day with no new release makes 2 PSA calls and 19 HEADs.
 - **Raw** (`raw/table=<id>/updated=<YYYYMMDDTHHMMSS>.csv`): each table exactly as PSA returned it, never rewritten. PSA revises past months, so keeping every release makes each number traceable to its source.
 - **Model** (`dbt/`, dbt Core + dbt-duckdb):
   - `stg_psa__retail_prices` unpivots the month columns of the latest two snapshots per table.
@@ -23,6 +23,7 @@ graph LR
     - `staple_prices_monthly`: each food's price, its change in a month and a year, and its gap from the national price.
     - `dish_costs_monthly`: the cost of a dinner for 5, left blank where an ingredient is unpriced.
     - `staple_seasonality`: each food's usual price in a calendar month against its centred 13-month average.
+  - `farmer_share_monthly`: for 18 staples, PSA's farmgate price over the retail price, by region and month (`stg_psa__farmgate_prices` → `int_farmer_share`). `dish_costs_monthly` also gives each dish's cost as a share of the region's daily minimum wage, from 2024 (`wage_orders.csv`, sourced from NWPC).
   - dbt tests recompute the year-on-year changes and dish costs by a separate path, and check prices against values fetched from PSA by hand (`psa_spot_checks.csv`).
 - **Tests that block publishing**:
   - a table or geolocation is missing, or PSA adds an unknown one
@@ -36,7 +37,7 @@ graph LR
   1. **Overview**: the typical food's yearly change since 2019, every food's change this year, and what dinner costs.
   2. **Compare places**: a map of one food's price by province or region, with the cheapest and most expensive areas.
   3. **Look up a food**: any of PSA's 197 items in any place, with its trend, usual seasonal pattern and regional prices.
-- **$0 on R2**: a release day has 11 snapshot writes and 4 mart writes, plus about 11 HEADs a day, well inside the free tier. See `docs/cloudfare-agent-notes/free-tier-r2.md`. The reasons behind each tool are in `docs/adr.md`; the terms are defined in `GLOSSARY.md`.
+- **$0 on R2**: a release day has up to 19 snapshot writes and 5 mart writes, plus about 19 HEADs a day, well inside the free tier. See `docs/cloudfare-agent-notes/free-tier-r2.md`. The reasons behind each tool are in `docs/adr.md`; the terms are defined in `GLOSSARY.md`.
 
 ## Run it
 Needs [uv](https://docs.astral.sh/uv/). Copy `.env.example` to `.env` and fill in an R2 bucket and API token.
@@ -75,9 +76,9 @@ uv run python -m src.etl.query "SELECT \"table\", max(updated) FROM raw GROUP BY
 ```
 
 ## What I'd build next
-- **Farm to market markup:** add PSA's farmgate and wholesale price series and match their commodity names to retail, to show how much of a retail price reaches the farmer.
+- **Wholesale step:** add PSA's wholesale price series between farmgate and retail, to show where along the chain the peso gap opens.
 - **Revision tracker:** diff consecutive snapshots to show which past months PSA revised.
 - **Inflation context:** join PSA's food CPI.
 
 ---
-Data: [PSA OpenSTAT](https://openstat.psa.gov.ph/), Retail Prices of Agricultural Commodities by Geolocation, Commodity, Year and Period (2018 onward).
+Data: [PSA OpenSTAT](https://openstat.psa.gov.ph/), Retail Prices of Agricultural Commodities by Geolocation, Commodity, Year and Period (2018 onward), and the Farmgate Prices tables (folder `NFG`). Minimum wages: [NWPC](https://nwpc.dole.gov.ph/).

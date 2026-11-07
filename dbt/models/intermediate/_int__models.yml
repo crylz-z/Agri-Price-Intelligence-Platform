@@ -18,8 +18,18 @@ models:
   - name: int_dish_costs
     description: >
       Recipe cost per geolocation and month. dish_cost is null when a staple has
-      no price there that month; missing_staples names them.
+      no price there that month; missing_staples names them. On region rows from
+      2024, daily_wage is the non-agriculture minimum wage in force on the 1st of
+      the month (wage_order) and dish_wage_share is dish_cost / daily_wage.
   - name: int_staple_seasonality
     description: >
       National price of each staple by calendar month relative to its centred
       13-month average, averaged over the years with a full window.
+  - name: int_farmer_share
+    description: >
+      Farmer's share per staple, geolocation (national and region) and month with
+      both prices: farmgate_equivalent (farmgate_price / retail_yield) over
+      retail_price. peso_gap is retail_price - farmgate_equivalent. is_latest marks
+      each staple's latest such month per geolocation. Rice is stored for months,
+      so its same-month share is approximate. Pairs in farmer_share_exclusions
+      are left out.

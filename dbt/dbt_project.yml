@@ -27,6 +27,48 @@ seeds:
       +column_types:
         table_id: varchar
         commodity_group: varchar
+    psa_farmgate_tables:
+      +column_types:
+        table_id: varchar
+        commodity_group: varchar
+    farmgate_commodities:
+      +column_types:
+        staple: varchar
+        table_id: varchar
+        farmgate_commodity: varchar
+        retail_yield: double
+    farmgate_geolocations:
+      +column_types:
+        label: varchar
+        geo_code: varchar
+    farmer_share_exclusions:
+      +column_types:
+        geo_code: varchar
+        staple: varchar
+        reason: varchar
+    psa_farmgate_spot_checks:
+      +column_types:
+        table_id: varchar
+        geo_code: varchar
+        commodity: varchar
+        month: date
+        price: double
+    wage_orders:
+      +column_types:
+        geo_code: varchar
+        region: varchar
+        wage_order: varchar
+        tranche: integer
+        effective_date: date
+        daily_wage: double
+        source_url: varchar
+    policy_events:
+      +column_types:
+        start_date: date
+        end_date: date
+        staple: varchar
+        event: varchar
+        source_url: varchar
     staples:
       +column_types:
         staple: varchar

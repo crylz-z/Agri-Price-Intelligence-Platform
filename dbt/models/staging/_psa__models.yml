@@ -17,3 +17,16 @@ models:
         description: national, region or province, from the label's indent.
         data_tests:
           - not_null
+  - name: stg_psa__farmgate_prices
+    description: >
+      The latest (snapshot_rank 1) and previous (2) snapshot of every farmgate
+      table in seeds/psa_farmgate_tables.csv, national and region rows, one row
+      per geolocation, commodity and month, empty cells kept. PSA fills cells with
+      no sales with 0.
+    columns:
+      - name: table_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('psa_farmgate_tables')
+                field: table_id

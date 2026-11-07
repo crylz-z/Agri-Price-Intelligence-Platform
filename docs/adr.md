@@ -52,6 +52,12 @@ A province missing one recipe staple gets no dish cost rather than one filled fr
 dbt tests recompute year-on-year changes and dish costs from `int_retail_prices` by a separate path, and the `psa_spot_checks` seed holds prices fetched from OpenSTAT's JSON API outside the pipeline; any mismatch blocks the marts. pytest checks the dashboard's headline helpers against a fixture with hand-worked answers. Shape tests alone pass when a join or unit is wrong everywhere.
 - **Not shape tests only:** unique keys and positive prices can't catch a wrong commodity mapping or a doubled quantity.
 
-## 12. Three plain dashboard pages, one per mart group
+## 12. Three plain dashboard pages, one per mart group (superseded by 13)
 The dashboard is a shop window for the pipeline, so each page reads one group of marts (page 1 the staple and dish marts, page 2 the staple mart by area, page 3 the retail and seasonality marts) and uses stock Streamlit and Altair, with tabular digits as the only CSS. Chosen 2026-11-07, after a 5-page version with custom CSS grew to 2,000 lines of view code without making the data more useful.
 - **Not the 5-page version:** a separate page for dish costs and another for seasons repeated the same yearly change in many places; dish costs moved to a table on page 1 and seasons to a chart on page 3. It stays in git history at `a7a97b2`.
+
+## 13. The question: how much of the retail peso reaches the farmer, and what a meal costs in wages
+Chosen 2026-11-07, because the three lookup pages answered no question. PSA farmgate prices (`2M/NFG`, the same OpenSTAT CSV API as retail) are compared with retail at national and region level for the 18 staples that have a like-for-like farmgate item, with palay converted at PSA's 63% milling recovery rate. Regional minimum wages come from a hand-kept seed of wage orders, which are PDFs with no API, from January 2024 only (about 35 orders instead of 80 back to 2018), and import and price policy from a hand-kept seed of dated policy events. This becomes page 1, ahead of the three existing pages, which stay plain and read one mart group each.
+- **Not wholesale (`2M/NWSNEW`):** 10 more tables, about 8 MB a release, and no meat table; farm against retail already shows the gap.
+- **Not meat or fish:** PSA publishes no factor from liveweight to retail cut, and fish farmgate is quarterly.
+- **Not an import volume series:** monthly BPI arrivals appear only in press reports that disagree with each other.

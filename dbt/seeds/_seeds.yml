@@ -7,6 +7,11 @@ seeds:
       table metadata (GET on a table) on 2026-11-02. Identical in all 11 tables.
   - name: psa_tables
     description: PSA retail price table ids and the commodity group each publishes.
+  - name: psa_farmgate_tables
+    description: >
+      The PSA farmgate price tables (folder NFG) the farmer's share uses, and the
+      commodity group each publishes. Must match `FARMGATE_TABLES` in
+      src/etl/ingest.py. Retail staging reads every raw table not listed here.
   - name: staples
     description: >
       The basket: everyday staples by their plain name, each mapped to exactly one
@@ -46,3 +51,89 @@ seeds:
               arguments:
                 to: ref('staples')
                 field: staple
+  - name: farmgate_commodities
+    description: >
+      Each staple with a farmgate price: its PSA farmgate table and commodity, and
+      retail_yield, kg of the retail product per kg of the farmgate product. Palay
+      is 0.63, PSA's milling recovery rate since 2025, as reported by the press and
+      USDA (the PSA resolution itself wasn't reachable). Ginger is Native and
+      monggo green, shiny (retail names no variety; confirmed with the owner
+      2026-11-07). Egg farmgate and retail are both per piece; the rest per kg.
+    columns:
+      - name: staple
+        data_tests:
+          - unique
+          - relationships:
+              arguments:
+                to: ref('staples')
+                field: staple
+      - name: table_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('psa_farmgate_tables')
+                field: table_id
+  - name: farmgate_geolocations
+    description: >
+      PSA's national and region labels in the farmgate tables, lower case and
+      without footnote marks, mapped to the PSGC code in geolocations. Farmgate
+      labels differ from retail ones ("region i (ilocos region)"), so a label join
+      to geolocations doesn't work.
+    columns:
+      - name: label
+        data_tests:
+          - unique
+      - name: geo_code
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('geolocations')
+                field: geo_code
+  - name: farmer_share_exclusions
+    description: >
+      Staple and region pairs left out of the farmer's share because their
+      farmgate price sits at or above retail most months, which points to
+      different units (bundle vs kg) rather than a real share. Decided with the
+      owner 2026-11-07; the dashboard shows a caveat for them.
+    columns:
+      - name: geo_code
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('farmgate_geolocations')
+                field: geo_code
+      - name: staple
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('farmgate_commodities')
+                field: staple
+  - name: psa_farmgate_spot_checks
+    description: >
+      A few farmgate prices fetched from OpenSTAT's JSON API on 2026-11-07,
+      outside the pipeline (ADR 11). Query with `"format": "json"`.
+  - name: wage_orders
+    description: >
+      Each region's daily non-agriculture minimum wage, one row per wage order
+      tranche, from the order in force on 2024-01-01. Rates are from NWPC's
+      "Daily minimum wage rates per wage order by region, non-agriculture, 1989 -
+      October 6, 2026"; source_url is the order on nwpc.dole.gov.ph. Where NWPC
+      gives a range, daily_wage is its top: the top non-agriculture tier (larger
+      establishments) and, where rates differ by area, the highest-paid area. By
+      NWPC's notes on the current orders, that is Metro Cebu in VII, the Cagayan
+      de Oro cluster in X and 3 cities in BARMM. NCR-27 is left out: NWPC lists it as subject of
+      pending court cases, and NCR-28 set the same 755 from 2026-09-26. Negros
+      Island Region has no order yet. On 2026-11-07 every row was matched to its
+      region's line in that PDF (order number, effective date, top rate), and
+      every rate in force from 2024-01-01 in the PDF is here.
+    columns:
+      - name: geo_code
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('geolocations')
+                field: geo_code
+  - name: policy_events
+    description: >
+      Dated government actions on rice or onion supply and price, each checked
+      against its source_url. staple is a staple or a staple category (Rice).

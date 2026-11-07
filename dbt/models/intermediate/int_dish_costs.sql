@@ -33,6 +33,24 @@ dishes as (
             as missing_staples
     from lines
     group by all
+),
+
+-- The region's daily non-agriculture minimum wage in force on the 1st of the month.
+-- Regions only (there is no national minimum wage), and from 2024, where
+-- seeds/wage_orders.csv starts.
+wages as (
+    select
+        dishes.month,
+        dishes.geo_code,
+        dishes.dish,
+        wage_orders.wage_order,
+        wage_orders.daily_wage
+    from dishes
+    asof inner join {{ ref('wage_orders') }} as wage_orders
+        on dishes.geo_code = wage_orders.geo_code
+        and dishes.month >= wage_orders.effective_date
+    where dishes.geo_level = 'region'
+        and dishes.month >= date '2024-01-01'
 )
 
 select
@@ -40,8 +58,15 @@ select
     year_ago.dish_cost as dish_cost_year_ago,
     national.dish_cost as national_dish_cost,
     dishes.dish_cost / year_ago.dish_cost - 1 as change_year,
-    dishes.dish_cost / national.dish_cost - 1 as vs_national
+    dishes.dish_cost / national.dish_cost - 1 as vs_national,
+    wages.wage_order,
+    wages.daily_wage,
+    dishes.dish_cost / wages.daily_wage as dish_wage_share
 from dishes
+left join wages
+    on dishes.month = wages.month
+    and dishes.geo_code = wages.geo_code
+    and dishes.dish = wages.dish
 left join dishes as year_ago
     on dishes.geo_code = year_ago.geo_code
     and dishes.dish = year_ago.dish

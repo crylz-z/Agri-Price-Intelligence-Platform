@@ -22,3 +22,7 @@ models:
         description: Average retail price in pesos per the commodity's unit.
       - name: released_at
         description: PSA's `updated` time of the release the price comes from.
+  - name: farmer_share_monthly
+    description: >
+      Farmer's share per staple, national and region, from the latest farmgate and
+      retail releases. Key (month, geo_code, staple). Written to R2 as Parquet.
