@@ -138,20 +138,6 @@ def test_year_extremes_splits_falls_and_rises_biggest_first():
     assert (rose["change_year"] > 0).all()
 
 
-def test_year_extremes_keep_to_one_aisle():
-    rows = staples_frame().assign(
-        category=["Rice", "Vegetables", "Chicken and eggs"] + ["Rice"] * 4
-    )
-    fell, rose = data.year_extremes(rows, SEP, 4, aisle="Meat & fish")
-    assert fell.empty and list(rose["staple"]) == ["Egg"]
-
-
-def test_aisles_cover_every_basket_category():
-    categories = set(pd.read_csv(data.BASKET)["category"])
-    grouped = [c for aisle in data.AISLES.values() for c in aisle]
-    assert sorted(grouped) == sorted(categories)
-
-
 def test_headline_names_biggest_rise_and_fall():
     rose = pd.DataFrame({"staple": ["Repolyo"], "change_year": [0.349]})
     fell = pd.DataFrame({"staple": ["Carrot"], "change_year": [-0.285]})
@@ -189,58 +175,8 @@ def test_helpers_read_one_place():
     assert data.basket_summary(staples_frame(), SEP, "130000000")["staples"] == 1
 
 
-def test_peso_buys_compares_kg_now_and_a_year_ago():
-    rows = pd.DataFrame(
-        {
-            "month": [SEP, SEP],
-            "geo_code": ["000000000", "130000000"],
-            "staple": ["Regular rice", "Regular rice"],
-            "price": [50.0, 60.0],
-            "price_year_ago": [40.0, None],
-        }
-    )
-    buys = data.peso_buys(rows, SEP)
-    assert buys is not None
-    assert (buys["kg"], buys["kg_year_ago"]) == (2.0, 2.5)
-    assert data.peso_buys(rows, SEP, "130000000") is None  # no year-ago price
-
-
-def test_swaps_pair_risers_with_distinct_fallers_in_their_group():
-    rows = pd.DataFrame(
-        {
-            "month": [SEP] * 6,
-            "geo_code": ["000000000"] * 6,
-            "staple": ["Repolyo", "Sayote", "Carrot", "Kalabasa", "Tomato", "Rice"],
-            "category": ["Vegetables"] * 5 + ["Rice"],
-            "change_year": [0.35, 0.30, -0.28, -0.17, -0.01, 0.25],
-        }
-    )
-    pairs = data.swaps(rows, SEP)
-    # Tomato fell under 5%, so it is no swap; rice is not a swap group.
-    assert list(zip(pairs["staple"], pairs["swap"], strict=True)) == [
-        ("Repolyo", "Carrot"),
-        ("Sayote", "Kalabasa"),
-    ]
-
-
-def test_seasonal_flags_keep_only_big_usual_gaps():
-    seasons = pd.DataFrame(
-        {
-            "staple": ["Carrot", "Rice", "Carrot"],
-            "calendar_month": [10, 10, 11],
-            "seasonal_index": [0.115, -0.001, -0.2],
-        }
-    )
-    assert data.seasonal_flags(seasons, 10) == {"Carrot": 0.115}
-
-
-def test_movers_ranks_by_size_either_way():
-    rows = data.movers(staples_frame(), SEP, "change_month", 2)
-    assert list(rows["staple"]) == ["Carrot", "Egg"]
-
-
 def test_area_values_lists_one_level_cheapest_first():
-    rows = data.area_values(staples_frame(), SEP, "province", "staple", "Rice")
+    rows = data.area_values(staples_frame(), SEP, "province", "Rice")
     assert list(rows["geolocation"]) == ["Abra", "Benguet"]
     assert list(rows["value"]) == [40.0, 60.0]
 
@@ -261,8 +197,8 @@ def geojson() -> dict:
 
 def test_map_features_at_province_level_fill_ncr_from_its_region():
     df = staples_frame()
-    provinces = data.area_values(df, SEP, "province", "staple", "Rice")
-    regions = data.area_values(df, SEP, "region", "staple", "Rice")
+    provinces = data.area_values(df, SEP, "province", "Rice")
+    regions = data.area_values(df, SEP, "region", "Rice")
     ncr = regions[regions["geo_code"] == data.NCR]
     props = [
         f["properties"]
@@ -273,7 +209,7 @@ def test_map_features_at_province_level_fill_ncr_from_its_region():
 
 
 def test_map_features_at_region_level_colour_provinces_by_region():
-    regions = data.area_values(staples_frame(), SEP, "region", "staple", "Rice")
+    regions = data.area_values(staples_frame(), SEP, "region", "Rice")
     props = [
         f["properties"]
         for f in data.map_features(geojson(), regions, "region", regions)["features"]
@@ -282,173 +218,36 @@ def test_map_features_at_region_level_colour_provinces_by_region():
     assert [p["label"] for p in props] == ["CAR", "CAR", "NCR"]
 
 
-def test_dish_breakdown_prices_each_recipe_line():
-    recipes = pd.DataFrame(
-        {"dish": ["Torta", "Torta"], "staple": ["Egg", "Rice"], "quantity": [6, 0.75]}
-    )
-    lines = data.dish_breakdown(staples_frame(), recipes, SEP, "000000000", "Torta")
-    assert list(lines["staple"]) == ["Egg", "Rice"]
-    assert list(lines["line_cost"]) == [54.0, 37.5]
-
-
-def test_season_extremes_put_the_cheapest_month_first():
-    seasons = pd.DataFrame(
-        {
-            "staple": ["Tomato", "Onion", "Tomato"],
-            "calendar_month": [11, 11, 4],
-            "seasonal_index": [0.15, -0.05, -0.2],
-        }
-    )
-    assert list(data.season_extremes(seasons, 11)["staple"]) == ["Onion", "Tomato"]
-
-
-def test_change_words():
-    assert data.change_words(0.245) == "24.5% more"
-    assert data.change_words(-0.031) == "3.1% less"
-    assert data.change_words(0.0004) == "the same"
-
-
 def test_arrow_pairs_direction_with_a_symbol():
     assert data.arrow(0.041) == "↑ 4.1%"
     assert data.arrow(-0.2) == "↓ 20.0%"
     assert data.arrow(0.0004) == "– 0.0%"
 
 
-def gap_rows() -> pd.DataFrame:
-    """Two regions and a province with three foods' gaps from national."""
-    month = pd.Timestamp("2026-10-01")
-    rows = [
-        # geo_code, geolocation, geo_level, region_code, staple, vs_national
-        (
-            "130000000",
-            "NCR - National Capital Region",
-            "region",
-            "130000000",
-            "Rice",
-            0.10,
-        ),
-        (
-            "130000000",
-            "NCR - National Capital Region",
-            "region",
-            "130000000",
-            "Egg",
-            0.02,
-        ),
-        (
-            "130000000",
-            "NCR - National Capital Region",
-            "region",
-            "130000000",
-            "Garlic",
-            -0.05,
-        ),
-        ("070000000", "VII - Central Visayas", "region", "070000000", "Rice", -0.20),
-        ("070000000", "VII - Central Visayas", "region", "070000000", "Egg", -0.01),
-        ("070000000", "VII - Central Visayas", "region", "070000000", "Garlic", 0.30),
-        ("072200000", "Cebu", "province", "070000000", "Rice", -0.30),
-        ("072200000", "Cebu", "province", "070000000", "Egg", None),
+def test_typical_change_history_takes_each_months_median():
+    rows = staples_frame()
+    earlier = rows.assign(month=pd.Timestamp("2026-08-01"), change_year=0.1)
+    history = data.typical_change_history(pd.concat([rows, earlier]))
+    assert history["month"].tolist() == [pd.Timestamp("2026-08-01"), SEP]
+    # September national: median of +25%, -27%, +5% is +5%.
+    assert history["typical"].round(4).tolist() == [0.1, 0.05]
+
+
+def test_region_prices_list_the_latest_month_cheapest_first():
+    retail = pd.DataFrame(
+        {
+            "month": pd.to_datetime(["2026-09-01"] * 3 + ["2026-08-01"]),
+            "geo_code": ["000000000", "130000000", "140000000", "140000000"],
+            "geolocation": ["Philippines", "NCR - National Capital Region",
+                            "CAR - Cordillera Administrative Region", "CAR - x"],
+            "geo_level": ["national", "region", "region", "region"],
+            "commodity": ["RICE"] * 4,
+            "price": [50.0, 60.0, 45.0, 10.0],
+        }
+    )  # fmt: skip
+    rows = data.region_prices(retail, "RICE")
+    assert rows["region"].tolist() == [
+        "Cordillera Administrative Region",
+        "National Capital Region",
     ]
-    frame = pd.DataFrame(
-        rows,
-        columns=[
-            "geo_code",
-            "geolocation",
-            "geo_level",
-            "region_code",
-            "staple",
-            "vs_national",
-        ],
-    )
-    return frame.assign(month=month)
-
-
-def test_typical_gaps_take_the_median_and_rank_the_cheapest_first():
-    gaps = data.typical_gaps(gap_rows(), pd.Timestamp("2026-10-01"), "region")
-    # Central Visayas: median of -20%, -1%, +30% is -1%; NCR: of +10%, +2%, -5% is +2%.
-    assert list(gaps["geolocation"]) == [
-        "VII - Central Visayas",
-        "NCR - National Capital Region",
-    ]
-    assert gaps["vs_national"].round(4).tolist() == [-0.01, 0.02]
-    assert gaps["rank"].tolist() == [1, 2]
-    assert gaps["foods"].tolist() == [3, 3]
-
-
-def test_gap_history_counts_dearer_foods_and_skips_unpriced_ones():
-    history = data.gap_history(gap_rows(), "072200000")
-    assert history[["typical", "dearer", "foods"]].values.tolist() == [[-0.30, 0, 1]]
-
-
-def test_place_names_mark_regions_and_sort_a_to_z():
-    names = data.place_names(gap_rows())
-    assert list(names.values()) == [
-        "Cebu",
-        "Central Visayas (region)",
-        "National Capital Region (region)",
-    ]
-
-
-def test_region_of_maps_a_province_to_its_region():
-    staples = gap_rows()
-    assert data.region_of(staples, "072200000") == "070000000"
-    assert data.region_of(staples, "130000000") == "130000000"
-    assert data.region_of(staples, "000000000") == "000000000"
-
-
-def test_place_headline_names_the_cheapest_and_priciest_food_here():
-    basket = pd.DataFrame(
-        {"staple": ["Tilapia", "Rice", "Garlic"], "vs_national": [-0.251, 0.01, 0.302]}
-    )
-    assert (
-        data.place_headline(basket, "Cebu")
-        == "In Cebu, tilapia costs 25.1% less than the national average, garlic 30.2% more"
-    )
-
-
-def test_place_headline_leaves_out_a_side_with_no_food():
-    pricier = pd.DataFrame({"staple": ["Rice", "Garlic"], "vs_national": [0.01, 0.302]})
-    assert data.place_headline(pricier, "Batanes") == (
-        "In Batanes, garlic costs 30.2% more than the national average"
-    )
-    flat = pd.DataFrame({"staple": ["Rice"], "vs_national": [0.0]})
-    assert (
-        data.place_headline(flat, "Cebu")
-        == "In Cebu, food costs the same as the national average"
-    )
-
-
-def moves_rows() -> pd.DataFrame:
-    """Cebu, 12 months: talong usually 30% above national, now 5% below (buy);
-    sitaw usually 10% below, now 40% above (wait); rice steady at +2% (usual);
-    ginger has only 3 months of history, too few to have a usual."""
-    months = pd.date_range("2025-10-01", "2026-10-01", freq="MS")
-    rows = []
-    for i, m in enumerate(months):
-        last = i == len(months) - 1
-        rows += [
-            ("Talong", -0.05 if last else 0.30),
-            ("Sitaw", 0.40 if last else -0.10),
-            ("Rice", 0.02),
-        ]
-        rows[-3:] = [(s, g, m) for s, g in rows[-3:]]
-        if i >= len(months) - 3:
-            rows.append(("Ginger", 0.5, m))
-    frame = pd.DataFrame(rows, columns=["staple", "vs_national", "month"])
-    return frame.assign(geo_code="072200000", price=100.0, unit="kg")
-
-
-def test_place_moves_compare_each_gap_with_its_usual_here():
-    moves = data.place_moves(moves_rows(), pd.Timestamp("2026-10-01"), "072200000")
-    assert moves["staple"].tolist() == ["Talong", "Rice", "Sitaw"]
-    assert moves["usual"].round(2).tolist() == [0.30, 0.02, -0.10]
-    assert moves["shift"].round(2).tolist() == [-0.35, 0.0, 0.50]
-    assert moves["action"].tolist() == ["buy", "usual", "wait"]
-
-
-def test_rank_words_count_from_the_nearer_end():
-    assert data.rank_words(2, 18, "regions") == "2nd cheapest of 18 regions"
-    assert data.rank_words(17, 18, "regions") == "2nd most expensive of 18 regions"
-    assert (
-        data.rank_words(59, 100, "provinces") == "42nd most expensive of 100 provinces"
-    )
+    assert rows["price"].tolist() == [45.0, 60.0]

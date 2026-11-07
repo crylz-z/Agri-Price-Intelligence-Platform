@@ -2,7 +2,7 @@
 
     uv run --no-project --with playwright python scripts/screenshot.py [path?query ...]
 
-e.g. `scripts/screenshot.py "" "?region=Central+Luzon" ulam`. It starts its own
+e.g. `scripts/screenshot.py "" "?region=Central+Luzon" places`. It starts its own
 server on a free port, so it always runs the current code, then opens a new
 browser per width: a cold font cache is what exposes clipped chart labels. It
 opens every expander and prints exceptions and console errors. PNGs go to

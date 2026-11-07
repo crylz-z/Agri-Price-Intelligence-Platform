@@ -77,11 +77,9 @@ One screen of the dashboard, named by its sidebar title. Numbered in sidebar ord
 
 | # | Title | URL | Shows |
 |---|---|---|---|
-| 1 | This month | `/` (`?region=…`) | Change over time for one region |
-| 2 | Where you live | `/places` (`?place=…`) | One month compared across places |
-| 3 | Ulam cost | `/ulam` | Dish costs |
-| 4 | When to buy | `/seasons` | Seasonal index per staple |
-| 5 | Look up a price | `/lookup` | Any retail price, by commodity and geolocation |
+| 1 | Overview | `/` (`?region=…`) | Yearly change of the basket and dish costs, for one region |
+| 2 | Compare places | `/places` (`?food=…&level=…`) | One staple's price across provinces or regions |
+| 3 | Look up a food | `/lookup` (`?item=…&where=…`) | Any retail price, by commodity and geolocation |
 
-Pages 1–4 sit under "Stories" in the sidebar, page 5 under "Explore". Refer to a page by number and title together, e.g. "page 2 (Where you live)".
+Refer to a page by number and title together, e.g. "page 2 (Compare places)".
 _Avoid_: tab, screen, view, story (`views.py` names functions, not pages)

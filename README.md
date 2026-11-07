@@ -7,8 +7,8 @@ Monthly retail food prices for the Philippines (national, 18 regions and 100 pro
 ```mermaid
 graph LR
     PSA[("PSA OpenSTAT API")] -->|ingest.py, only new releases| RAW[("R2 raw/<br/>1 CSV snapshot per release")]
-    RAW -->|dbt build: staging, tests| MART[("R2 mart/<br/>retail_prices_monthly.parquet")]
-    MART --> UI["Streamlit dashboard"]
+    RAW -->|dbt build: staging, intermediate, tests| MART[("R2 mart/<br/>4 Parquet marts")]
+    MART --> UI["Streamlit dashboard<br/>3 pages"]
     CRON["GitHub Actions<br/>daily cron"] -.-> PSA
 ```
 
@@ -19,6 +19,11 @@ graph LR
   - `stg_psa__retail_prices` unpivots the month columns of the latest two snapshots per table.
   - `int_retail_prices` adds PSGC geo codes from a seed.
   - `retail_prices_monthly`, keyed on `(month, geo_code, commodity)`, is written to R2 as Parquet.
+  - Three marts for the dashboard, built from seeds of 28 everyday foods (`staples.csv`) and sourced recipes (`recipes.csv`):
+    - `staple_prices_monthly`: each food's price, its change in a month and a year, and its gap from the national price.
+    - `dish_costs_monthly`: the cost of a dinner for 5, left blank where an ingredient is unpriced.
+    - `staple_seasonality`: each food's usual price in a calendar month against its centred 13-month average.
+  - dbt tests recompute the year-on-year changes and dish costs by a separate path, and check prices against values fetched from PSA by hand (`psa_spot_checks.csv`).
 - **Tests that block publishing**:
   - a table or geolocation is missing, or PSA adds an unknown one
   - duplicate keys
@@ -27,8 +32,11 @@ graph LR
 
   All tests run upstream of the mart, so a failure skips the write and R2 keeps the last good mart. Two checks only warn: a latest month more than 3 months old, and a national price that doubles or halves in a month.
 - **pytest** covers ingest (change detection, HEAD-only R2 checks, rejecting non-CSV responses), the pipeline's dbt trigger and the dashboard's data layer, all without network.
-- **Dashboard** (`src/dashboard/`): a price trend per commodity and a region/province comparison for one month. It fetches the 3 MB mart in a single request.
-- **$0 on R2**: a month has 11 snapshot writes, 1 mart write and about 30 HEADs a day, well inside the free tier. See `docs/cloudfare-agent-notes/free-tier-r2.md`. The reasons behind each tool are in `docs/adr.md`; the terms are defined in `GLOSSARY.md`.
+- **Dashboard** (`src/dashboard/`), 3 pages, each reading one group of marts and fetching each mart in a single request:
+  1. **Overview**: the typical food's yearly change since 2019, every food's change this year, and what dinner costs.
+  2. **Compare places**: a map of one food's price by province or region, with the cheapest and most expensive areas.
+  3. **Look up a food**: any of PSA's 197 items in any place, with its trend, usual seasonal pattern and regional prices.
+- **$0 on R2**: a release day has 11 snapshot writes and 4 mart writes, plus about 11 HEADs a day, well inside the free tier. See `docs/cloudfare-agent-notes/free-tier-r2.md`. The reasons behind each tool are in `docs/adr.md`; the terms are defined in `GLOSSARY.md`.
 
 ## Run it
 Needs [uv](https://docs.astral.sh/uv/). Copy `.env.example` to `.env` and fill in an R2 bucket and API token.
@@ -65,6 +73,11 @@ uv run python -m src.etl.query "SELECT geolocation, price FROM mart WHERE geo_le
 # Which release each table's latest snapshot comes from
 uv run python -m src.etl.query "SELECT \"table\", max(updated) FROM raw GROUP BY ALL ORDER BY 1"
 ```
+
+## What I'd build next
+- **Farm to market markup:** add PSA's farmgate and wholesale price series and match their commodity names to retail, to show how much of a retail price reaches the farmer.
+- **Revision tracker:** diff consecutive snapshots to show which past months PSA revised.
+- **Inflation context:** join PSA's food CPI.
 
 ---
 Data: [PSA OpenSTAT](https://openstat.psa.gov.ph/), Retail Prices of Agricultural Commodities by Geolocation, Commodity, Year and Period (2018 onward).

@@ -2,6 +2,8 @@
 
 Research note, 2026-11-06. It covers how to make `src/dashboard/data.py` load the marts faster while R2 stays on the free tier (`free-tier-r2.md`). Every size and timing below was measured in this session on copies of the live marts. Nothing was written to R2. Claims the primary sources do not state are marked **unverified**.
 
+**Status 2026-11-07:** step 2 (slice marts) is dropped. The dashboard was cut to 3 pages (ADR 12), so the per-page details below describe the old 5-page version.
+
 ## Recommendation (ranked)
 
 | # | Change | Expected gain | Effort | R2 cost impact |

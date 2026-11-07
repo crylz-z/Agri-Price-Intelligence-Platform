@@ -13,7 +13,7 @@ from streamlit.testing.v1 import AppTest
 from src.dashboard import data
 
 MARTS = Path(__file__).parent / "fixtures" / "marts"
-PAGES = ["today_page", "places_page", "ulam_page", "seasons_page", "lookup_page"]
+PAGES = ["overview_page", "places_page", "lookup_page"]
 
 
 @pytest.fixture(autouse=True)
@@ -38,27 +38,19 @@ def test_page_renders(page):
     assert not at.exception, at.exception
 
 
-def test_this_month_renders_for_a_region():
-    at = render("today_page", region="Central Luzon")
+def test_overview_renders_for_a_region():
+    at = render("overview_page", region="Central Luzon")
     assert not at.exception, at.exception
     assert any("In Central Luzon," in m.value for m in at.markdown)
 
 
-@pytest.mark.parametrize(
-    ("place", "headline"),
-    [("Cebu", "In Cebu,"), ("Central Visayas (region)", "In Central Visayas,")],
-)
-def test_where_you_live_renders_for_a_province_and_a_region(place, headline):
-    at = render("places_page", place=place, food="Regular rice")
+@pytest.mark.parametrize("level", ["Provinces", "Regions"])
+def test_compare_places_renders_at_each_level(level):
+    at = render("places_page", food="Regular rice", level=level)
     assert not at.exception, at.exception
-    assert at.title[0].value.startswith(headline)
+    assert at.title[0].value.startswith("Regular rice costs most in")
 
 
-def test_where_you_live_opens_on_the_place_chosen_on_this_month():
-    at = AppTest.from_string(
-        "from src.dashboard.views import places_page\nplaces_page()", default_timeout=60
-    )
-    at.session_state["home"] = "072200000"  # Cebu
-    at.run()
+def test_look_up_a_food_renders_for_a_province():
+    at = render("lookup_page", where="072200000")
     assert not at.exception, at.exception
-    assert at.selectbox(key="place").value == "072200000"

@@ -36,7 +36,7 @@ One job a day (ingest, then dbt only if something changed) is free on a public r
 - **Not Airflow, Dagster or Prefect:** a scheduler server to host and monitor, for a single two-step job.
 
 ## 8. Streamlit on Streamlit Community Cloud for the dashboard
-The dashboard is 2 Python pages over one 3 MB mart, hosted free from the GitHub repo with a read-only R2 token in Streamlit's secrets. The cost is a wake-up page after 12 hours without visitors.
+The dashboard is 3 Python pages over four small marts, hosted free from the GitHub repo with a read-only R2 token in Streamlit's secrets. The cost is a wake-up page after 12 hours without visitors.
 - **Not Vercel:** it can't run Streamlit's long-running server, so it would mean rewriting the dashboard as a static JavaScript site.
 - **Not Evidence or another static DuckDB-WASM site:** no sleep and no keys online, but it replaces tested Python code with a Node build for the same 2 charts.
 
@@ -51,3 +51,7 @@ A province missing one recipe staple gets no dish cost rather than one filled fr
 ## 11. Story numbers are checked against PSA, not only against our own code
 dbt tests recompute year-on-year changes and dish costs from `int_retail_prices` by a separate path, and the `psa_spot_checks` seed holds prices fetched from OpenSTAT's JSON API outside the pipeline; any mismatch blocks the marts. pytest checks the dashboard's headline helpers against a fixture with hand-worked answers. Shape tests alone pass when a join or unit is wrong everywhere.
 - **Not shape tests only:** unique keys and positive prices can't catch a wrong commodity mapping or a doubled quantity.
+
+## 12. Three plain dashboard pages, one per mart group
+The dashboard is a shop window for the pipeline, so each page reads one group of marts (page 1 the staple and dish marts, page 2 the staple mart by area, page 3 the retail and seasonality marts) and uses stock Streamlit and Altair, with tabular digits as the only CSS. Chosen 2026-11-07, after a 5-page version with custom CSS grew to 2,000 lines of view code without making the data more useful.
+- **Not the 5-page version:** a separate page for dish costs and another for seasons repeated the same yearly change in many places; dish costs moved to a table on page 1 and seasons to a chart on page 3. It stays in git history at `a7a97b2`.
