@@ -26,8 +26,8 @@ BASE_URL = "https://openstat.psa.gov.ph/PXWeb/api/v1/en/DB/2M/2018NEW"
 CSV_QUERY = {"query": [], "response": {"format": "csv"}}
 CSV_HEADER = b'"Geolocation","Commodity",'
 USER_AGENT = (
-    f"apip/{version('agri-price-intelligence-platform')} "
-    "(+https://github.com/crylz-z/Agri-Price-Intelligence-Platform)"
+    f"ph-food-prices/{version('ph-food-prices')} "
+    "(+https://github.com/crylz-z/ph-food-prices)"
 )
 TIMEOUT_SECONDS = 60
 REQUEST_DELAY_SECONDS = 1.0

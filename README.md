@@ -1,6 +1,8 @@
-# Agri-Price Intelligence Platform
+# PH Food Prices
 
 Monthly retail food prices for the Philippines (national, 18 regions and 100 provinces and cities, 197 commodities, from January 2018) from the Philippine Statistics Authority. A daily job stores each PSA release unchanged on Cloudflare R2, a dbt project models and tests it, and a Streamlit dashboard shows the result. It costs $0 to run.
+
+**Live dashboard:** [ph-food-prices.streamlit.app](https://ph-food-prices.streamlit.app/)
 
 ```mermaid
 graph LR
@@ -23,7 +25,7 @@ graph LR
   - `price <= 0`
   - a release with far fewer filled cells than the one before
 
-  All tests run upstream of the mart, so a failure skips the write and R2 keeps the last good mart. A latest month more than 3 months old only warns.
+  All tests run upstream of the mart, so a failure skips the write and R2 keeps the last good mart. Two checks only warn: a latest month more than 3 months old, and a national price that doubles or halves in a month.
 - **pytest** covers ingest (change detection, HEAD-only R2 checks, rejecting non-CSV responses), the pipeline's dbt trigger and the dashboard's data layer, all without network.
 - **Dashboard** (`src/dashboard/`): a price trend per commodity and a region/province comparison for one month. It fetches the 3 MB mart in a single request.
 - **$0 on R2**: a month has 11 snapshot writes, 1 mart write and about 30 HEADs a day, well inside the free tier. See `docs/cloudfare-agent-notes/free-tier-r2.md`. The reasons behind each tool are in `docs/adr.md`; the terms are defined in `GLOSSARY.md`.
@@ -39,6 +41,8 @@ uv run python -m src.etl.pipeline     # ingest; dbt build only if PSA released s
 uv run python -m src.etl.pipeline --build   # always run dbt
 uv run python -m streamlit run src/dashboard/app.py
 ```
+
+To rehearse the Streamlit Community Cloud deploy, paste the app's Secrets TOML into `.streamlit/secrets.toml` (gitignored) and run the dashboard. Its root-level keys become environment variables and take precedence over `.env`, as on the cloud.
 
 dbt on its own, from the repo root:
 

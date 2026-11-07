@@ -1,4 +1,4 @@
-# APIP
+# PH Food Prices
 
 Monthly retail food prices across the Philippines, as published by the Philippine Statistics Authority (PSA).
 
@@ -47,3 +47,41 @@ _Avoid_: location, area, place
 **Geo level**:
 Which tier a geolocation sits on: national, region or province.
 _Avoid_: granularity, scope
+
+## Basket
+
+**Staple**:
+An everyday food under its plain name, such as "Galunggong", mapped to exactly one commodity.
+_Avoid_: item, product, good
+
+**Basket**:
+The fixed set of staples the stories track (`dbt/seeds/staples.csv`).
+_Avoid_: shopping list, CPI basket
+
+**Recipe**:
+The fixed quantities of staples for one dish, for one meal for a family of 5, rice included, scaled from a published recipe where one was found.
+_Avoid_: menu, meal plan
+
+**Dish cost**:
+The sum of retail price × quantity over a recipe's staples for one geolocation and month; blank when any staple has no price there.
+_Avoid_: meal price, ulam price
+
+**Seasonal index**:
+How far a staple's national price usually sits above or below its centred 13-month average in a calendar month.
+_Avoid_: seasonality factor, best month
+
+## Dashboard
+
+**Page**:
+One screen of the dashboard, named by its sidebar title. Numbered in sidebar order:
+
+| # | Title | URL | Shows |
+|---|---|---|---|
+| 1 | This month | `/` (`?region=…`) | Change over time for one region |
+| 2 | Where you live | `/places` (`?place=…`) | One month compared across places |
+| 3 | Ulam cost | `/ulam` | Dish costs |
+| 4 | When to buy | `/seasons` | Seasonal index per staple |
+| 5 | Look up a price | `/lookup` | Any retail price, by commodity and geolocation |
+
+Pages 1–4 sit under "Stories" in the sidebar, page 5 under "Explore". Refer to a page by number and title together, e.g. "page 2 (Where you live)".
+_Avoid_: tab, screen, view, story (`views.py` names functions, not pages)

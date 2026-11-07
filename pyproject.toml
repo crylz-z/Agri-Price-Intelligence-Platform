@@ -1,7 +1,7 @@
 [project]
-name = "agri-price-intelligence-platform"
+name = "ph-food-prices"
 version = "0.2.0"
-description = "Agri-Price Intelligence Platform: monthly Philippine retail food prices from PSA OpenSTAT, kept at $0."
+description = "Monthly Philippine retail food prices from PSA OpenSTAT, kept at $0."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

@@ -22,7 +22,26 @@ seeds:
         geo_code: varchar
         geolocation: varchar
         geo_level: varchar
+        region_code: varchar
     psa_tables:
       +column_types:
         table_id: varchar
         commodity_group: varchar
+    staples:
+      +column_types:
+        staple: varchar
+        category: varchar
+        unit: varchar
+        commodity: varchar
+    recipes:
+      +column_types:
+        dish: varchar
+        staple: varchar
+        quantity: double
+        source: varchar
+    psa_spot_checks:
+      +column_types:
+        geo_code: varchar
+        commodity: varchar
+        month: date
+        price: double

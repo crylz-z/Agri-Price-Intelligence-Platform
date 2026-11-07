@@ -39,3 +39,15 @@ One job a day (ingest, then dbt only if something changed) is free on a public r
 The dashboard is 2 Python pages over one 3 MB mart, hosted free from the GitHub repo with a read-only R2 token in Streamlit's secrets. The cost is a wake-up page after 12 hours without visitors.
 - **Not Vercel:** it can't run Streamlit's long-running server, so it would mean rewriting the dashboard as a static JavaScript site.
 - **Not Evidence or another static DuckDB-WASM site:** no sleep and no keys online, but it replaces tested Python code with a Node build for the same 2 charts.
+
+## 9. Stories are computed in dbt marts, the dashboard only shows them
+Year-on-year changes, dish costs and seasonal indexes are tested dbt models published as three small Parquet marts, so every headline number has a test behind it. That adds 3 R2 puts per release day.
+- **Not pandas in Streamlit:** the logic would be untested and recomputed on every visitor's session.
+
+## 10. Dish costs stay blank when a staple is unpriced
+A province missing one recipe staple gets no dish cost rather than one filled from its region or the country: a filled number would be one PSA never reported. Under half of province dish costs are complete.
+- **Not filling from the region:** more map coverage, but a mixed-level number presented as local.
+
+## 11. Story numbers are checked against PSA, not only against our own code
+dbt tests recompute year-on-year changes and dish costs from `int_retail_prices` by a separate path, and the `psa_spot_checks` seed holds prices fetched from OpenSTAT's JSON API outside the pipeline; any mismatch blocks the marts. pytest checks the dashboard's headline helpers against a fixture with hand-worked answers. Shape tests alone pass when a join or unit is wrong everywhere.
+- **Not shape tests only:** unique keys and positive prices can't catch a wrong commodity mapping or a doubled quantity.

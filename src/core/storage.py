@@ -5,6 +5,7 @@ e.g. https://<account_id>.r2.cloudflarestorage.com
 """
 
 import os
+from urllib.parse import urlparse
 
 import duckdb
 import s3fs
@@ -12,7 +13,12 @@ from fsspec import AbstractFileSystem
 
 
 def endpoint_url() -> str | None:
-    return os.getenv("S3_ENDPOINT_URL") or None
+    url = os.getenv("S3_ENDPOINT_URL") or None
+    # Cloudflare shows the S3 API URL with the bucket appended. s3fs would then look
+    # for every key under <bucket>/<bucket>/ and fail with NoSuchKey.
+    if url and urlparse(url).path.strip("/"):
+        raise ValueError("S3_ENDPOINT_URL must not include a path; drop the bucket.")
+    return url
 
 
 def region() -> str:
@@ -28,8 +34,16 @@ def root() -> str:
 
 def filesystem() -> s3fs.S3FileSystem:
     # Credentials come from AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY via botocore.
+    # Fail fast and retry: botocore's 60 s timeouts let one stalled read hang the
+    # dashboard's "Loading" spinner for minutes. read_timeout is per socket read.
     return s3fs.S3FileSystem(
-        endpoint_url=endpoint_url(), client_kwargs={"region_name": region()}
+        endpoint_url=endpoint_url(),
+        client_kwargs={"region_name": region()},
+        config_kwargs={
+            "connect_timeout": 5,
+            "read_timeout": 20,
+            "retries": {"max_attempts": 3, "mode": "standard"},
+        },
     )
 
 

@@ -116,5 +116,5 @@ def test_s3_exists_is_one_head_and_never_lists(monkeypatch):
 
 def test_session_names_itself():
     ua = ingest.make_session().headers["User-Agent"]
-    assert isinstance(ua, str) and ua.startswith("apip/")
+    assert isinstance(ua, str) and ua.startswith("ph-food-prices/")
     assert isinstance(ingest.make_session(), requests.Session)

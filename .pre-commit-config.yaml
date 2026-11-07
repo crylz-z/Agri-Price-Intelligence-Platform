@@ -36,4 +36,10 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+      - id: dashboard-no-css
+        name: dashboard CSS stays in app.py
+        entry: <style|unsafe_allow_html|use_container_width
+        language: pygrep
+        files: ^src/dashboard/.*\.py$
+        exclude: ^src/dashboard/app\.py$
 # Secrets: GitHub secret scanning with push protection, not a local hook.

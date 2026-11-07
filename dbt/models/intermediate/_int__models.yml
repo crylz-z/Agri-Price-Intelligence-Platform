@@ -1,0 +1,25 @@
+version: 2
+
+models:
+  - name: int_retail_prices
+    description: The latest snapshot's non-empty prices, with geo codes and groups.
+    columns:
+      - name: geo_code
+        description: PSGC code from seeds/geolocations.csv; null means PSA used a new label.
+        data_tests:
+          - not_null
+      - name: commodity_group
+        data_tests:
+          - not_null
+  - name: int_staple_prices
+    description: >
+      Basket prices with the same place a month and a year earlier and the national
+      price that month. Changes are ratios minus 1 (0.25 means 25 % dearer).
+  - name: int_dish_costs
+    description: >
+      Recipe cost per geolocation and month. dish_cost is null when a staple has
+      no price there that month; missing_staples names them.
+  - name: int_staple_seasonality
+    description: >
+      National price of each staple by calendar month relative to its centred
+      13-month average, averaged over the years with a full window.

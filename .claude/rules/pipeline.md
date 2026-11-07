@@ -10,13 +10,13 @@ paths:
 
 ## Layer contract
 - Raw: `s3://$S3_BUCKET_NAME/raw/table=<id>/updated=<YYYYMMDDTHHMMSS>.csv`, one per PSA release, stored as returned (Windows-1252, CRLF, missing values `.` or `..`), never rewritten. `<id>` drops PSA's `.px`; `updated` is PSA's timestamp without separators.
-- Mart: `mart/retail_prices_monthly.parquet`, key `(month, geo_code, commodity)`, rebuilt whole by dbt from the latest snapshot per table.
+- Marts, rebuilt whole by dbt from the latest snapshot per table: `mart/retail_prices_monthly.parquet` (key `month, geo_code, commodity`), `staple_prices_monthly` (`month, geo_code, staple`), `dish_costs_monthly` (`month, geo_code, dish`), `staple_seasonality` (`staple, calendar_month`).
 - Order in `pipeline.main`: ingest; if it wrote anything (or `--build`), `dbt build`; a failed build exits 1.
 
 ## Ingest (`src/etl/ingest.py`)
 - Change detection is `storage.exists`: one HEAD. Never use s3fs `exists()`/`info()` on R2: a miss adds a ListObjects (Class A). Never list R2 in ingest.
 - `download` refuses any body that doesn't start with `"Geolocation","Commodity",`, so an error page can't become an immutable snapshot.
-- Honest bot: fixed `apip/<version>` User-Agent, sequential, 1 s delay. Cloudflare 403s bare `urllib` but serves `requests` with this UA. Don't add UA rotation, spoofed headers or jitter.
+- Honest bot: fixed `ph-food-prices/<version>` User-Agent, sequential, 1 s delay. Cloudflare 403s bare `urllib` but serves `requests` with this UA. Don't add UA rotation, spoofed headers or jitter.
 
 ## dbt (`dbt/`)
 - Run as `uv run python -m dbt.cli.main <cmd> --project-dir dbt --profiles-dir dbt`; bare `python -m dbt` has no `__main__`.

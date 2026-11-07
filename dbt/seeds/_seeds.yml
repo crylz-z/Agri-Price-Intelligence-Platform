@@ -1,0 +1,48 @@
+version: 2
+
+seeds:
+  - name: geolocations
+    description: >
+      PSGC code, label and geo level of PSA's 119 retail geolocations, from the
+      table metadata (GET on a table) on 2026-11-02. Identical in all 11 tables.
+  - name: psa_tables
+    description: PSA retail price table ids and the commodity group each publishes.
+  - name: staples
+    description: >
+      The basket: everyday staples by their plain name, each mapped to exactly one
+      PSA commodity. Chosen for wide province coverage (most over 80 provinces).
+    columns:
+      - name: staple
+        data_tests:
+          - unique
+      - name: unit
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [kg, pc]
+      - name: commodity
+        data_tests:
+          - unique
+          # A renamed PSA commodity would otherwise drop out of the basket silently.
+          - relationships:
+              arguments:
+                to: ref('int_retail_prices')
+                field: commodity
+  - name: psa_spot_checks
+    description: >
+      A few prices fetched from OpenSTAT's JSON API on 2026-11-02, outside the
+      pipeline, so a test can check the model against PSA's own numbers (ADR 11).
+      Query with `"format": "json"`: OpenSTAT's json-stat2 answers 1.0 for every cell.
+  - name: recipes
+    description: >
+      One meal for a family of 5, rice included, scaled from the published recipe
+      in `source` (blank: no source found, an estimate). Rice is 0.1 kg raw per
+      person: PSA's 110 kg a year over 3 meals a day. Only PSA-tracked staples
+      count, so oil, soy sauce, vinegar and salt are left out.
+    columns:
+      - name: staple
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('staples')
+                field: staple

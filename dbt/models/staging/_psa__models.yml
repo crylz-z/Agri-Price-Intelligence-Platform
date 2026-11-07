@@ -1,0 +1,19 @@
+version: 2
+
+models:
+  - name: stg_psa__retail_prices
+    description: >
+      The latest (snapshot_rank 1) and previous (2) snapshot of every PSA retail
+      price table, one row per geolocation, commodity and month, empty cells kept.
+    columns:
+      - name: table_id
+        data_tests:
+          # A table PSA adds is a dimension change: add it to seeds/psa_tables.csv.
+          - relationships:
+              arguments:
+                to: ref('psa_tables')
+                field: table_id
+      - name: geo_level
+        description: national, region or province, from the label's indent.
+        data_tests:
+          - not_null

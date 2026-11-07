@@ -1,0 +1,24 @@
+version: 2
+
+models:
+  - name: retail_prices_monthly
+    description: >
+      Monthly retail price per commodity and geolocation, from the latest PSA
+      release. Key (month, geo_code, commodity). Written to R2 as Parquet.
+    columns:
+      - name: month
+        description: First day of the month the price describes.
+      - name: geo_code
+        description: PSGC code of the geolocation.
+      - name: geolocation
+        description: PSA's label, without the indent.
+      - name: geo_level
+        description: national, region or province (province includes cities).
+      - name: commodity_group
+        description: PSA's group, one per table, e.g. Cereals.
+      - name: commodity
+        description: PSA's name with its unit, e.g. RICE, WELL-MILLED, 1 KG.
+      - name: price
+        description: Average retail price in pesos per the commodity's unit.
+      - name: released_at
+        description: PSA's `updated` time of the release the price comes from.
