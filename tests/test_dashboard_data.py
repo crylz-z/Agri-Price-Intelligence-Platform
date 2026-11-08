@@ -251,3 +251,155 @@ def test_region_prices_list_the_latest_month_cheapest_first():
         "National Capital Region",
     ]
     assert rows["price"].tolist() == [45.0, 60.0]
+
+
+def shares_frame() -> pd.DataFrame:
+    # National Sep 2026 tomato and regular rice (handoff spot values), carrot's
+    # latest month is June, and a stale tomato row that is not the latest.
+    return pd.DataFrame(
+        {
+            "month": pd.to_datetime(
+                ["2026-09-01", "2026-09-01", "2026-06-01", "2026-08-01", "2026-09-01"]
+            ),
+            "geo_code": ["000000000"] * 4 + ["030000000"],
+            "staple": ["Tomato", "Regular rice", "Carrot", "Tomato", "Tomato"],
+            "farmgate_equivalent": [39.02, 20.84 / 0.63, 34.77, 30.0, 50.0],
+            "retail_price": [107.82, 50.10, 148.42, 100.0, 40.0],
+            "is_latest": [True, True, True, False, True],
+        }
+    ).assign(farmer_share=lambda d: d["farmgate_equivalent"] / d["retail_price"])
+
+
+def test_farmer_shares_rank_each_staples_latest_month_smallest_first():
+    rows = data.farmer_shares(shares_frame())
+    assert list(rows["staple"]) == ["Carrot", "Tomato", "Regular rice"]
+    assert rows["month"].dt.strftime("%b %Y").tolist() == [
+        "Jun 2026",
+        "Sep 2026",
+        "Sep 2026",
+    ]
+    # 34.77 / 148.42 = 0.2343; 39.02 / 107.82 = 0.3619; 33.0794 / 50.10 = 0.6603
+    assert rows["farmer"].round(2).tolist() == [23.43, 36.19, 66.03]
+    assert rows["rest"].round(2).tolist() == [76.57, 63.81, 33.97]
+
+
+def test_farmer_shares_clip_the_rest_when_farmgate_tops_retail():
+    rows = data.farmer_shares(shares_frame(), "030000000")
+    # 50 / 40 = 1.25: ₱125 of every ₱100, nothing left over.
+    assert rows["farmer"].tolist() == [125.0]
+    assert rows["rest"].tolist() == [0.0]
+
+
+def test_share_headline_names_the_smallest_share():
+    assert data.share_headline(data.farmer_shares(shares_frame())) == (
+        "Carrot farmers get ₱23 of every ₱100"
+    )
+
+
+def test_share_history_pairs_retail_and_farmgate_by_month():
+    history = data.share_history(shares_frame(), "Tomato")
+    assert history.to_dict("records") == [
+        {"month": pd.Timestamp("2026-08-01"), "price": 30.0, "line": "Farm"},
+        {"month": pd.Timestamp("2026-09-01"), "price": 39.02, "line": "Farm"},
+        {"month": pd.Timestamp("2026-08-01"), "price": 100.0, "line": "Store"},
+        {"month": pd.Timestamp("2026-09-01"), "price": 107.82, "line": "Store"},
+    ]
+
+
+def test_events_for_match_the_staple_or_its_category():
+    events = pd.DataFrame(
+        {
+            "start_date": pd.to_datetime(["2025-02-03", "2024-07-06", "2024-01-19"]),
+            "staple": ["Rice", "Rice", "Red onion"],
+            "event": ["emergency", "tariff cut", "onion ban"],
+        }
+    )
+    rice = data.events_for(events, "Regular rice", "Rice")
+    assert rice["event"].tolist() == ["tariff cut", "emergency"]
+    assert data.events_for(events, "Red onion", "Spices")["event"].tolist() == [
+        "onion ban"
+    ]
+    assert data.events_for(events, "Carrot", "Vegetables").empty
+
+
+def test_policy_events_seed_loads_with_dates():
+    events = data.load_events()
+    assert events["start_date"].notna().all()
+    assert {"start_date", "end_date", "staple", "event", "source_url"} <= set(events)
+
+
+def test_dish_wage_shares_rank_one_region_or_the_median_region():
+    month = pd.Timestamp("2026-10-01")
+    dishes = pd.DataFrame(
+        {
+            "month": [month] * 5,
+            "geo_code": [
+                "030000000",
+                "030000000",
+                "010000000",
+                "190000000",
+                "000000000",
+            ],
+            "geolocation": [
+                "III - Central Luzon",
+                "III - Central Luzon",
+                "I - Ilocos Region",
+                "Negros Island Region (NIR)",
+                "Philippines",
+            ],
+            "geo_level": ["region", "region", "region", "region", "national"],
+            "dish": ["Pinakbet", "Pork adobo", "Pinakbet", "Pinakbet", "Pinakbet"],
+            # 249.74 / 600 = 0.4162; 432.60 / 600 = 0.7210; 225.0 / 500 = 0.45
+            "dish_wage_share": [249.74 / 600, 432.60 / 600, 225.0 / 500, None, None],
+        }
+    )
+    central = data.dish_wage_shares(dishes, month, "030000000")
+    assert central["dish"].tolist() == ["Pork adobo", "Pinakbet"]
+    assert central["dish_wage_share"].round(4).tolist() == [0.721, 0.4162]
+    # Nationally: Pinakbet's median of 0.4162 and 0.45 (NIR has no wage) = 0.4331.
+    country = data.dish_wage_shares(dishes, month)
+    assert country["dish"].tolist() == ["Pork adobo", "Pinakbet"]
+    assert country["dish_wage_share"].round(4).tolist() == [0.721, 0.4331]
+    assert data.dish_wage_shares(dishes, month, "190000000").empty
+
+
+def test_farmer_cut_compares_like_for_like_a_year_earlier():
+    year_ago = pd.DataFrame(
+        {
+            "month": pd.to_datetime(["2025-09-01", "2025-06-01"]),
+            "geo_code": ["000000000"] * 2,
+            "staple": ["Tomato", "Carrot"],
+            "farmer_share": [0.30, 0.25],
+        }
+    )
+    shares = pd.concat([shares_frame(), year_ago], ignore_index=True)
+    rows = data.farmer_shares(shares_frame())
+    typical, change = data.farmer_cut(shares, rows)
+    # Median of 23.43, 36.19, 66.03 is 36.19. Rice has no year-ago price, so the
+    # change uses carrot and tomato only: (23.4268 + 36.1899) / 2 = 29.8083,
+    # against (25 + 30) / 2 = 27.5.
+    assert round(typical, 2) == 36.19
+    assert round(change, 2) == 2.31
+    tomato = data.farmer_cut(shares, rows, "Tomato")
+    assert (round(tomato[0], 2), round(tomato[1], 2)) == (36.19, 6.19)
+    assert data.farmer_cut(shares, rows, "Regular rice")[1] is None
+    assert data.farmer_cut(shares, rows, "Garlic") == (None, None)
+
+
+def test_dinner_cut_takes_the_median_dish_and_its_matched_change():
+    now, before = pd.Timestamp("2026-10-01"), pd.Timestamp("2025-10-01")
+    dishes = pd.DataFrame(
+        {
+            "month": [now] * 3 + [before] * 2,
+            "geo_code": ["030000000"] * 5,
+            "geolocation": ["III - Central Luzon"] * 5,
+            "geo_level": ["region"] * 5,
+            "dish": ["Adobo", "Pinakbet", "Nilaga", "Adobo", "Pinakbet"],
+            "dish_wage_share": [0.60, 0.40, 0.90, 0.50, 0.38],
+        }
+    )
+    typical, change = data.dinner_cut(dishes, now, "030000000")
+    # Median of 0.6, 0.4, 0.9 is 0.6; matched: (0.6 + 0.4) / 2 - (0.5 + 0.38) / 2.
+    assert typical == 0.6
+    assert round(change, 4) == 0.06
+    assert data.dinner_cut(dishes, now, "190000000") == (None, None)

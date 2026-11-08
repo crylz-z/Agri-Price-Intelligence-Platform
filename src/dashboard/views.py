@@ -1,8 +1,10 @@
-"""The dashboard's 3 pages, one per mart group:
+"""The dashboard's 4 pages, one per mart group:
 
-1. Overview: staple_prices_monthly + dish_costs_monthly. What moved in a year.
-2. Compare places: staple_prices_monthly at province/region level. Where it costs more.
-3. Look up a food: retail_prices_monthly + staple_seasonality. Any of PSA's foods.
+1. Farm to plate: farmer_share_monthly + dish_costs_monthly. The farmer's share of
+   the retail peso, and what a dish costs in a day's minimum wage.
+2. Overview: staple_prices_monthly. What moved in a year.
+3. Compare places: staple_prices_monthly at province/region level. Where it costs more.
+4. Look up a food: retail_prices_monthly + staple_seasonality. Any of PSA's foods.
 
 Red means costs more and green costs less, always next to an arrow or a sign.
 Everything else is neutral.
@@ -84,12 +86,329 @@ def month_axis() -> alt.X:
     )
 
 
-# Page 1: Overview
+# Page 1: Farm to plate
+# Lines and markers use the theme's categorical palette (range="category"), so
+# they switch with light and dark at once: blue farm price, ink store price,
+# amber policy. Explanations and caveats live in the (?) tooltips.
+
+SHARE_HELP = (
+    "Farm price ÷ store price, same food, place and month. Each food shows its "
+    "latest month with both prices (hover a bar).\n\n"
+    "- **Rice** is stored for months, so its share is approximate. Palay is "
+    "converted to milled rice at 0.63, a figure from press and USDA coverage, "
+    "not PSA.\n"
+    "- A share can top ₱100 for a month or two: farm prices sometimes briefly "
+    "exceed store prices (mostly sitaw, calamansi and tomato)."
+)
+WAGE_HELP = (
+    "Published recipes scaled to 5 servings, plus rice, priced at the region's "
+    "monthly averages, divided by its daily non-farm minimum wage (the top tier "
+    "where a wage order has several). For the whole country: the median region.\n\n"
+    "- Central Visayas, Northern Mindanao and BARMM use the rate of their "
+    "highest-paid area (Metro Cebu, the Cagayan de Oro cluster, 3 cities), so "
+    "they understate the cost elsewhere in those regions.\n"
+    "- Negros Island Region has no wage order of its own yet."
+)
+ACTION = "Policy"
+
+
+def share_chart(rows: pd.DataFrame, current: str) -> Any:
+    """Each food's farmer pesos (blue) on a faint ₱100 track. Clicking a bar picks
+    that food for the price chart (selection "pick"); the current food is solid,
+    the rest faded."""
+    scale = alt.Scale(domain=[0, max(100.0, float(rows["farmer"].max()))])
+    base = alt.Chart(rows).encode(
+        y=alt.Y("staple:N", sort=None, title=None, axis=alt.Axis(labelLimit=200)),
+        tooltip=[
+            alt.Tooltip("staple:N", title="Food"),
+            alt.Tooltip("month:T", format="%B %Y", title="Month"),
+            alt.Tooltip("farmer_share:Q", format=".1%", title="Farmer's share"),
+            alt.Tooltip("farmgate_equivalent:Q", format=",.2f", title="Farm (₱)"),
+            alt.Tooltip("retail_price:Q", format=",.2f", title="Store (₱)"),
+        ],
+    )
+    track = base.mark_bar(color=MISSING, cornerRadiusEnd=3).encode(
+        x=alt.datum(100, scale=scale)
+    )
+    farmer = (
+        base.mark_bar(color=ACCENT, cornerRadiusEnd=3, cursor="pointer")
+        .encode(
+            x=alt.X(
+                "farmer:Q",
+                title=None,
+                scale=scale,
+                axis=alt.Axis(labelExpr="'₱' + datum.label", values=[0, 50, 100]),
+            ),
+            opacity=alt.when(alt.datum.staple == current)
+            .then(alt.value(1.0))
+            .otherwise(alt.value(0.4)),
+        )
+        .add_params(alt.selection_point(name="pick", fields=["staple"]))
+    )
+    # White inside the blue bar reads on both themes.
+    text = (
+        base.transform_calculate(pesos="'₱' + format(datum.farmer, '.0f')")
+        .mark_text(align="right", dx=-5, color="white", fontWeight=600)
+        .encode(x="farmer:Q", text="pesos:N")
+    )
+    return (track + farmer + text).properties(height=26 * len(rows))
+
+
+def history_chart(history: pd.DataFrame, events: pd.DataFrame, unit: str) -> Any:
+    names = [data.FARM, data.STORE] + ([ACTION] if len(events) else [])
+    color = alt.Color(
+        "line:N",
+        scale=alt.Scale(domain=names, range="category"),
+        legend=alt.Legend(title=None, orient="top"),
+    )
+    lines = (
+        alt.Chart(history)
+        .mark_line(strokeWidth=2.5)
+        .encode(
+            x=month_axis(),
+            y=alt.Y(
+                "price:Q",
+                title=None,
+                axis=alt.Axis(format=",.0f", labelExpr="'₱' + datum.label"),
+            ),
+            color=color,
+            tooltip=[
+                alt.Tooltip("line:N", title="Price"),
+                alt.Tooltip("month:T", format="%B %Y", title="Month"),
+                alt.Tooltip("price:Q", format=",.2f", title=f"₱ per {unit}"),
+            ],
+        )
+    )
+    marks = (
+        alt.Chart(events)
+        .transform_calculate(line=f"'{ACTION}'")
+        .mark_rule(strokeDash=[4, 3], strokeWidth=1.5)
+        .encode(
+            x="start_date:T",
+            color=color,
+            tooltip=[
+                alt.Tooltip("start_date:T", format="%d %b %Y", title="From"),
+                alt.Tooltip("event:N", title=ACTION),
+            ],
+        )
+    )
+    return (lines + marks).properties(height=300)
+
+
+def wage_chart(rows: pd.DataFrame) -> Any:
+    """Each dish's share of a day's pay, with a dashed line at a full day's pay."""
+    scale = alt.Scale(domain=[0, max(1.0, float(rows["dish_wage_share"].max()))])
+    base = alt.Chart(rows).encode(
+        y=alt.Y("dish:N", sort=None, title=None, axis=alt.Axis(labelLimit=200)),
+        tooltip=[
+            alt.Tooltip("dish:N", title="Dinner"),
+            alt.Tooltip("dish_wage_share:Q", format=".1%", title="Of a day's pay"),
+        ],
+    )
+    bars = base.mark_bar(color=ACCENT, cornerRadiusEnd=3).encode(
+        x=alt.X(
+            "dish_wage_share:Q",
+            title=None,
+            scale=scale,
+            axis=alt.Axis(format="%", values=[0, 0.5, 1, 1.5, 2]),
+        )
+    )
+    text = base.mark_text(align="right", dx=-5, color="white", fontWeight=600).encode(
+        x="dish_wage_share:Q", text=alt.Text("dish_wage_share:Q", format=".1%")
+    )
+    # Ink (categorical colour 2), so the rule switches with light and dark.
+    ink = alt.Scale(domain=["_", "day"], range="category")
+    day = (
+        alt.Chart(pd.DataFrame({"x": [1.0], "line": ["day"]}))
+        .mark_rule(strokeDash=[4, 3], strokeWidth=1.5)
+        .encode(
+            x=alt.X("x:Q", scale=scale),
+            color=alt.Color("line:N", scale=ink, legend=None),
+        )
+    )
+    return (bars + text + day).properties(height=30 * len(rows))
+
+
+def pick_food() -> None:
+    """A click on the share chart picks that food in the price chart's selectbox."""
+    picked = st.session_state["pick_food"]["selection"]["pick"]
+    if picked:
+        st.session_state["staple"] = picked[0]["staple"]
+
+
+def pesos_change(change: float | None) -> str | None:
+    # ASCII "-": st.metric reads the sign to pick the arrow, and a Unicode minus
+    # shows as "↑ −₱7.3".
+    return (
+        None if change is None else f"{'+' if change >= 0 else '-'}₱{abs(change):.1f}"
+    )
+
+
+def farm_page() -> None:
+    shares = data.load(data.SHARES)
+    dishes = data.load(data.DISHES)
+    names = data.regions(shares)
+    wages = dishes.dropna(subset=["dish_wage_share"])
+    wage_month = pd.Timestamp(wages["month"].max())
+
+    with st.container(horizontal=True, vertical_alignment="center"):
+        geo_code = str(
+            st.selectbox(
+                "Prices in",
+                list(names),
+                format_func=lambda code: names[code],
+                key="region",
+                bind="query-params",
+                label_visibility="collapsed",
+                width=300,
+            )
+        )
+        month_badge(pd.Timestamp(shares["month"].max()))
+    where = data.in_words(geo_code, names[geo_code])
+    rows = data.farmer_shares(shares, geo_code)
+    if rows.empty:
+        st.info(f"PSA has no farm prices for {where}.")
+        return
+
+    # The takeaway is the title; the question is the small line under it.
+    st.title(data.share_headline(rows))
+    st.caption(f"How much of the store price reaches the farmer, in {where}")
+
+    typical, typical_change = data.farmer_cut(shares, rows)
+    rice, rice_change = data.farmer_cut(shares, rows, "Regular rice")
+    dinner, dinner_change = data.dinner_cut(dishes, wage_month, geo_code)
+    with st.container(horizontal=True):
+        st.metric(
+            "Farmer's cut, typical food",
+            f"₱{typical:.0f} of ₱100",
+            pesos_change(typical_change),
+            delta_color="off",
+            delta_description="vs a year ago",
+            help=f"The median of {len(rows)} foods' farmer's share, each in its "
+            "latest month. The change counts only foods priced both years.",
+            border=True,
+        )
+        st.metric(
+            "Farmer's cut, regular rice",
+            "—" if rice is None else f"₱{rice:.0f} of ₱100",
+            pesos_change(rice_change),
+            delta_color="off",
+            delta_description="vs a year ago",
+            help="Palay converted to milled rice at 0.63; approximate, since rice "
+            "is stored for months.",
+            border=True,
+        )
+        st.metric(
+            "Typical dinner for 5, share of a day's pay",
+            "—" if dinner is None else f"{dinner:.1%}",
+            None if dinner_change is None else f"{dinner_change * 100:+.1f} pts",
+            delta_color="inverse",
+            delta_description="vs a year ago",
+            help="The median of 8 dinners' cost against the daily minimum wage, "
+            f"{wage_month:%B %Y}"
+            + (", in the median region." if geo_code == PHILIPPINES else "."),
+            border=True,
+        )
+
+    staples = sorted(rows["staple"])
+    out = data.load_exclusions()
+    left_out = sorted(out.loc[out["geo_code"] == geo_code, "staple"])
+    share_card, price_card = st.columns([5, 6], gap="medium")
+    # The price card runs first: its selectbox decides which bar is highlighted.
+    with price_card, st.container(border=True, height="stretch"):
+        staple = str(
+            st.selectbox(
+                "Food",
+                staples,
+                index=staples.index("Regular rice") if "Regular rice" in staples else 0,
+                key="staple",
+                bind="query-params",
+                label_visibility="collapsed",
+                width=220,
+            )
+        )
+        row = rows[rows["staple"] == staple].iloc[0]
+        unit = "piece" if row["unit"] == "pc" else "kg"
+        history = data.share_history(shares, staple, geo_code)
+        first, last = history["month"].min(), history["month"].max()
+        events = data.events_for(data.load_events(), staple, str(row["category"]))
+        events = events[events["start_date"].between(first, last)]
+        st.subheader(
+            f"Farm and store price, per {unit}",
+            help="Pick a food here or click its bar. Dashed lines: government "
+            "policies on this food; hover one to read it."
+            + (
+                " Farm price here is palay ÷ 0.63, as milled rice."
+                if row["category"] == "Rice"
+                else ""
+            ),
+        )
+        st.altair_chart(
+            history_chart(history, events, unit).properties(
+                height=max(260, 26 * len(rows) - 110)
+            ),
+            width="stretch",
+            alt=f"{staple} farm and store price over time in {where}",
+        )
+        if len(events):
+            with st.expander(f"Sources ({len(events)} policies)"):
+                st.markdown(
+                    "\n".join(
+                        f"- {e.start_date:%d %b %Y}: [{e.event}]({e.source_url})"
+                        for e in events.itertuples()
+                    )
+                )
+    with share_card, st.container(border=True, height="stretch"):
+        st.subheader(
+            "Farmer's cut of every ₱100",
+            help=SHARE_HELP
+            + (
+                f"\n- Left out here: {', '.join(left_out)}. Farm and store prices "
+                "likely use different units (bundle vs kg)."
+                if left_out
+                else ""
+            ),
+        )
+        st.altair_chart(
+            share_chart(rows, staple),
+            width="stretch",
+            key="pick_food",
+            on_select=pick_food,
+            selection_mode="pick",
+            alt=f"Farmer's share of the store price of each food in {where}",
+        )
+
+    with st.container(border=True):
+        month = wage_month
+        st.subheader("Dinner for 5, as a share of a day's minimum wage", help=WAGE_HELP)
+        dinners = data.dish_wage_shares(dishes, month, geo_code)
+        if dinners.empty:
+            st.caption(f"{where} has no minimum wage order of its own yet.")
+        else:
+            st.caption(
+                f"{month:%B %Y}"
+                + (", median region" if geo_code == PHILIPPINES else "")
+                + ". Dashed line: a full day's pay."
+            )
+            st.altair_chart(
+                wage_chart(dinners),
+                width="stretch",
+                alt=f"Each dinner's cost as a share of a day's minimum wage in {where}",
+            )
+
+    st.divider()
+    released = shares[["farmgate_released_at", "retail_released_at"]].max().max()
+    st.caption(
+        f"Farm and store prices: PSA OpenSTAT, latest release "
+        f"{pd.Timestamp(released):%d %b %Y}. Minimum wages: NWPC regional wage orders."
+    )
+
+
+# Page 2: Overview
 
 
 def overview_page() -> None:
     staples = data.load(data.STAPLES)
-    dishes = data.load(data.DISHES)
     month = data.latest_month(staples)
     year_ago = month - pd.DateOffset(years=1)
     names = data.regions(staples)
@@ -146,8 +465,7 @@ def overview_page() -> None:
             alt=f"Typical food price change vs a year earlier in {where}",
         )
 
-    left, right = st.columns([3, 2], gap="medium")
-    with left, st.container(border=True, height="stretch"):
+    with st.container(border=True):
         st.subheader(f"Every food, {month:%b %Y} vs {year_ago:%b %Y}")
         st.caption("Right of the line: costs more than a year ago. Left: costs less.")
         rows = data.in_place(staples, month, geo_code).dropna(subset=["change_year"])
@@ -168,34 +486,11 @@ def overview_page() -> None:
             width="stretch",
             alt=f"Yearly price change of each everyday food in {where}",
         )
-    with right, st.container(border=True, height="stretch"):
-        st.subheader(
-            "What dinner for 5 costs",
-            help="Published recipes scaled to 5 servings, plus rice, priced at "
-            f"this month's averages in {where}. A dish is left out where PSA has "
-            "no price for one of its ingredients.",
-        )
-        meals = data.in_place(dishes, month, geo_code).dropna(subset=["dish_cost"])
-        meals = meals.sort_values("dish_cost")
-        table = pd.DataFrame(
-            {
-                "Dish": meals["dish"],
-                "Cost": [f"₱{c:,.0f}" for c in meals["dish_cost"]],
-                "vs a year ago": [
-                    "—" if pd.isna(c) else data.arrow(c) for c in meals["change_year"]
-                ],
-            }
-        ).reset_index(drop=True)
-        st.dataframe(
-            colored_changes(table, "vs a year ago"),
-            hide_index=True,
-            alt=f"Cost of each dinner for 5 in {where}",
-        )
 
     footer(month, pd.Timestamp(staples["released_at"].max()))
 
 
-# Page 2: Compare places
+# Page 3: Compare places
 
 
 def price_map(values: pd.DataFrame, geo_level: str, ncr: pd.DataFrame) -> Any:
@@ -326,7 +621,7 @@ def places_page() -> None:
     footer(month, pd.Timestamp(staples["released_at"].max()))
 
 
-# Page 3: Look up a food
+# Page 4: Look up a food
 
 
 def lookup_page() -> None:

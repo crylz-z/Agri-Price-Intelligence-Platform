@@ -22,8 +22,13 @@ MART = "mart/retail_prices_monthly.parquet"
 STAPLES = "mart/staple_prices_monthly.parquet"
 DISHES = "mart/dish_costs_monthly.parquet"
 SEASONS = "mart/staple_seasonality.parquet"
+SHARES = "mart/farmer_share_monthly.parquet"
 # The basket seed ships with the app, so it is read from the repo, not from R2.
 BASKET = Path("dbt/seeds/staples.csv")
+# Policy events and share exclusions are hand-kept seeds, so they ship with the repo
+# too: editing the CSV on main is the only upkeep, and no pipeline step can break them.
+EVENTS = Path("dbt/seeds/policy_events.csv")
+EXCLUSIONS = Path("dbt/seeds/farmer_share_exclusions.csv")
 MAP = Path(__file__).parent / "assets" / "ph_provinces.geojson"
 NCR = "130000000"
 PHILIPPINES = "000000000"
@@ -304,3 +309,130 @@ def region_prices(retail: pd.DataFrame, commodity: str) -> pd.DataFrame:
         .sort_values("price")
         .reset_index(drop=True)
     )
+
+
+# Page 1: Farm to plate
+
+FARM, STORE = "Farm", "Store"
+
+
+def farmer_shares(shares: pd.DataFrame, geo_code: str = PHILIPPINES) -> pd.DataFrame:
+    """Each staple's latest farmer's share in one place, smallest share first.
+
+    Staples differ in their latest month; the chart shows each row's `month` in
+    its tooltip. `farmer` is the farmer's pesos of every ₱100 and `rest` what is
+    left of the ₱100 (0 when farmgate tops retail).
+    """
+    rows = shares[shares["is_latest"] & (shares["geo_code"] == geo_code)]
+    rows = rows.dropna(subset=["farmer_share"]).sort_values("farmer_share")
+    farmer = rows["farmer_share"] * 100
+    return rows.assign(
+        farmer=farmer,
+        rest=(100 - farmer).clip(lower=0),
+    ).reset_index(drop=True)
+
+
+def share_history(
+    shares: pd.DataFrame, staple: str, geo_code: str = PHILIPPINES
+) -> pd.DataFrame:
+    """One staple's farmgate and retail prices by month, long, for a line chart.
+
+    Farmgate is the retail-equivalent price (palay as milled rice), so both lines
+    are pesos for the same unit. Lines are named in plain words: FARM and STORE.
+    """
+    rows = shares[(shares["staple"] == staple) & (shares["geo_code"] == geo_code)]
+    rows = rows.sort_values("month")
+    return pd.concat(
+        [
+            pd.DataFrame({"month": rows["month"], "price": rows[column], "line": line})
+            for column, line in (
+                ("farmgate_equivalent", FARM),
+                ("retail_price", STORE),
+            )
+        ],
+        ignore_index=True,
+    )
+
+
+@st.cache_data
+def load_events() -> pd.DataFrame:
+    return pd.read_csv(EVENTS, parse_dates=["start_date", "end_date"])
+
+
+def events_for(events: pd.DataFrame, staple: str, category: str) -> pd.DataFrame:
+    """Policy events about one staple, or about its whole category ('Rice')."""
+    rows = events[events["staple"].isin([staple, category])]
+    return rows.sort_values("start_date").reset_index(drop=True)
+
+
+def dish_wage_shares(
+    dishes: pd.DataFrame, month: pd.Timestamp, geo_code: str = PHILIPPINES
+) -> pd.DataFrame:
+    """Each dish's cost as a share of a day's minimum wage in one region, largest
+    first. The country has no single wage, so for it each dish takes the median
+    region's share. Empty when the region has no wage order (NIR).
+    """
+    if geo_code == PHILIPPINES:
+        by_dish = at(dishes, month, "region").groupby("dish")["dish_wage_share"]
+        rows = by_dish.median().reset_index()
+    else:
+        rows = in_place(dishes, month, geo_code)[["dish", "dish_wage_share"]]
+    rows = rows.dropna(subset=["dish_wage_share"])
+    return rows.sort_values("dish_wage_share", ascending=False).reset_index(drop=True)
+
+
+def change_of_median(now: pd.Series, before: pd.Series) -> float | None:
+    """The median now and its change since `before`, counting only the items
+    priced both times so a food dropping out cannot fake a change. Both series
+    are indexed by item."""
+    both = now.index.intersection(before.dropna().index)
+    if both.empty:
+        return None
+    return float(now[both].median() - before[both].median())
+
+
+def farmer_cut(
+    shares: pd.DataFrame, rows: pd.DataFrame, staple: str | None = None
+) -> tuple[float | None, float | None]:
+    """The farmer's pesos of every ₱100 for one staple, or for the median staple of
+    farmer_shares' rows, and its change since a year before each staple's own
+    latest month (None when PSA has no price then)."""
+    if staple is not None:
+        rows = rows[rows["staple"] == staple]
+    if rows.empty:
+        return None, None
+    back = rows[["staple", "geo_code", "month"]].assign(
+        month=rows["month"] - pd.DateOffset(years=1)
+    )
+    before = back.merge(
+        shares[["staple", "geo_code", "month", "farmer_share"]], how="left"
+    )
+    now = rows.set_index("staple")["farmer"]
+    ago = before.set_index("staple")["farmer_share"] * 100
+    return float(now.median()), change_of_median(now, ago)
+
+
+def dinner_cut(
+    dishes: pd.DataFrame, month: pd.Timestamp, geo_code: str = PHILIPPINES
+) -> tuple[float | None, float | None]:
+    """The median dish's share of a day's wage (dish_wage_shares) and its change
+    since a year earlier."""
+    now = dish_wage_shares(dishes, month, geo_code).set_index("dish")
+    if now.empty:
+        return None, None
+    year_ago = month - pd.DateOffset(years=1)
+    ago = dish_wage_shares(dishes, year_ago, geo_code).set_index("dish")
+    share = now["dish_wage_share"]
+    return float(share.median()), change_of_median(share, ago["dish_wage_share"])
+
+
+@st.cache_data
+def load_exclusions() -> pd.DataFrame:
+    return pd.read_csv(EXCLUSIONS, dtype=str)
+
+
+def share_headline(rows: pd.DataFrame) -> str:
+    """The smallest farmer's share from farmer_shares' ranked rows, short enough
+    for one title line on a laptop: 'Carrot farmers get ₱23 of every ₱100'."""
+    low = rows.iloc[0]
+    return f"{low['staple']} farmers get ₱{low['farmer']:.0f} of every ₱100"

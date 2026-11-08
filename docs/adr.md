@@ -56,8 +56,14 @@ dbt tests recompute year-on-year changes and dish costs from `int_retail_prices`
 The dashboard is a shop window for the pipeline, so each page reads one group of marts (page 1 the staple and dish marts, page 2 the staple mart by area, page 3 the retail and seasonality marts) and uses stock Streamlit and Altair, with tabular digits as the only CSS. Chosen 2026-11-07, after a 5-page version with custom CSS grew to 2,000 lines of view code without making the data more useful.
 - **Not the 5-page version:** a separate page for dish costs and another for seasons repeated the same yearly change in many places; dish costs moved to a table on page 1 and seasons to a chart on page 3. It stays in git history at `a7a97b2`.
 
-## 13. The question: how much of the retail peso reaches the farmer, and what a meal costs in wages
+## 13. The question: how much of the retail peso reaches the farmer, and what a meal costs in wages (superseded by 14)
 Chosen 2026-11-07, because the three lookup pages answered no question. PSA farmgate prices (`2M/NFG`, the same OpenSTAT CSV API as retail) are compared with retail at national and region level for the 18 staples that have a like-for-like farmgate item, with palay converted at PSA's 63% milling recovery rate. Regional minimum wages come from a hand-kept seed of wage orders, which are PDFs with no API, from January 2024 only (about 35 orders instead of 80 back to 2018), and import and price policy from a hand-kept seed of dated policy events. This becomes page 1, ahead of the three existing pages, which stay plain and read one mart group each.
 - **Not wholesale (`2M/NWSNEW`):** 10 more tables, about 8 MB a release, and no meat table; farm against retail already shows the gap.
 - **Not meat or fish:** PSA publishes no factor from liveweight to retail cut, and fish farmgate is quarterly.
 - **Not an import volume series:** monthly BPI arrivals appear only in press reports that disagree with each other.
+
+## 14. The story is a case file: who takes the pesos between farm and store
+Chosen 2026-11-08, because ADR 13's page showed snapshots with no tension: a farmer's share of ₱23 says nothing about change or cause, dish costs can't be split into farm and middle (meat has no farmgate price), and a regional farmer's share mixes supply chains (carrot reads 282% in CALABARZON). The dashboard becomes 2 pages. Page 1 shows the crime from our data (the middle's cut against inflation, national only) and the suspects from the public record (House findings, PCC charges, research), each cited and worded "found", "charged" or "alleged", with one suspect cleared. Page 2 gives every food a verdict computed in dbt on each release.
+- **Not naming private individuals:** a public page calling a person guilty while cases are open is a libel risk; findings and agencies carry the blame.
+- **Not blame from our data alone:** prices show where the pesos go missing, not who takes them; only the record names suspects.
+- **Not keeping Overview, Compare places and Look up a food:** they answer no question in the story; one "Check your food" page replaces them.

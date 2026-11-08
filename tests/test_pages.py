@@ -13,7 +13,7 @@ from streamlit.testing.v1 import AppTest
 from src.dashboard import data
 
 MARTS = Path(__file__).parent / "fixtures" / "marts"
-PAGES = ["overview_page", "places_page", "lookup_page"]
+PAGES = ["farm_page", "overview_page", "places_page", "lookup_page"]
 
 
 @pytest.fixture(autouse=True)
@@ -54,3 +54,16 @@ def test_compare_places_renders_at_each_level(level):
 def test_look_up_a_food_renders_for_a_province():
     at = render("lookup_page", where="072200000")
     assert not at.exception, at.exception
+
+
+def test_farm_to_plate_renders_for_a_region_and_a_staple():
+    at = render("farm_page", region="Central Luzon", staple="Tomato")
+    assert not at.exception, at.exception
+    assert any(c.value.endswith("in Central Luzon") for c in at.caption)
+    assert at.title[0].value.endswith("of every ₱100")
+
+
+def test_farm_to_plate_says_when_a_region_has_no_wage_order():
+    at = render("farm_page", region="Negros Island Region (NIR)")
+    assert not at.exception, at.exception
+    assert any("no minimum wage order" in c.value for c in at.caption)

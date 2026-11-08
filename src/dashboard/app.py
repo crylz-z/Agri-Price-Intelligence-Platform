@@ -19,11 +19,16 @@ st.html(
 st.navigation(
     [
         st.Page(
+            views.farm_page,
+            title="Farm to plate",
+            icon=":material/agriculture:",
+            default=True,
+        ),
+        st.Page(
             views.overview_page,
             title="Overview",
             icon=":material/newspaper:",
             url_path="overview",
-            default=True,
         ),
         st.Page(
             views.places_page,

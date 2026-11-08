@@ -29,8 +29,9 @@ greenColor = "#2E7D4F"
 blueColor = "#3E5C9A"
 orangeColor = "#C98A00"
 dataframeHeaderBackgroundColor = "#F1ECE4"
-# Neutral first: ink, warm grey, accent. Red/green are left out on purpose.
-chartCategoricalColors = ["#24211E", "#9C9389", "#3E5C9A", "#C98A00", "#6B7F99", "#B9AFA3"]
+# Accent, ink, amber first: charts pick these with range="category" so a line
+# changes with the theme at once. Red/green are left out on purpose.
+chartCategoricalColors = ["#3E5C9A", "#24211E", "#C98A00", "#9C9389", "#6B7F99", "#B9AFA3"]
 chartSequentialColors = ["#F4F1EC", "#E3DED6", "#CFC8BE", "#B9B1A6", "#A19A90", "#8A837A", "#736D65", "#5C5751", "#45413D", "#24211E"]
 chartDivergingColors = ["#1B5E3A", "#2E7D4F", "#5FA77A", "#9CCBA8", "#DCEBDF", "#F6DAD3", "#EBA08D", "#D9664F", "#B83227", "#7E1C14"]
 
@@ -56,7 +57,7 @@ greenColor = "#4FAE76"
 blueColor = "#7C9AD6"
 orangeColor = "#E0A526"
 dataframeHeaderBackgroundColor = "#221F1C"
-chartCategoricalColors = ["#EDE7DF", "#8A8178", "#7C9AD6", "#E0A526", "#8C9DB5", "#5E5750"]
+chartCategoricalColors = ["#7C9AD6", "#EDE7DF", "#E0A526", "#8A8178", "#8C9DB5", "#5E5750"]
 chartSequentialColors = ["#2A2724", "#3A3632", "#4C4741", "#5F5952", "#736C64", "#888077", "#9E968C", "#B5ADA3", "#CFC8BF", "#EDE7DF"]
 # Strongest change = brightest; near zero sinks toward the background.
 chartDivergingColors = ["#9BD9B0", "#66C28B", "#3FA36A", "#2B7D50", "#34413A", "#433737", "#9A3A2D", "#C9503E", "#E4735F", "#F4A99A"]

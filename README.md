@@ -1,6 +1,8 @@
 # PH Food Prices
 
-Monthly retail food prices for the Philippines (national, 18 regions and 100 provinces and cities, 197 commodities, from January 2018) from the Philippine Statistics Authority. A daily job stores each PSA release unchanged on Cloudflare R2, a dbt project models and tests it, and a Streamlit dashboard shows the result. It costs $0 to run.
+When food gets expensive, the farmer often isn't the one getting the money. For each staple and region, this dashboard shows how much of the retail peso reaches the farmer, and what share of a day's minimum wage the family's dinner costs.
+
+It is built on monthly retail and farmgate food prices for the Philippines (retail: national, 18 regions and 100 provinces and cities, 197 commodities, from January 2018) from the Philippine Statistics Authority, and regional minimum wages from the National Wages and Productivity Commission. A daily job stores each PSA release unchanged on Cloudflare R2, a dbt project models and tests it, and a Streamlit dashboard shows the result. It costs $0 to run.
 
 **Live dashboard:** [ph-food-prices.streamlit.app](https://ph-food-prices.streamlit.app/)
 
@@ -8,7 +10,7 @@ Monthly retail food prices for the Philippines (national, 18 regions and 100 pro
 graph LR
     PSA[("PSA OpenSTAT API")] -->|ingest.py, only new releases| RAW[("R2 raw/<br/>1 CSV snapshot per release")]
     RAW -->|dbt build: staging, intermediate, tests| MART[("R2 mart/<br/>5 Parquet marts")]
-    MART --> UI["Streamlit dashboard<br/>3 pages"]
+    MART --> UI["Streamlit dashboard<br/>4 pages"]
     CRON["GitHub Actions<br/>daily cron"] -.-> PSA
 ```
 
@@ -33,10 +35,12 @@ graph LR
 
   All tests run upstream of the mart, so a failure skips the write and R2 keeps the last good mart. Two checks only warn: a latest month more than 3 months old, and a national price that doubles or halves in a month.
 - **pytest** covers ingest (change detection, HEAD-only R2 checks, rejecting non-CSV responses), the pipeline's dbt trigger and the dashboard's data layer, all without network.
-- **Dashboard** (`src/dashboard/`), 3 pages, each reading one group of marts and fetching each mart in a single request:
-  1. **Overview**: the typical food's yearly change since 2019, every food's change this year, and what dinner costs.
-  2. **Compare places**: a map of one food's price by province or region, with the cheapest and most expensive areas.
-  3. **Look up a food**: any of PSA's 197 items in any place, with its trend, usual seasonal pattern and regional prices.
+- **Dashboard** (`src/dashboard/`), 4 pages, each reading one group of marts and fetching each mart in a single request:
+  1. **Farm to plate**: each staple's farmer's share as "₱X of every ₱100", one staple's farmgate and retail prices over time with dated policy events (tariffs, price caps, import bans), and each dish's cost as a share of a day's minimum wage, by region.
+  2. **Overview**: the typical food's yearly change since 2019 and every food's change this year.
+  3. **Compare places**: a map of one food's price by province or region, with the cheapest and most expensive areas.
+  4. **Look up a food**: any of PSA's 197 items in any place, with its trend, usual seasonal pattern and regional prices.
+  Hand-kept seeds the pages need (`staples.csv`, `policy_events.csv`, `farmer_share_exclusions.csv`) are read from the repo, so an edit pushed to `main` reaches the live app on its own: Streamlit Community Cloud updates on every push.
 - **$0 on R2**: a release day has up to 19 snapshot writes and 5 mart writes, plus about 19 HEADs a day, well inside the free tier. See `docs/cloudfare-agent-notes/free-tier-r2.md`. The reasons behind each tool are in `docs/adr.md`; the terms are defined in `GLOSSARY.md`.
 
 ## Run it

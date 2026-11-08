@@ -80,6 +80,18 @@ _Avoid_: producer price, farm price, buying price
 A staple's farmgate price as a share of its retail price, for the same geolocation and month; palay is first converted to milled rice.
 _Avoid_: markup, margin, spread
 
+**Middle's cut**:
+A staple's retail price minus its farmgate price (palay as milled rice), in pesos per unit: what traders, transport, storage and stores together take (`peso_gap` in the marts).
+_Avoid_: markup, margin, spread, peso gap
+
+**Suspect**:
+A party the public record accuses of taking part of the middle's cut for a staple, cited from a House finding, a PCC charge or published research.
+_Avoid_: villain, culprit, cartel (on screen, unless a finding uses the word)
+
+**Verdict**:
+A staple's computed label each release: suspicious when its middle's cut grew faster than inflation since 2018, cleared otherwise.
+_Avoid_: rating, score, grade
+
 **Dish wage share**:
 A dish cost as a share of the region's daily non-agriculture minimum wage in force that month.
 _Avoid_: affordability index, wage-hours
@@ -109,9 +121,22 @@ One screen of the dashboard, named by its sidebar title. Numbered in sidebar ord
 
 | # | Title | URL | Shows |
 |---|---|---|---|
-| 1 | Overview | `/` (`?region=…`) | Yearly change of the basket and dish costs, for one region |
-| 2 | Compare places | `/places` (`?food=…&level=…`) | One staple's price across provinces or regions |
-| 3 | Look up a food | `/lookup` (`?item=…&where=…`) | Any retail price, by commodity and geolocation |
+| 1 | Farm to plate | `/` (`?region=…&staple=…`) | Farmer's share per staple, one staple's farmgate and retail prices with policy events, and dish wage share for one region |
+| 2 | Overview | `/overview` (`?region=…`) | Yearly change of the basket, for one region |
+| 3 | Compare places | `/places` (`?food=…&level=…`) | One staple's price across provinces or regions |
+| 4 | Look up a food | `/lookup` (`?item=…&where=…`) | Any retail price, by commodity and geolocation |
 
-Refer to a page by number and title together, e.g. "page 2 (Compare places)".
+Refer to a page by number and title together, e.g. "page 3 (Compare places)".
+
+**Card**:
+One bordered box on a page, numbered in reading order, e.g. "page 1 card 2". KPI tiles are not cards. Page 1 (Farm to plate) reads: 3 KPI tiles → card 1 (left) beside card 2 (right) → card 3. On a phone the cards stack 1, 2, 3.
+
+| Card | Title on screen | Plain meaning | Glossary term |
+|---|---|---|---|
+| 1 | Farmer's cut of every ₱100 | Pesos the farmer gets when a shopper spends ₱100 on that food; clicking a bar picks that food in card 2 | Farmer's share |
+| 2 | Farm and store price, per kg | One food (picked in its selectbox or by a card 1 click) priced at the farm and at the store over the years; dashed lines mark government policies | Farmgate price, retail price, policy event |
+| 3 | Dinner for 5, as a share of a day's minimum wage | How much of one day's minimum pay a family dinner costs; over 100% means more than a day's pay | Dish wage share |
+
+On screen, "farm price" is the farmgate price, "store price" the retail price, and "policy" a policy event.
+_Avoid_: box, section, panel, widget
 _Avoid_: tab, screen, view, story (`views.py` names functions, not pages)
