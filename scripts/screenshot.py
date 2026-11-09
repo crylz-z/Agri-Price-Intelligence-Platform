@@ -110,7 +110,16 @@ def main() -> None:
         for target in targets:
             shoot(base, target, out, os.getenv("CHROME"))
     finally:
-        server.terminate()
+        # `uv run` starts the server as a grandchild; terminate() stops only uv,
+        # and on Windows the server lives on and keeps its port. Kill the tree.
+        if os.name == "nt":
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(server.pid)],
+                capture_output=True,
+                check=False,
+            )
+        else:
+            server.terminate()
 
 
 if __name__ == "__main__":

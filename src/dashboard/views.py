@@ -1,792 +1,824 @@
-"""The dashboard's 4 pages, one per mart group:
+"""The dashboard: one page for a reader new to the topic (ADR 14).
 
-1. Farm to plate: farmer_share_monthly + dish_costs_monthly. The farmer's share of
-   the retail peso, and what a dish costs in a day's minimum wage.
-2. Overview: staple_prices_monthly. What moved in a year.
-3. Compare places: staple_prices_monthly at province/region level. Where it costs more.
-4. Look up a food: retail_prices_monthly + staple_seasonality. Any of PSA's foods.
+"Who's eating the farmer's peso?" in five short sections, in the order a short
+video would tell them (ADR 18). Read in order, the headlines tell the story:
 
-Red means costs more and green costs less, always next to an arrow or a sign.
-Everything else is neutral.
+1. Farmers got X% less for a food this year; you paid Y% more: the foods whose
+   farm price fell over the past year, next to their store price
+   (price_changes_yearly, pork included as percent changes only).
+2. Farmers get X centavos of your peso: a typical peso split between farmer,
+   traders and stores, then each food's farmer centavos (farmer_share_monthly).
+3. Drop ₱10 at the farm, and you save only ₱X (food_verdicts).
+4. The gap grew faster than inflation for N foods since 2018, with diesel as a
+   second yardstick (food_verdicts).
+5. Check your food: one food's prices and numbers.
+
+Each story section opens with one or two big numbers (`hero`), sized and
+coloured by the CSS in app.py. Shares are centavos of a peso, real price moves
+pesos, a year's change percent (section 1, where pork's live-hog price can't be
+set peso for peso against a cut). No sentence on the page starts with a numeral.
+The story charts are ECharts with a brief entry animation (ADR 17) and fade in
+as they scroll into view (`reveal`, ADR 18); "Check your food" stays Altair.
+
+Under each chart, one "so what" line (`so_what`) says why the chart matters,
+computed like the headline. The public record (`suspects.csv`) is off the page
+until its sources are checked by hand.
+
+One palette, the same in light and dark: blue is the farmer, amber is what
+you pay and what to look at (a store price that rose, a food whose gap beat
+inflation, darker past diesel). Traders are dark grey, stores light grey,
+everything else grey. The theme's blue and orange (`.streamlit/config.toml`) are
+set to the same two colours, so a coloured word, a coloured headline number and
+a bar always match. Caveats live in the (?) tooltips.
 """
 
-import calendar
-from datetime import datetime
 from typing import Any
-from zoneinfo import ZoneInfo
 
 import altair as alt
 import pandas as pd
 import streamlit as st
 
-from src.dashboard import data
+from src.dashboard import data, theme
 
-# Mid-tones that read on both the light and dark theme backgrounds.
-DEARER, CHEAPER, ACCENT = "#D9534A", "#3E9E66", "#5675BA"
-MISSING = "rgba(138, 129, 120, 0.3)"
-MUTED = "#8A8178"
-MONTHS = list(calendar.month_abbr)[1:]
-PHILIPPINES = data.PHILIPPINES
+# One value per role for both themes: each keeps at least 3:1 against the
+# light and the dark background. FARM and AMBER equal the theme's blue and orange
+# (.streamlit/config.toml), which colour :blue[...] and :orange[...] text.
+FARM, AMBER, MUTED = "#4A72E0", "#C77700", "#8A8178"
+# Deep amber, the same hue darker: a gap that grew faster than even diesel.
+DEEP = "#A35400"
+# Traders and stores: two greys, darker for the step nearer the farm.
+TRADER_GREY, STORE_GREY = MUTED, "#B5ADA4"
+# The ratchet draws the store line this far above the farm line, in pesos.
+RATCHET_LIFT = 24
+SWINGS = 3
+# ECharts entry animation (ADR 17): brief and once, since ECharts can't read the
+# viewer's reduced-motion setting.
+ANIMATION_MS = 800
+
+YEAR_HELP = (
+    "Each food's national average farm and store price in {month:%B %Y}, against "
+    "{earlier:%B %Y}, from PSA. Only foods with both prices in both months are "
+    "shown.\n\n"
+    "- Pork: the farm price is for a live hog, the store price for a kilo of "
+    "kasim, so only the percent changes compare, not the pesos.\n"
+    "- Rice: palay is converted to milled rice at 0.63.\n"
+    "- One year can hold a good harvest or a bad one. This shows a pattern, not "
+    "why it happens: stores' own costs (rent, wages, power) don't fall with the "
+    "farm price."
+)
+SHARE_HELP = (
+    "A farmer's share is the farm price ÷ the store price for the same food and "
+    "month, national averages from PSA. Each food shows its latest month with "
+    "both prices.\n\n"
+    "- The bar is the average over the {foods} foods with a farm, wholesale and "
+    "store price, so its parts add up to one peso.\n"
+    "- Traders: wholesale price minus farm price. Stores: store price minus "
+    "wholesale price. Transport, storage and spoilage sit in both.\n"
+    "- Kangkong has no wholesale price, so it has a dot but isn't in the bar.\n"
+    "- Rice: palay is converted to milled rice at 0.63, so its share is "
+    "approximate.\n"
+    "- A farmer's share can top one peso for a month or two when farm prices "
+    "briefly beat store prices."
+)
+MOVES_HELP = (
+    "The chart is an example, not a record: the typical food (the median) taken "
+    f"through {SWINGS} farm-price rises and falls of ₱10. The store's moves come "
+    "from the data, counted over months when a food's farm price was over 15% higher or lower than a year "
+    "earlier, national averages from PSA. For each, the store's peso change is "
+    "set against the farm's. Both are in 2018 pesos (divided by the consumer price "
+    "index), so general inflation doesn't tilt the result.\n\n"
+    "- A peso-for-peso store would show ₱10 both ways.\n"
+    '- Each food\'s own numbers are in "Check your food". Foods with under 6 '
+    "such months each way are left out.\n"
+    "- This shows a pattern, not why it happens: costs that don't fall, contracts "
+    "and spoilage all play a part, as can weak competition."
+)
+GROWTH_HELP = (
+    "The gap is the store price minus the farm price, per kilo: what traders, "
+    "transport, storage and stores together take. Compared: the 2018 average and "
+    "the last 12 months' average. Inflation: PSA's consumer price index, all "
+    "items. A food is marked when its gap grew more than 5 points faster.\n\n"
+    "- Diesel is PSA's consumer price index for diesel, over the same months. "
+    "Deep amber: the gap grew faster than diesel too. "
+    "Fuel is only one of the gap's costs, next to wages, rent and spoilage.\n"
+    "- Over the same months, transport rose {transport:+.0%} and electricity, "
+    "gas and other fuels {fuel:+.0%}."
+)
 
 
-def peso(value: float) -> str:
-    return f"₱{value:,.2f}"
+def _once(spec: dict[str, Any]) -> dict[str, Any]:
+    """ECharts entry animation (ADR 17): short, played once, no update replay, so
+    the finished frame carries the point for anyone who misses the motion."""
+    return {
+        "animation": True,
+        "animationDuration": ANIMATION_MS,
+        "animationEasing": "cubicOut",
+        "animationDurationUpdate": 0,
+        **spec,
+    }
 
 
 def pct(change: float) -> str:
-    """A signed delta: st.metric reads the sign for its arrow and colour."""
-    return f"{change:+.1%}"
+    """A change as a signed whole percent with a true minus sign: −26%, +13%."""
+    return f"{change:+.0%}".replace("-", "−")
 
 
-def change_color(field: str) -> Any:
+def hero(section: str, *numbers: tuple[str, str, str]) -> None:
+    """One or two big numbers above a section's headline (ADR 18), each a
+    (label, value, role). app.py's CSS sizes them; the role colours the value
+    through the theme: "farm" blue, "look" amber, "plain" the theme's ink."""
+    with st.container(horizontal=True, gap="large"):
+        for i, (label, value, role) in enumerate(numbers):
+            with st.container(key=f"hero_{section}_{i}", width="content"):
+                st.metric(label, paint(value, role))
+
+
+def paint(text: str, role: str) -> str:
+    """Text in its role's theme colour: "farm" blue, "look" amber, else as is."""
+    colour = {"farm": "blue", "look": "orange"}.get(role)
+    return f":{colour}[{text}]" if colour else text
+
+
+def reveal(name: str) -> Any:
+    """A container that app.py's CSS fades in as it scrolls into view (ADR 18)."""
+    return st.container(key=f"reveal_{name}")
+
+
+def year_chart(rows: pd.DataFrame) -> dict[str, Any]:
+    """Each food's farm (blue) and store (amber, grey where it fell too) change
+    over the past year, as bars from a zero line, biggest split on top."""
+
+    def bars(column: str, colour: Any) -> list[dict[str, Any]]:
+        return [
+            {
+                "value": round(v * 100, 1),
+                "itemStyle": {"color": colour(v)},
+                "label": {
+                    "position": "right" if v >= 0 else "left",
+                    "formatter": pct(v),
+                },
+            }
+            for v in rows[column]
+        ]
+
+    values = pd.concat([rows["farm_change"], rows["store_change"]]) * 100
+    # Room beyond the longest bars for their labels.
+    low, high = min(0.0, values.min()) - 14, max(0.0, values.max()) + 14
+    label = {"show": True, "fontWeight": 700}
+    return _once(
+        {
+            "grid": {"left": 4, "right": 4, "top": 4, "bottom": 4},
+            "xAxis": {"type": "value", "min": low, "max": high, "show": False},
+            "yAxis": {
+                "type": "category",
+                "inverse": True,
+                "data": list(rows["staple"]),
+                "axisTick": {"show": False},
+                "axisLine": {"show": False},
+            },
+            "tooltip": {"trigger": "item", "formatter": "{b}, {a}: {c}%"},
+            "series": [
+                {
+                    "type": "bar",
+                    "name": "farm price",
+                    "barWidth": 12,
+                    "barGap": "30%",
+                    "data": bars("farm_change", lambda v: FARM),
+                    "label": label,
+                    "markLine": {
+                        "symbol": ["none", "none"],
+                        "silent": True,
+                        "label": {"show": False},
+                        "lineStyle": {"color": MUTED, "type": "solid", "width": 1},
+                        "data": [{"xAxis": 0}],
+                    },
+                },
+                {
+                    "type": "bar",
+                    "name": "store price",
+                    "barWidth": 12,
+                    "data": bars("store_change", lambda v: AMBER if v > 0 else MUTED),
+                    "label": label,
+                },
+            ],
+        }
+    )
+
+
+def peso_chart(cents: dict[str, int], foods: int) -> dict[str, Any]:
+    """The typical peso as one fat bar: farmer (blue), traders and stores (greys),
+    each part's centavos big inside it. The bars grow in from the left."""
+    ink = {data.FARMER: "#FFFFFF", data.TRADERS: "#FFFFFF", data.STORES: "#24211E"}
+    colour = {data.FARMER: FARM, data.TRADERS: TRADER_GREY, data.STORES: STORE_GREY}
+    names = list(cents)
+    series = [
+        {
+            "type": "bar",
+            "name": name,
+            "stack": "peso",
+            "barWidth": 76,
+            "data": [cents[name]],
+            "itemStyle": {
+                "color": colour[name],
+                "borderRadius": [8, 0, 0, 8]
+                if i == 0
+                else [0, 8, 8, 0]
+                if i == len(names) - 1
+                else 0,
+            },
+            "label": {
+                "show": True,
+                "position": "insideLeft",
+                "distance": 10,
+                "formatter": "{n|{c}¢}\n{w|{a}}",
+                "rich": {
+                    "n": {"fontSize": 24, "fontWeight": 800, "color": ink[name]},
+                    "w": {"fontSize": 12, "fontWeight": 600, "color": ink[name]},
+                },
+            },
+            "emphasis": {"disabled": True},
+        }
+        for i, name in enumerate(names)
+    ]
+    return _once(
+        {
+            "grid": {"left": 0, "right": 0, "top": 0, "bottom": 0},
+            "xAxis": {"type": "value", "min": 0, "max": 100, "show": False},
+            "yAxis": {"type": "category", "data": ["peso"], "show": False},
+            "tooltip": {
+                "trigger": "item",
+                "formatter": "{a}: {c} centavos of every peso<br/>"
+                f"Average of the {foods} foods with a farm, wholesale and store price",
+            },
+            "series": series,
+        }
+    )
+
+
+def farmer_dots(rows: pd.DataFrame, typical: float) -> dict[str, Any]:
+    """Each food's farmer centavos as a blue dot, lowest on top, with a dashed
+    line at the typical peso's. Only the farmer's part is drawn, so a food without
+    a wholesale price (kangkong) fits like any other."""
+    top = max(100, int(-(-rows["farmer"].max() // 10) * 10))
+    return _once(
+        {
+            "grid": {"left": 4, "right": 4, "top": 26, "bottom": 4},
+            "xAxis": {
+                "type": "value",
+                "min": 0,
+                "max": top,
+                "interval": 50,
+                "axisLabel": {"formatter": "{value}¢"},
+                "splitLine": {"lineStyle": {"opacity": 0.5}},
+            },
+            # Food names on the left; each food's centavos as a column on the
+            # right, clear of the dots and the dashed typical line.
+            "yAxis": [
+                {
+                    "type": "category",
+                    "inverse": True,
+                    "data": list(rows["staple"]),
+                    "axisTick": {"show": False},
+                    "axisLine": {"show": False},
+                },
+                {
+                    "type": "category",
+                    "inverse": True,
+                    "position": "right",
+                    "data": [str(round(v)) for v in rows["farmer"]],
+                    "axisTick": {"show": False},
+                    "axisLine": {"show": False},
+                    "axisLabel": {"fontWeight": 700},
+                },
+            ],
+            "tooltip": {
+                "trigger": "item",
+                "formatter": "{b}: {c} centavos to the farmer",
+            },
+            "series": [
+                {
+                    "type": "bar",
+                    "name": "farmer",
+                    "barWidth": 2,
+                    "data": [round(v) for v in rows["farmer"]],
+                    "itemStyle": {"color": FARM, "opacity": 0.35},
+                    "silent": True,
+                    "tooltip": {"show": False},
+                },
+                {
+                    "type": "scatter",
+                    "name": "farmer",
+                    "symbolSize": 13,
+                    "data": [round(v) for v in rows["farmer"]],
+                    "itemStyle": {"color": FARM},
+                    "emphasis": {"scale": 1.3},
+                    "markLine": {
+                        "symbol": ["none", "none"],
+                        "silent": True,
+                        "lineStyle": {"color": MUTED, "type": "dashed", "width": 1.5},
+                        "label": {
+                            "position": "start",
+                            "distance": 6,
+                            "formatter": f"typical {typical:.0f}¢",
+                            "color": MUTED,
+                            "fontWeight": 600,
+                        },
+                        "data": [{"xAxis": round(typical, 1)}],
+                    },
+                },
+            ],
+        }
+    )
+
+
+def ratchet_chart(up: float, down: float) -> dict[str, Any]:
+    """The typical food's farm price (blue) rising and falling ₱10, SWINGS times,
+    and its store price (amber) following: up `up`, down only `down`. Both lines
+    draw themselves left to right; a dashed line marks where each started and an
+    amber bracket the store's climb at the end."""
+    steps = data.ratchet(up, down, SWINGS)
+    last = int(steps["step"].max())
+
+    def points(line: str, lift: float) -> list[list[float]]:
+        rows = steps[steps["line"] == line]
+        return [[int(s), float(p) + lift] for s, p in zip(rows["step"], rows["price"])]
+
+    farm, store = points(data.FARM, 0), points(data.STORE, RATCHET_LIFT)
+    creep = store[-1][1] - RATCHET_LIFT
+
+    def line(
+        name: str, pts: list[list[float]], colour: str, base: float, end: str
+    ) -> dict[str, Any]:
+        marks: list[Any] = [
+            [
+                {"coord": [0, base], "lineStyle": {"type": "dashed", "width": 1.2}},
+                {"coord": [last, base]},
+            ]
+        ]
+        if pts[-1][1] > base:
+            # The store's climb: a bracket from where it started to where it ended.
+            marks.append(
+                [
+                    {
+                        "coord": [last, base],
+                        "lineStyle": {"width": 4, "type": "solid"},
+                        "label": {"show": False},
+                    },
+                    {"coord": [last, pts[-1][1]]},
+                ]
+            )
+        return {
+            "type": "line",
+            "name": name,
+            "data": pts,
+            "silent": True,
+            "symbol": "circle",
+            "symbolSize": 8,
+            "color": colour,
+            "lineStyle": {"width": 3},
+            "endLabel": {
+                "show": True,
+                "formatter": end,
+                "fontWeight": 700,
+                "fontSize": 13,
+                "distance": 10,
+            },
+            "markLine": {
+                "symbol": ["none", "none"],
+                "silent": True,
+                "animation": False,
+                "lineStyle": {"color": colour, "width": 1.5},
+                "label": {
+                    "show": True,
+                    "position": "insideStartBottom",
+                    "formatter": name,
+                    "color": colour,
+                    "fontWeight": 700,
+                    "fontSize": 13,
+                },
+                "data": marks,
+            },
+        }
+
+    return _once(
+        {
+            "animationEasing": "linear",
+            "grid": {"left": 4, "right": 112, "top": 16, "bottom": 22},
+            "xAxis": {"type": "value", "min": 0, "max": last, "show": False},
+            "yAxis": {
+                "type": "value",
+                "min": -6,
+                "max": RATCHET_LIFT + max(creep, 0) + 16,
+                "show": False,
+            },
+            "tooltip": {"show": False},
+            "series": [
+                line("Farm price", farm, FARM, 0, "back to start"),
+                line(
+                    "Store price",
+                    store,
+                    AMBER,
+                    RATCHET_LIFT,
+                    f"+₱{creep:.0f} higher" if creep > 0 else "back to start",
+                ),
+            ],
+        }
+    )
+
+
+def growth_chart(rows: pd.DataFrame, inflation: float, diesel: float) -> dict[str, Any]:
+    """Each food's growth in the gap since 2018: amber when it beat inflation,
+    deep amber when it beat diesel too, grey otherwise, with inflation (solid)
+    and diesel (dashed) as lines across the bars."""
+
+    def colour(change: float, verdict: str) -> str:
+        # Whole percents, as data.grew_faster counts and the labels show.
+        if round(change * 100) > round(diesel * 100):
+            return DEEP
+        return AMBER if verdict == "suspicious" else MUTED
+
+    bars = [
+        {
+            "value": round(change * 100, 1),
+            "itemStyle": {"color": colour(change, verdict)},
+            "label": {"formatter": pct(change)},
+        }
+        for change, verdict in zip(rows["middle_change"], rows["verdict"])
+    ]
+    top = max(rows["middle_change"].max(), diesel) * 100
+
+    def yardstick(name: str, change: float, kind: str, end: str) -> dict[str, Any]:
+        return {
+            "xAxis": round(change * 100, 1),
+            "lineStyle": {"color": MUTED, "type": kind, "width": 2},
+            # Inflation's label above the bars, diesel's below, so they don't
+            # collide on a phone ("start" is the top: the food axis is inverse).
+            "label": {
+                "formatter": f"{name} {pct(change)}",
+                "position": end,
+                "fontWeight": 700,
+            },
+        }
+
+    return _once(
+        {
+            "grid": {"left": 4, "right": 4, "top": 28, "bottom": 28},
+            "xAxis": {
+                "type": "value",
+                "min": min(0.0, rows["middle_change"].min() * 100),
+                # Room past the longest bar for its label, even at phone width.
+                "max": top * 1.25,
+                "show": False,
+            },
+            "yAxis": {
+                "type": "category",
+                "inverse": True,
+                "data": list(rows["staple"]),
+                "axisTick": {"show": False},
+                "axisLine": {"show": False},
+            },
+            "tooltip": {"trigger": "item", "formatter": "{b}: the gap grew {c}%"},
+            "series": [
+                {
+                    "type": "bar",
+                    "name": "gap",
+                    "barWidth": 14,
+                    "data": bars,
+                    "itemStyle": {"borderRadius": [0, 3, 3, 0]},
+                    "label": {"show": True, "position": "right", "fontWeight": 600},
+                    "markLine": {
+                        "symbol": ["none", "none"],
+                        "silent": True,
+                        "data": [
+                            yardstick("Inflation", inflation, "solid", "start"),
+                            yardstick("Diesel", diesel, "dashed", "end"),
+                        ],
+                    },
+                }
+            ],
+        }
+    )
+
+
+def food_chart(series: pd.DataFrame, unit: str) -> Any:
+    """Farm, wholesale and store price by month, in the story's colours: farm
+    blue, wholesale grey, store amber."""
     return (
-        alt.when(alt.datum[field] > 0)
-        .then(alt.value(DEARER))
-        .otherwise(alt.value(CHEAPER))
-    )
-
-
-def month_badge(month: pd.Timestamp) -> None:
-    """The data month, amber and marked late when it is over 2 months old."""
-    now = pd.Timestamp(datetime.now(ZoneInfo("Asia/Manila")).date())
-    late = month < now.to_period("M").to_timestamp() - pd.DateOffset(months=2)
-    st.badge(
-        f"{month:%B %Y} prices" + (" · late" if late else ""),
-        icon=":material/warning:" if late else ":material/event:",
-        color="orange" if late else "gray",
-        help="PSA's latest monthly averages. PSA releases each month about 5 weeks "
-        "after it ends.",
-    )
-
-
-def footer(month: pd.Timestamp, released: pd.Timestamp) -> None:
-    st.divider()
-    st.caption(
-        f"Prices: PSA OpenSTAT, {month:%B %Y}, released {released:%d %b %Y}. "
-        "Monthly averages, not one market's price tag. Province coverage is "
-        "sparse, and pre-2024 figures for Negros Island Region and Sulu are PSA "
-        "reconstructions."
-    )
-
-
-def colored_changes(frame: pd.DataFrame, column: str) -> Any:
-    """Colour a column of data.arrow text red (↑) or green (↓)."""
-
-    def tint(text: object) -> str:
-        if str(text).startswith("↑"):
-            return f"color: {DEARER}"
-        return f"color: {CHEAPER}" if str(text).startswith("↓") else ""
-
-    return frame.style.map(tint, subset=[column])
-
-
-def month_axis() -> alt.X:
-    return alt.X(
-        "month:T", title=None, axis=alt.Axis(grid=False, format="%Y", tickCount="year")
-    )
-
-
-# Page 1: Farm to plate
-# Lines and markers use the theme's categorical palette (range="category"), so
-# they switch with light and dark at once: blue farm price, ink store price,
-# amber policy. Explanations and caveats live in the (?) tooltips.
-
-SHARE_HELP = (
-    "Farm price ÷ store price, same food, place and month. Each food shows its "
-    "latest month with both prices (hover a bar).\n\n"
-    "- **Rice** is stored for months, so its share is approximate. Palay is "
-    "converted to milled rice at 0.63, a figure from press and USDA coverage, "
-    "not PSA.\n"
-    "- A share can top ₱100 for a month or two: farm prices sometimes briefly "
-    "exceed store prices (mostly sitaw, calamansi and tomato)."
-)
-WAGE_HELP = (
-    "Published recipes scaled to 5 servings, plus rice, priced at the region's "
-    "monthly averages, divided by its daily non-farm minimum wage (the top tier "
-    "where a wage order has several). For the whole country: the median region.\n\n"
-    "- Central Visayas, Northern Mindanao and BARMM use the rate of their "
-    "highest-paid area (Metro Cebu, the Cagayan de Oro cluster, 3 cities), so "
-    "they understate the cost elsewhere in those regions.\n"
-    "- Negros Island Region has no wage order of its own yet."
-)
-ACTION = "Policy"
-
-
-def share_chart(rows: pd.DataFrame, current: str) -> Any:
-    """Each food's farmer pesos (blue) on a faint ₱100 track. Clicking a bar picks
-    that food for the price chart (selection "pick"); the current food is solid,
-    the rest faded."""
-    scale = alt.Scale(domain=[0, max(100.0, float(rows["farmer"].max()))])
-    base = alt.Chart(rows).encode(
-        y=alt.Y("staple:N", sort=None, title=None, axis=alt.Axis(labelLimit=200)),
-        tooltip=[
-            alt.Tooltip("staple:N", title="Food"),
-            alt.Tooltip("month:T", format="%B %Y", title="Month"),
-            alt.Tooltip("farmer_share:Q", format=".1%", title="Farmer's share"),
-            alt.Tooltip("farmgate_equivalent:Q", format=",.2f", title="Farm (₱)"),
-            alt.Tooltip("retail_price:Q", format=",.2f", title="Store (₱)"),
-        ],
-    )
-    track = base.mark_bar(color=MISSING, cornerRadiusEnd=3).encode(
-        x=alt.datum(100, scale=scale)
-    )
-    farmer = (
-        base.mark_bar(color=ACCENT, cornerRadiusEnd=3, cursor="pointer")
-        .encode(
-            x=alt.X(
-                "farmer:Q",
-                title=None,
-                scale=scale,
-                axis=alt.Axis(labelExpr="'₱' + datum.label", values=[0, 50, 100]),
-            ),
-            opacity=alt.when(alt.datum.staple == current)
-            .then(alt.value(1.0))
-            .otherwise(alt.value(0.4)),
-        )
-        .add_params(alt.selection_point(name="pick", fields=["staple"]))
-    )
-    # White inside the blue bar reads on both themes.
-    text = (
-        base.transform_calculate(pesos="'₱' + format(datum.farmer, '.0f')")
-        .mark_text(align="right", dx=-5, color="white", fontWeight=600)
-        .encode(x="farmer:Q", text="pesos:N")
-    )
-    return (track + farmer + text).properties(height=26 * len(rows))
-
-
-def history_chart(history: pd.DataFrame, events: pd.DataFrame, unit: str) -> Any:
-    names = [data.FARM, data.STORE] + ([ACTION] if len(events) else [])
-    color = alt.Color(
-        "line:N",
-        scale=alt.Scale(domain=names, range="category"),
-        legend=alt.Legend(title=None, orient="top"),
-    )
-    lines = (
-        alt.Chart(history)
+        alt.Chart(series)
         .mark_line(strokeWidth=2.5)
         .encode(
-            x=month_axis(),
+            x=alt.X(
+                "month:T",
+                title=None,
+                axis=alt.Axis(grid=False, format="%Y", tickCount="year"),
+            ),
             y=alt.Y(
                 "price:Q",
                 title=None,
                 axis=alt.Axis(format=",.0f", labelExpr="'₱' + datum.label"),
             ),
-            color=color,
+            color=alt.Color(
+                "line:N",
+                scale=alt.Scale(
+                    domain=[data.FARM, data.WHOLESALE, data.STORE],
+                    range=[FARM, MUTED, AMBER],
+                ),
+                legend=alt.Legend(
+                    title=None,
+                    orient="top",
+                    values=[data.FARM, data.WHOLESALE, data.STORE],
+                ),
+            ),
             tooltip=[
                 alt.Tooltip("line:N", title="Price"),
                 alt.Tooltip("month:T", format="%B %Y", title="Month"),
                 alt.Tooltip("price:Q", format=",.2f", title=f"₱ per {unit}"),
             ],
         )
-    )
-    marks = (
-        alt.Chart(events)
-        .transform_calculate(line=f"'{ACTION}'")
-        .mark_rule(strokeDash=[4, 3], strokeWidth=1.5)
-        .encode(
-            x="start_date:T",
-            color=color,
-            tooltip=[
-                alt.Tooltip("start_date:T", format="%d %b %Y", title="From"),
-                alt.Tooltip("event:N", title=ACTION),
-            ],
-        )
-    )
-    return (lines + marks).properties(height=300)
-
-
-def wage_chart(rows: pd.DataFrame) -> Any:
-    """Each dish's share of a day's pay, with a dashed line at a full day's pay."""
-    scale = alt.Scale(domain=[0, max(1.0, float(rows["dish_wage_share"].max()))])
-    base = alt.Chart(rows).encode(
-        y=alt.Y("dish:N", sort=None, title=None, axis=alt.Axis(labelLimit=200)),
-        tooltip=[
-            alt.Tooltip("dish:N", title="Dinner"),
-            alt.Tooltip("dish_wage_share:Q", format=".1%", title="Of a day's pay"),
-        ],
-    )
-    bars = base.mark_bar(color=ACCENT, cornerRadiusEnd=3).encode(
-        x=alt.X(
-            "dish_wage_share:Q",
-            title=None,
-            scale=scale,
-            axis=alt.Axis(format="%", values=[0, 0.5, 1, 1.5, 2]),
-        )
-    )
-    text = base.mark_text(align="right", dx=-5, color="white", fontWeight=600).encode(
-        x="dish_wage_share:Q", text=alt.Text("dish_wage_share:Q", format=".1%")
-    )
-    # Ink (categorical colour 2), so the rule switches with light and dark.
-    ink = alt.Scale(domain=["_", "day"], range="category")
-    day = (
-        alt.Chart(pd.DataFrame({"x": [1.0], "line": ["day"]}))
-        .mark_rule(strokeDash=[4, 3], strokeWidth=1.5)
-        .encode(
-            x=alt.X("x:Q", scale=scale),
-            color=alt.Color("line:N", scale=ink, legend=None),
-        )
-    )
-    return (bars + text + day).properties(height=30 * len(rows))
-
-
-def pick_food() -> None:
-    """A click on the share chart picks that food in the price chart's selectbox."""
-    picked = st.session_state["pick_food"]["selection"]["pick"]
-    if picked:
-        st.session_state["staple"] = picked[0]["staple"]
-
-
-def pesos_change(change: float | None) -> str | None:
-    # ASCII "-": st.metric reads the sign to pick the arrow, and a Unicode minus
-    # shows as "↑ −₱7.3".
-    return (
-        None if change is None else f"{'+' if change >= 0 else '-'}₱{abs(change):.1f}"
+        .properties(height=280)
     )
 
 
-def farm_page() -> None:
+def so_what(text: str) -> None:
+    """The line under a chart that says why it matters."""
+    st.markdown(f":material/lightbulb: {text}")
+
+
+def case_page() -> None:
     shares = data.load(data.SHARES)
-    dishes = data.load(data.DISHES)
-    names = data.regions(shares)
-    wages = dishes.dropna(subset=["dish_wage_share"])
-    wage_month = pd.Timestamp(wages["month"].max())
+    verdicts = data.load(data.VERDICTS)
+    changes = data.load(data.CHANGES)
+    rows = data.farmer_shares(shares)
+    inflation = float(verdicts["cpi_change"].iloc[0])
+    month = pd.Timestamp(rows["month"].max())
 
-    with st.container(horizontal=True, vertical_alignment="center"):
-        geo_code = str(
-            st.selectbox(
-                "Prices in",
-                list(names),
-                format_func=lambda code: names[code],
-                key="region",
-                bind="query-params",
-                label_visibility="collapsed",
-                width=300,
+    with st.container(
+        horizontal=True, horizontal_alignment="distribute", vertical_alignment="center"
+    ):
+        # No sentence starts with a numeral, so the count follows the place.
+        st.caption(
+            f"Philippines · {len(rows)} everyday foods · PSA prices to {month:%B %Y}"
+        )
+        theme.theme_button()
+    st.title("Who's eating the farmer's peso?")
+
+    # 1. This year: the farm price fell, the store price didn't follow
+    fallen = data.farm_fell(changes)
+    if fallen.empty:
+        st.header("This year, no food got cheaper at the farm")
+        st.caption("Every farm price rose over the past year.")
+    else:
+        top = fallen.iloc[0]
+        food = str(top["staple"]).lower()
+        measure = top["farm_measure"]
+        farm_food = f"{food} ({measure})" if pd.notna(measure) else food
+        store = float(top["store_change"])
+        hero(
+            "year",
+            (f"Farm price, {farm_food}", pct(top["farm_change"]), "farm"),
+            (f"Store price, {food}", pct(store), "look" if store > 0 else "plain"),
+        )
+        you = (
+            f"You paid :orange[{store:.0%} more]."
+            if round(store * 100) > 0
+            else f"You paid only {-store:.0%} less."
+            if round(store * 100) < 0
+            else "You paid the same."
+        )
+        st.header(
+            f"Farmers got :blue[{-top['farm_change']:.0%} less] for {food} this year. "
+            f"{you}",
+            help=YEAR_HELP.format(
+                month=pd.Timestamp(top["month"]),
+                earlier=pd.Timestamp(top["month_year_ago"]),
+            ),
+        )
+        st.markdown(
+            "Each food whose :blue[**farm price**] fell from "
+            f"{pd.Timestamp(top['month_year_ago']):%B %Y} to "
+            f"{pd.Timestamp(top['month']):%B %Y}, beside its :orange[**store "
+            "price**], greyed where the store price fell too."
+        )
+        with reveal("year"):
+            st.echarts_chart(
+                year_chart(fallen),
+                height=40 * len(fallen) + 16,
+                key="year_chart",
+                alt=f"Foods whose farm price fell over the past year: {food}'s fell "
+                f"{pct(top['farm_change'])} while its store price moved {pct(store)}",
             )
-        )
-        month_badge(pd.Timestamp(shares["month"].max()))
-    where = data.in_words(geo_code, names[geo_code])
-    rows = data.farmer_shares(shares, geo_code)
-    if rows.empty:
-        st.info(f"PSA has no farm prices for {where}.")
-        return
-
-    # The takeaway is the title; the question is the small line under it.
-    st.title(data.share_headline(rows))
-    st.caption(f"How much of the store price reaches the farmer, in {where}")
-
-    typical, typical_change = data.farmer_cut(shares, rows)
-    rice, rice_change = data.farmer_cut(shares, rows, "Regular rice")
-    dinner, dinner_change = data.dinner_cut(dishes, wage_month, geo_code)
-    with st.container(horizontal=True):
-        st.metric(
-            "Farmer's cut, typical food",
-            f"₱{typical:.0f} of ₱100",
-            pesos_change(typical_change),
-            delta_color="off",
-            delta_description="vs a year ago",
-            help=f"The median of {len(rows)} foods' farmer's share, each in its "
-            "latest month. The change counts only foods priced both years.",
-            border=True,
-        )
-        st.metric(
-            "Farmer's cut, regular rice",
-            "—" if rice is None else f"₱{rice:.0f} of ₱100",
-            pesos_change(rice_change),
-            delta_color="off",
-            delta_description="vs a year ago",
-            help="Palay converted to milled rice at 0.63; approximate, since rice "
-            "is stored for months.",
-            border=True,
-        )
-        st.metric(
-            "Typical dinner for 5, share of a day's pay",
-            "—" if dinner is None else f"{dinner:.1%}",
-            None if dinner_change is None else f"{dinner_change * 100:+.1f} pts",
-            delta_color="inverse",
-            delta_description="vs a year ago",
-            help="The median of 8 dinners' cost against the daily minimum wage, "
-            f"{wage_month:%B %Y}"
-            + (", in the median region." if geo_code == PHILIPPINES else "."),
-            border=True,
+        rose = int((fallen["store_change"] > 0).sum())
+        so_what(
+            f"So for {rose} of {len(fallen)} foods, the farmer's drop never reached "
+            "you: the store price went up instead."
+            if rose
+            else "So store prices fell too, but by less than the farmer's."
         )
 
-    staples = sorted(rows["staple"])
-    out = data.load_exclusions()
-    left_out = sorted(out.loc[out["geo_code"] == geo_code, "staple"])
-    share_card, price_card = st.columns([5, 6], gap="medium")
-    # The price card runs first: its selectbox decides which bar is highlighted.
-    with price_card, st.container(border=True, height="stretch"):
-        staple = str(
-            st.selectbox(
-                "Food",
-                staples,
-                index=staples.index("Regular rice") if "Regular rice" in staples else 0,
-                key="staple",
-                bind="query-params",
-                label_visibility="collapsed",
-                width=220,
+    # 2. How much reaches the farmer: the typical peso, then each food's farmer part
+    low = rows.iloc[0]
+    peso, averaged = data.typical_peso(rows)
+    cents = data.whole_centavos(peso)
+    typical = cents[data.FARMER]
+    st.space("large")
+    hero("peso", ("The farmer's part of a peso", f"{typical}¢", "farm"))
+    st.header(
+        f"Farmers get :blue[{typical} centavos] of your peso",
+        help=SHARE_HELP.format(foods=averaged),
+    )
+    st.markdown(
+        "The bar splits a typical peso between the :blue[**farmer**], traders and "
+        "stores. Below it, each food's farmer part, lowest first: "
+        f"{low['staple'].lower()} gets {low['farmer']:.0f}."
+    )
+    with reveal("peso"):
+        st.echarts_chart(
+            peso_chart(cents, averaged),
+            height=84,
+            key="peso_chart",
+            alt=f"A typical peso: {cents[data.FARMER]} centavos to the farmer, "
+            f"{cents[data.TRADERS]} to traders, {cents[data.STORES]} to stores",
+        )
+    with reveal("dots"):
+        st.echarts_chart(
+            farmer_dots(rows, peso[data.FARMER]),
+            height=24 * len(rows) + 40,
+            key="farmer_dots",
+            alt=f"Each food's farmer centavos of every peso, from "
+            f"{low['staple'].lower()} at {low['farmer']:.0f} up",
+        )
+    traders, stores = cents[data.TRADERS], cents[data.STORES]
+    big, small = ("stores", "traders") if stores >= traders else ("traders", "stores")
+    after_farm = (
+        "So most of your peso is spent after the farm, and " if typical < 50 else "So "
+    )
+    so_what(
+        f"{after_farm}the biggest part goes to {big}: about "
+        f"{max(stores, traders)} centavos, against {min(stores, traders)} for "
+        f"{small}."
+    )
+
+    # 3. Up fast, down slow
+    moves = data.up_and_down(verdicts)
+    slower = int((moves["down"] < moves["up"]).sum())
+    up, down = float(moves["up"].median()), float(moves["down"].median())
+    st.space("large")
+    hero("ratchet", ("Of a ₱10 farm drop, you see", f"₱{down:.0f}", "look"))
+    st.header(
+        f"Drop ₱10 at the farm, and you save only :orange[₱{down:.0f}]"
+        if round(down) < 10
+        else "Drop ₱10 at the farm, and you save the whole ₱10",
+        help=MOVES_HELP,
+    )
+    most = "Most foods" if slower > len(moves) / 2 else "Some foods"
+    st.markdown(
+        f"When it rises ₱10, the store rises about ₱{up:.0f}. {most}, {slower} of "
+        f"{len(moves)}, come down slower than they go up. Here the typical "
+        f":blue[**farm price**] goes up and down {SWINGS} times, and the "
+        ":orange[**store price**] follows."
+    )
+    with reveal("ratchet"):
+        st.echarts_chart(
+            ratchet_chart(up, down),
+            height=240,
+            key="ratchet_chart",
+            alt=f"Example: the farm price rises and falls ₱10 {SWINGS} times; the "
+            f"store price rises ₱{up:.0f} and falls ₱{down:.0f} each time",
+        )
+    creep = SWINGS * (round(up) - round(down))
+    so_what(
+        f"So after {SWINGS} ups and downs the farm price is back where it started, "
+        f"but the store price is ₱{creep} higher. Shoppers keep paying for drops "
+        "they never see."
+        if creep > 0
+        else f"So after {SWINGS} ups and downs, both prices end where they started."
+    )
+
+    # 4. Is the gap growing?
+    growth = data.growth_vs_prices(verdicts)
+    worse = int((growth["verdict"] == "suspicious").sum())
+    first = verdicts.iloc[0]
+    diesel = float(first["diesel_change"])
+    past_diesel = data.grew_faster(growth, diesel)
+    st.space("large")
+    hero("gap", ("Foods whose gap beat inflation", f"{worse} of {len(growth)}", "look"))
+    st.header(
+        f"The gap grew faster than inflation for :orange[{worse} of {len(growth)}] "
+        "foods",
+        help=GROWTH_HELP.format(
+            transport=first["transport_change"], fuel=first["fuel_change"]
+        ),
+    )
+    st.markdown(
+        "How much each food's gap grew since 2018, next to inflation and diesel, "
+        "the fuel that moves food. :orange[**Amber**] grew faster than inflation; "
+        f"the darkest, {past_diesel} foods, grew faster than even diesel."
+    )
+    with reveal("growth"):
+        st.echarts_chart(
+            growth_chart(growth, inflation, diesel),
+            height=26 * len(growth) + 40,
+            key="growth_chart",
+            alt="How much the gap between farm and store price grew since 2018, "
+            "for each food",
+        )
+    parts = data.parts_then_now(verdicts)
+    trader_grew = parts["trader_part_now"] - parts["trader_part_then"]
+    store_grew = parts["store_part_now"] - parts["store_part_then"]
+    where = (
+        "between farm and market, with traders"
+        if trader_grew > store_grew
+        else "between market and shelf, at stores"
+    )
+    so_what(
+        f"So the gap grew most {where}. For the typical food, traders' share of "
+        f"every peso rose from {parts['trader_part_then']:.0f} to "
+        f"{parts['trader_part_now']:.0f} centavos, stores' from "
+        f"{parts['store_part_then']:.0f} to {parts['store_part_now']:.0f}."
+    )
+
+    # 5. Check your food
+    st.space("large")
+    st.header("Check your food")
+    foods = list(growth["staple"])
+    staple = str(
+        st.selectbox(
+            "Food",
+            foods,
+            index=foods.index("Red onion") if "Red onion" in foods else 0,
+            key="food",
+            bind="query-params",
+            label_visibility="collapsed",
+            width=260,
+        )
+    )
+    picked = rows[rows["staple"] == staple]
+    verdict = verdicts[verdicts["staple"] == staple].iloc[0]
+    unit = "piece" if verdict["unit"] == "pc" else "kg"
+    if picked.empty:
+        st.caption(f"PSA has no recent farm and store price for {staple.lower()}.")
+    else:
+        now = picked.iloc[0]
+        with st.container(horizontal=True):
+            st.metric(
+                f"You pay, per {unit}", f"₱{now['retail_price']:,.2f}", border=True
             )
+            st.metric(
+                "The farmer gets",
+                f"₱{now['farmgate_equivalent']:,.2f}",
+                border=True,
+                help="Rice: palay ÷ 0.63, as milled rice."
+                if "rice" in staple
+                else None,
+            )
+            if pd.isna(now["wholesale_price"]):
+                gap = max(0.0, now["retail_price"] - now["farmgate_equivalent"])
+                st.metric("The gap", f"₱{gap:,.2f}", border=True)
+            else:
+                st.metric("Traders", f"₱{now['trader_cut']:,.2f}", border=True)
+                st.metric("Stores", f"₱{now['store_cut']:,.2f}", border=True)
+        st.caption(f"{now['month']:%B %Y}, national average.")
+    faster = verdict["verdict"] == "suspicious"
+    # A sentence, not a badge: a badge cuts off at phone width.
+    grew = f"{verdict['middle_change']:+.0%}"
+    st.markdown(
+        "Since 2018 its gap grew "
+        + (f":orange[**{grew}**]" if faster else f"**{grew}**")
+        + f"; inflation was **{inflation:+.0%}**."
+    )
+    move = moves[moves["staple"] == staple]
+    if len(move):
+        up, down = float(move["up"].iloc[0]), float(move["down"].iloc[0])
+        fell = f"fell ₱{down:.0f}" if down >= 0 else f"still rose ₱{-down:.0f}"
+        st.markdown(
+            f"When its farm price rose ₱10, the store price rose ₱{up:.0f}. "
+            f"When it fell ₱10, the store price {fell}."
         )
-        row = rows[rows["staple"] == staple].iloc[0]
-        unit = "piece" if row["unit"] == "pc" else "kg"
-        history = data.share_history(shares, staple, geo_code)
-        first, last = history["month"].min(), history["month"].max()
-        events = data.events_for(data.load_events(), staple, str(row["category"]))
-        events = events[events["start_date"].between(first, last)]
-        st.subheader(
-            f"Farm and store price, per {unit}",
-            help="Pick a food here or click its bar. Dashed lines: government "
-            "policies on this food; hover one to read it."
-            + (
-                " Farm price here is palay ÷ 0.63, as milled rice."
-                if row["category"] == "Rice"
-                else ""
-            ),
-        )
-        st.altair_chart(
-            history_chart(history, events, unit).properties(
-                height=max(260, 26 * len(rows) - 110)
-            ),
-            width="stretch",
-            alt=f"{staple} farm and store price over time in {where}",
-        )
-        if len(events):
-            with st.expander(f"Sources ({len(events)} policies)"):
-                st.markdown(
-                    "\n".join(
-                        f"- {e.start_date:%d %b %Y}: [{e.event}]({e.source_url})"
-                        for e in events.itertuples()
-                    )
-                )
-    with share_card, st.container(border=True, height="stretch"):
-        st.subheader(
-            "Farmer's cut of every ₱100",
-            help=SHARE_HELP
-            + (
-                f"\n- Left out here: {', '.join(left_out)}. Farm and store prices "
-                "likely use different units (bundle vs kg)."
-                if left_out
-                else ""
-            ),
-        )
-        st.altair_chart(
-            share_chart(rows, staple),
-            width="stretch",
-            key="pick_food",
-            on_select=pick_food,
-            selection_mode="pick",
-            alt=f"Farmer's share of the store price of each food in {where}",
-        )
-
-    with st.container(border=True):
-        month = wage_month
-        st.subheader("Dinner for 5, as a share of a day's minimum wage", help=WAGE_HELP)
-        dinners = data.dish_wage_shares(dishes, month, geo_code)
-        if dinners.empty:
-            st.caption(f"{where} has no minimum wage order of its own yet.")
+    st.altair_chart(
+        food_chart(data.national_series(shares, staple), unit),
+        width="stretch",
+        alt=f"{staple} farm and store price by month",
+    )
+    if not picked.empty:
+        share = round(float(picked.iloc[0]["farmer"]))
+        if share == typical:
+            compared = "about the typical share"
         else:
-            st.caption(
-                f"{month:%B %Y}"
-                + (", median region" if geo_code == PHILIPPINES else "")
-                + ". Dashed line: a full day's pay."
-            )
-            st.altair_chart(
-                wage_chart(dinners),
-                width="stretch",
-                alt=f"Each dinner's cost as a share of a day's minimum wage in {where}",
-            )
+            side = "more" if share > typical else "less"
+            compared = f"{side} than the typical {typical}"
+        so_what(
+            f"So {staple.lower()}'s farmer gets {share} centavos of every peso you "
+            f"pay, {compared}."
+        )
 
     st.divider()
-    released = shares[["farmgate_released_at", "retail_released_at"]].max().max()
+    released = (
+        shares[["farmgate_released_at", "retail_released_at", "wholesale_released_at"]]
+        .max()
+        .max()
+    )
     st.caption(
-        f"Farm and store prices: PSA OpenSTAT, latest release "
-        f"{pd.Timestamp(released):%d %b %Y}. Minimum wages: NWPC regional wage orders."
+        f"Farm, wholesale and store prices: PSA OpenSTAT, latest release "
+        f"{pd.Timestamp(released):%d %b %Y}. Inflation and diesel: PSA consumer "
+        "price index (2018 = 100)."
     )
-
-
-# Page 2: Overview
-
-
-def overview_page() -> None:
-    staples = data.load(data.STAPLES)
-    month = data.latest_month(staples)
-    year_ago = month - pd.DateOffset(years=1)
-    names = data.regions(staples)
-
-    with st.container(horizontal=True, vertical_alignment="center"):
-        month_badge(month)
-        geo_code = str(
-            st.selectbox(
-                "Prices in",
-                list(names),
-                format_func=lambda code: names[code],
-                key="region",
-                bind="query-params",
-                label_visibility="collapsed",
-                width=300,
-            )
-        )
-    where = data.in_words(geo_code, names[geo_code])
-    if data.in_place(staples, month, geo_code)["change_year"].isna().all():
-        st.info(f"PSA has no year-on-year prices for {where} this month.")
-        return
-    summary = data.basket_summary(staples, month, geo_code)
-    fell, rose = data.year_extremes(staples, month, 1, geo_code)
-    st.title(data.headline(rose, fell) + " in a year")
-    st.markdown(
-        f"In {where}, {summary['dearer']} of {summary['staples']} everyday foods "
-        f"cost more than in {year_ago:%B %Y}. The typical food costs "
-        f"**{pct(summary['median'])}**."
-    )
-
-    with st.container(border=True):
-        st.subheader("Typical food price vs a year earlier")
-        st.caption(
-            "Each month, the median of the everyday foods' yearly changes. Above "
-            "zero: food got more expensive than the year before."
-        )
-        trend = data.typical_change_history(staples, geo_code)
-        base = alt.Chart(trend).encode(
-            x=month_axis(),
-            y=alt.Y("typical:Q", title=None, axis=alt.Axis(format="+%")),
-        )
-        line = base.mark_line(color=MUTED, strokeWidth=2)
-        dots = base.mark_circle(size=28).encode(
-            color=change_color("typical"),
-            tooltip=[
-                alt.Tooltip("month:T", format="%B %Y", title="Month"),
-                alt.Tooltip("typical:Q", format="+.1%", title="vs a year earlier"),
-            ],
-        )
-        zero = alt.Chart().mark_rule(color=MUTED).encode(y=alt.datum(0))
-        st.altair_chart(
-            (line + dots + zero).properties(height=260),
-            width="stretch",
-            alt=f"Typical food price change vs a year earlier in {where}",
-        )
-
-    with st.container(border=True):
-        st.subheader(f"Every food, {month:%b %Y} vs {year_ago:%b %Y}")
-        st.caption("Right of the line: costs more than a year ago. Left: costs less.")
-        rows = data.in_place(staples, month, geo_code).dropna(subset=["change_year"])
-        rows = rows.assign(text=rows["change_year"].map(data.arrow))
-        bars = alt.Chart(rows).encode(
-            y=alt.Y("staple:N", sort="-x", title=None, axis=alt.Axis(labelLimit=180)),
-            x=alt.X("change_year:Q", title=None, axis=alt.Axis(format="+%")),
-        )
-        chart = bars.mark_bar(cornerRadiusEnd=3).encode(
-            color=change_color("change_year"),
-            tooltip=[
-                alt.Tooltip("staple:N", title="Food"),
-                alt.Tooltip("text:N", title="Change"),
-            ],
-        )
-        st.altair_chart(
-            chart.properties(height=22 * len(rows)),
-            width="stretch",
-            alt=f"Yearly price change of each everyday food in {where}",
-        )
-
-    footer(month, pd.Timestamp(staples["released_at"].max()))
-
-
-# Page 3: Compare places
-
-
-def price_map(values: pd.DataFrame, geo_level: str, ncr: pd.DataFrame) -> Any:
-    """A choropleth of each area's price against the national price."""
-    features = data.map_features(data.load_map(), values, geo_level, ncr)
-    reach = max(0.1, min(0.4, float(values["vs_national"].abs().max() or 0.1)))
-    color = (
-        alt.when("datum.properties.value === null")
-        .then(alt.value(MISSING))
-        .otherwise(
-            alt.Color(
-                "properties.vs_national:Q",
-                title="vs national",
-                scale=alt.Scale(domain=[-reach, reach], range="diverging", clamp=True),
-                legend=alt.Legend(
-                    format="+%", orient="bottom-left", gradientLength=160
-                ),
-            )
-        )
-    )
-    source = {"values": features, "format": {"property": "features"}}
-    return (
-        alt.Chart(source)
-        .mark_geoshape(stroke=MISSING, strokeWidth=0.5)
-        .encode(
-            color=color,
-            tooltip=[
-                alt.Tooltip("properties.label:N", title="Area"),
-                alt.Tooltip("properties.value:Q", title="Price (₱)", format=",.2f"),
-                alt.Tooltip(
-                    "properties.vs_national:Q", title="vs national", format="+.1%"
-                ),
-            ],
-        )
-        .project("mercator")
-        .properties(height=520)
-    )
-
-
-def area_table(rows: pd.DataFrame, alt_text: str) -> None:
-    frame = pd.DataFrame(
-        {
-            "Area": rows["geolocation"].tolist(),
-            "Price": [peso(float(v)) for v in rows["value"]],
-            "vs national": rows["vs_national"].map(data.arrow).tolist(),
-        }
-    )
-    st.dataframe(
-        colored_changes(frame, "vs national"),
-        hide_index=True,
-        column_config={"Area": st.column_config.TextColumn(width="medium")},
-        alt=alt_text,
-    )
-
-
-def places_page() -> None:
-    staples = data.load(data.STAPLES)
-    month = data.latest_month(staples)
-    foods = sorted(staples["staple"].unique())
-
-    with st.container(horizontal=True, vertical_alignment="bottom"):
-        month_badge(month)
-        food = str(
-            st.selectbox(
-                "Food",
-                foods,
-                index=foods.index("Regular rice") if "Regular rice" in foods else 0,
-                key="food",
-                bind="query-params",
-                width=260,
-            )
-        )
-        level = str(
-            st.segmented_control(
-                "Compare",
-                ["Provinces", "Regions"],
-                default="Provinces",
-                required=True,
-                key="level",
-                bind="query-params",
-            )
-        )
-    geo_level = "province" if level == "Provinces" else "region"
-    values = data.area_values(staples, month, geo_level, food)
-    if values.empty:
-        st.info(f"PSA has no {level.lower()} prices for {food} this month.")
-        return
-    here = data.in_place(staples, month)
-    national = here.loc[here["staple"] == food, "price"]
-    unit = staples.loc[staples["staple"] == food, "unit"].iloc[0]
-    low, high = values.iloc[0], values.iloc[-1]
-    st.title(
-        f"{food} costs most in {high['geolocation']}, least in {low['geolocation']}"
-    )
-    st.markdown(
-        f"{peso(high['value'])} against {peso(low['value'])} "
-        + ("per piece" if unit == "pc" else "per kg")
-        + (
-            f", national average {peso(float(national.iloc[0]))}."
-            if len(national)
-            else "."
-        )
-    )
-
-    ncr = data.area_values(staples, month, "region", food)
-    ncr = ncr[ncr["geo_code"] == data.NCR]
-    left, right = st.columns([3, 2], gap="large")
-    with left:
-        st.caption(
-            "Red: costs more than the national average. Green: costs less. Grey: "
-            f"no PSA price there ({len(values)} {level.lower()} priced)."
-        )
-        st.altair_chart(
-            price_map(values, geo_level, ncr),
-            width="stretch",
-            alt=f"Map of {food} price by {geo_level}",
-        )
-    with right:
-        with st.container(border=True):
-            st.subheader("Cheapest", icon=":material/south:")
-            area_table(values.head(5), f"Cheapest {level.lower()} for {food}")
-        with st.container(border=True):
-            st.subheader("Most expensive", icon=":material/north:")
-            area_table(
-                values.tail(5).iloc[::-1], f"Most expensive {level.lower()} for {food}"
-            )
-
-    footer(month, pd.Timestamp(staples["released_at"].max()))
-
-
-# Page 4: Look up a food
-
-
-def lookup_page() -> None:
-    retail = data.load_mart()
-    seasons = data.load(data.SEASONS)
-    names = data.item_names(retail, data.load_basket())
-    places = data.places(retail)
-
-    with st.container(horizontal=True, vertical_alignment="bottom"):
-        commodity = str(
-            st.selectbox(
-                "Food",
-                list(names),
-                index=list(names).index("RICE, REGULAR-MILLED, 1 KG"),
-                format_func=lambda c: names[c],
-                key="item",
-                bind="query-params",
-                help="The 28 everyday foods first, then every other item PSA prices.",
-            )
-        )
-        place = str(
-            st.selectbox(
-                "Place",
-                list(places),
-                format_func=lambda c: places[c],
-                key="where",
-                bind="query-params",
-            )
-        )
-    name, where = names[commodity], places[place]
-    found = data.lookup(retail, commodity, place)
-    if "price" not in found:
-        st.info(f"PSA has no price for {name} in {where}.")
-        return
-
-    unit = "per piece" if "1 PC" in commodity else "per kg"
-    in_where = "the Philippines" if place == PHILIPPINES else where
-    st.title(f"{name} in {in_where}: {peso(found['price'])} {unit}")
-    with st.container(horizontal=True):
-        change = found["change_year"]
-        st.metric(
-            f"A year ago ({found['month'] - pd.DateOffset(years=1):%b %Y})",
-            "—" if change is None else peso(found["year_ago"]),
-            None if change is None else pct(change),
-            delta_color="inverse",
-            delta_description="since then",
-            border=True,
-        )
-        if place != PHILIPPINES and found["vs_national"] is not None:
-            st.metric(
-                "National average",
-                peso(found["national_price"]),
-                pct(found["vs_national"]),
-                delta_color="inverse",
-                delta_description=f"{where} vs national",
-                border=True,
-            )
-
-    lines = [found["series"].rename("price").reset_index().assign(line=where)]
-    if place != PHILIPPINES:
-        lines.append(
-            found["national"].rename("price").reset_index().assign(line="Philippines")
-        )
-    with st.container(border=True):
-        st.subheader("Price since 2018")
-        st.caption(
-            where + (" against the national average." if place != PHILIPPINES else ".")
-        )
-        chart = (
-            alt.Chart(pd.concat(lines))
-            .mark_line(strokeWidth=2)
-            .encode(
-                x=month_axis(),
-                y=alt.Y(
-                    "price:Q",
-                    title=None,
-                    scale=alt.Scale(zero=False),
-                    axis=alt.Axis(format=",.0f", labelExpr="'₱' + datum.label"),
-                ),
-                color=alt.Color(
-                    "line:N",
-                    scale=alt.Scale(domain=[where, "Philippines"], range="category"),
-                    legend=alt.Legend(title=None, orient="top"),
-                ),
-                tooltip=[
-                    alt.Tooltip("line:N", title="Place"),
-                    alt.Tooltip("month:T", format="%B %Y", title="Month"),
-                    alt.Tooltip("price:Q", format=",.2f", title="Price (₱)"),
-                ],
-            )
-            .properties(height=320)
-        )
-        st.altair_chart(chart, width="stretch", alt=f"{name} price over time")
-
-    left, right = st.columns(2, gap="medium")
-    season = seasons[seasons["staple"] == name]
-    if not season.empty:
-        with left, st.container(border=True, height="stretch"):
-            best = season.loc[season["seasonal_index"].idxmin()]
-            st.subheader(
-                f"Usually cheapest in {calendar.month_name[int(best['calendar_month'])]}",
-                help="Each calendar month's national price against its centred "
-                f"13-month average, averaged over {int(best['years'])} years.",
-            )
-            st.caption("How far the price usually sits from normal, month by month.")
-            bars = season.assign(
-                month_name=season["calendar_month"].map(lambda m: MONTHS[m - 1]),
-                text=season["seasonal_index"].map(data.arrow),
-            )
-            st.altair_chart(
-                alt.Chart(bars)
-                .mark_bar(cornerRadius=2)
-                .encode(
-                    x=alt.X(
-                        "month_name:O",
-                        sort=MONTHS,
-                        title=None,
-                        axis=alt.Axis(labelAngle=0),
-                    ),
-                    y=alt.Y("seasonal_index:Q", title=None, axis=alt.Axis(format="+%")),
-                    color=change_color("seasonal_index"),
-                    tooltip=[
-                        alt.Tooltip("month_name:O", title="Month"),
-                        alt.Tooltip("text:N", title="vs normal"),
-                    ],
-                )
-                .properties(height=240),
-                width="stretch",
-                alt=f"Usual price swing of {name} by calendar month",
-            )
-    regions = data.region_prices(retail, commodity)
-    if not regions.empty:
-        with (
-            right if not season.empty else left,
-            st.container(border=True, height="stretch"),
-        ):
-            st.subheader("By region")
-            st.caption(f"Latest price in each region. Line: {where}.")
-            bars = (
-                alt.Chart(regions)
-                .mark_bar(color=MUTED, cornerRadiusEnd=2)
-                .encode(
-                    y=alt.Y(
-                        "region:N",
-                        sort="x",
-                        title=None,
-                        axis=alt.Axis(labelLimit=200, labelOverlap=False),
-                    ),
-                    x=alt.X("price:Q", title="Price (₱)"),
-                    tooltip=[
-                        alt.Tooltip("region:N", title="Region"),
-                        alt.Tooltip("price:Q", format=",.2f", title="Price (₱)"),
-                    ],
-                )
-            )
-            here = (
-                alt.Chart()
-                .mark_rule(color=ACCENT, strokeWidth=2)
-                .encode(x=alt.datum(found["price"]))
-            )
-            st.altair_chart(
-                (bars + here).properties(height=24 * len(regions)),
-                width="stretch",
-                alt=f"{name} price by region",
-            )
-
-    st.caption(f"PSA item: {commodity}")
-    footer(data.latest_month(retail), pd.Timestamp(retail["released_at"].max()))
