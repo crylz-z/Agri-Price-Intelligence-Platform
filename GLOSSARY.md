@@ -51,24 +51,12 @@ _Avoid_: granularity, scope
 ## Basket
 
 **Staple**:
-An everyday food under its plain name, mapped to exactly one commodity: "Pechay" is PSA's `PECHAY, NATIVE, 1 KG`. The farmer's share and dish costs are counted per staple.
+An everyday food under its plain name, mapped to exactly one commodity: "Pechay" is PSA's `PECHAY, NATIVE, 1 KG`. The farmer's share and the verdict are counted per staple.
 _Avoid_: item, product, good
 
 **Basket**:
 The fixed set of staples the stories track (`dbt/seeds/staples.csv`).
 _Avoid_: shopping list, CPI basket
-
-**Recipe**:
-The fixed quantities of staples for one dish, for one meal for a family of 5, rice included, scaled from a published recipe where one was found.
-_Avoid_: menu, meal plan
-
-**Dish cost**:
-The sum of retail price × quantity over a recipe's staples for one geolocation and month; blank when any staple has no price there.
-_Avoid_: meal price, ulam price
-
-**Seasonal index**:
-How far a staple's national price usually sits above or below its centred 13-month average in a calendar month.
-_Avoid_: seasonality factor, best month
 
 ## Farm to retail
 
@@ -84,6 +72,18 @@ _Avoid_: markup, margin, spread
 A staple's retail price minus its farmgate price (palay as milled rice), in pesos per unit: what traders, transport, storage and stores together take (`peso_gap` in the marts).
 _Avoid_: markup, margin, spread, peso gap
 
+**Wholesale price**:
+PSA's average wholesale selling price, what traders sell to stores for, in the retail unit, for one wholesale commodity, geolocation and month.
+_Avoid_: trader price, bulk price
+
+**Trader's cut**:
+The part of the middle's cut between farm and wholesale: wholesale price minus farmgate price (`trader_cut`).
+_Avoid_: middleman's margin, trader markup
+
+**Store's cut**:
+The part of the middle's cut between wholesale and shelf: retail price minus wholesale price (`store_cut`).
+_Avoid_: retail margin, retailer markup
+
 **Suspect**:
 A party the public record accuses of taking part of the middle's cut for a staple, cited from a House finding, a PCC charge or published research.
 _Avoid_: villain, culprit, cartel (on screen, unless a finding uses the word)
@@ -92,51 +92,47 @@ _Avoid_: villain, culprit, cartel (on screen, unless a finding uses the word)
 A staple's computed label each release: suspicious when its middle's cut grew faster than inflation since 2018, cleared otherwise.
 _Avoid_: rating, score, grade
 
-**Dish wage share**:
-A dish cost as a share of the region's daily non-agriculture minimum wage in force that month.
-_Avoid_: affordability index, wage-hours
+**Year's change**:
+A food's national farm price and store price in the latest month with a farm price, each as a percent change from the same month a year earlier (`price_changes_yearly`). Percent, so a food whose farm price is for another product than its store price (a live hog against pork kasim) still compares.
+_Avoid_: year-on-year, YoY, annual change
 
-**Wage order**:
-One regional wage board order that sets a region's daily minimum wage from an effective date.
-_Avoid_: wage hike, wage rate
-
-**Policy event**:
-A dated government action on a staple's supply or price, such as an import suspension, a tariff change or a palay floor price.
-_Avoid_: intervention, news, announcement
+**Pass-through**:
+How many pesos a staple's retail price moves per peso its farmgate price moves, in 2018 pesos (deflated by CPI), counted separately over months when the farmgate price rose (up) or fell (down) more than 15% from a year earlier. Below 1 on the way down means shoppers never saw part of the fall.
+_Avoid_: asymmetry, stickiness, rockets and feathers
 
 ## Checks
 
 **Spot check**:
-A price looked up from PSA by hand, outside the pipeline, and stored with its table, geolocation and month (`psa_spot_checks.csv`, `psa_farmgate_spot_checks.csv`); a test fails when the pipeline's price differs. For a seed typed in from a source, such as `wage_orders.csv`, a spot check is a person comparing a few rows against that source.
+A price looked up from PSA by hand, outside the pipeline, and stored with its table, geolocation and month (`psa_spot_checks.csv`, `psa_farmgate_spot_checks.csv`); a test fails when the pipeline's price differs.
 _Avoid_: sample test, sanity check
 
 ## Dashboard
 
 **Caveat**:
-A short note beside a chart or number that names a known limit of the data behind it, such as a region with no wage order or a price whose unit is in doubt.
+A short note beside a chart or number that names a known limit of the data behind it, such as rice's converted farmgate price or a month when the farmer's share tops 100%.
 _Avoid_: disclaimer, warning, footnote
 
 **Page**:
-One screen of the dashboard, named by its sidebar title. Numbered in sidebar order:
+The dashboard's one screen, "Who's eating the farmer's peso?" (`/`, `?food=…` picks the food in section 5).
+_Avoid_: tab, view, report
 
-| # | Title | URL | Shows |
+**Section**:
+One part of the page, numbered top-down, each a computed headline, one chart (two in section 2) and a so-what line, e.g. "section 2"; each story section opens with one or two big numbers. Read in order, the headlines tell the story: what happened this year, how much reaches the farmer, how prices fall slower than they rise, and whether the gap is growing.
+
+| # | Headline on screen | Plain meaning | Glossary term |
 |---|---|---|---|
-| 1 | Farm to plate | `/` (`?region=…&staple=…`) | Farmer's share per staple, one staple's farmgate and retail prices with policy events, and dish wage share for one region |
-| 2 | Overview | `/overview` (`?region=…`) | Yearly change of the basket, for one region |
-| 3 | Compare places | `/places` (`?food=…&level=…`) | One staple's price across provinces or regions |
-| 4 | Look up a food | `/lookup` (`?item=…&where=…`) | Any retail price, by commodity and geolocation |
+| 1 | Farmers got X% less for a food this year. You paid Y% more. | The foods whose farm price fell over the past year, beside their store price, biggest split first | Year's change |
+| 2 | Farmers get X centavos of your peso | The typical peso split between farmer, traders and stores, then each food's farmer centavos | Typical peso, farmer's share, trader's cut, store's cut |
+| 3 | Drop ₱10 at the farm, and you save only ₱X | How far the store price follows the farm price down, against up | Pass-through |
+| 4 | The gap grew faster than inflation for N of 18 foods | Foods whose middle's cut grew faster than inflation since 2018, with diesel beside it; whether traders' or stores' centavos of a peso grew more | Middle's cut, verdict, trader's cut, store's cut |
+| 5 | Check your food | One food's store price, farm price, traders' and stores' parts, its sections 3 and 4 numbers, and its farmer's share against the typical food's | Farmer's share |
 
-Refer to a page by number and title together, e.g. "page 3 (Compare places)".
+**Typical peso**:
+The average farmer's, trader's and store's centavos of a peso over the foods with all three prices (17 of 18; kangkong has no wholesale price), so its parts add up to 100 (`data.typical_peso`). An average, not a median: each part's median need not add up.
+_Avoid_: median share, average food
 
-**Card**:
-One bordered box on a page, numbered in reading order, e.g. "page 1 card 2". KPI tiles are not cards. Page 1 (Farm to plate) reads: 3 KPI tiles → card 1 (left) beside card 2 (right) → card 3. On a phone the cards stack 1, 2, 3.
+**So-what line**:
+The sentence under a section's chart, computed like its headline, that says why the chart matters to a shopper (`views.so_what`), e.g. "So after 3 ups and downs … the store price is ₱6 higher."
+_Avoid_: insight, takeaway, conclusion
 
-| Card | Title on screen | Plain meaning | Glossary term |
-|---|---|---|---|
-| 1 | Farmer's cut of every ₱100 | Pesos the farmer gets when a shopper spends ₱100 on that food; clicking a bar picks that food in card 2 | Farmer's share |
-| 2 | Farm and store price, per kg | One food (picked in its selectbox or by a card 1 click) priced at the farm and at the store over the years; dashed lines mark government policies | Farmgate price, retail price, policy event |
-| 3 | Dinner for 5, as a share of a day's minimum wage | How much of one day's minimum pay a family dinner costs; over 100% means more than a day's pay | Dish wage share |
-
-On screen, "farm price" is the farmgate price, "store price" the retail price, and "policy" a policy event.
-_Avoid_: box, section, panel, widget
-_Avoid_: tab, screen, view, story (`views.py` names functions, not pages)
+On screen, a share is in centavos of a peso and a price move in pesos. "Farm price" is the farmgate price, "store price" the retail price, "the gap" the middle's cut, "traders" the trader's cut, "stores" the store's cut, "wholesale" the wholesale price, and "inflation" the CPI's change.

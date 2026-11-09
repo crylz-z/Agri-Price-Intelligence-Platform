@@ -5,7 +5,7 @@ Philippine monthly retail food prices: `src/etl/` saves each PSA OpenSTAT releas
 ## Commands
 Run every tool as `uv run python -m <tool>`, as CI and the pre-commit hooks do.
 - Before reporting done: `uv run python -m pytest` and `uv run python -m pre_commit run --all-files`.
-- Query R2 (read-only): `uv run python -m src.etl.query "SELECT ... FROM staples"`. Views and their marts are listed in `src/etl/query.py`.
+- Query R2 (read-only): `uv run python -m src.etl.query "SELECT ... FROM shares"`. Views and their marts are listed in `src/etl/query.py`.
 - Dashboard: `uv run python -m streamlit run src/dashboard/app.py`. Screenshots: `scripts/screenshot.py` (usage in its docstring).
 - dbt (reads and writes R2): `uv run python -m dbt.cli.main build --project-dir dbt --profiles-dir dbt`.
 
