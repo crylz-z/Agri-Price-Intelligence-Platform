@@ -10,6 +10,10 @@ models:
       Each staple's verdict: did the middle's cut grow faster than inflation from
       2018 to the last 12 months? One row per staple, national. Columns as in
       int_food_verdicts. Written to R2 as Parquet.
+  - name: change_only_monthly
+    description: >
+      int_change_only_prices as a mart, for the pork chart in "Check your food".
+      Key (month, staple). Written to R2 as Parquet.
   - name: price_changes_yearly
     description: >
       Each food's farm and store price change over the past year, national, as in

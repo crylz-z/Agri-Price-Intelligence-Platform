@@ -9,7 +9,7 @@ It is built on monthly retail, wholesale and farmgate food prices for the Philip
 ```mermaid
 graph LR
     PSA[("PSA OpenSTAT API")] -->|ingest.py, only new releases| RAW[("R2 raw/<br/>1 CSV snapshot per release")]
-    RAW -->|dbt build: staging, intermediate, tests| MART[("R2 mart/<br/>2 Parquet marts")]
+    RAW -->|dbt build: staging, intermediate, tests| MART[("R2 mart/<br/>4 Parquet marts")]
     MART --> UI["Streamlit dashboard<br/>1 page"]
     CRON["GitHub Actions<br/>daily cron"] -.-> PSA
 ```
@@ -23,6 +23,7 @@ graph LR
   - `farmer_share_monthly`: for 18 staples, the farmgate price over the retail price, national and by region, by month (`int_farmer_share`). Where PSA has a wholesale price (17 staples), it splits the gap into the trader's cut (wholesale − farm) and the store's cut (store − wholesale).
   - `food_verdicts`: one row per staple. It holds the middle's cut in 2018 and over the last 12 months, against CPI over the same span (plus diesel, transport and fuel CPI for context), and the verdict (suspicious when the cut grew more than 5 points faster). It also holds the pass-through, in 2018 pesos: how far the store price moves per peso the farm price moves, in months when the farm price rose or fell by over 15%.
   - `price_changes_yearly`: one row per food, national: the farm and store price in the latest month against the same month a year earlier, as percent changes. It adds pork kasim against PSA's live hog price (`seeds/change_only_commodities.csv`), which compares only as a percent change.
+  - `change_only_monthly`: those change-only foods (pork) by month, national, for the pork chart in "Check your food".
   - dbt tests recompute the farmer's share, the wholesale split, the verdicts and the pass-through by a separate path, and check prices against values fetched from PSA by hand (`psa_spot_checks.csv`, `psa_farmgate_spot_checks.csv`, and wholesale and CPI values inside their tests).
 - **Tests that block publishing**:
   - a table or geolocation is missing, or PSA adds an unknown one
@@ -37,7 +38,7 @@ graph LR
   2. Of a typical peso at the store, how many centavos reach the farmer, traders and stores, then the farmer's centavos per food.
   3. When the farm price falls ₱10, how far the store price falls, against when it rises ₱10.
   4. For how many foods the gap between farm and store price grew faster than inflation since 2018, and whether traders' or stores' centavos grew more.
-  5. Check your food: one food's prices, its numbers from sections 3 and 4, and its farmer's share against the typical food's.
+  5. Check your food: one food's prices, its numbers from sections 3 and 4, and its farmer's share against the typical food's. Pork shows its live hog and kasim prices, then how each moved since 2018.
 
   `suspects.csv` (the public record) is off the page until its sources are checked by hand. Streamlit Community Cloud updates on every push to `main`.
 - **$0 on R2**: a release day has up to 28 snapshot writes and 3 mart writes, plus about 28 HEADs a day, well inside the free tier. See `docs/cloudfare-agent-notes/free-tier-r2.md`. The reasons behind each tool are in `docs/adr.md`; the terms are defined in `GLOSSARY.md`.

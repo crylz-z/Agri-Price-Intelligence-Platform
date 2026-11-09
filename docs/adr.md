@@ -93,3 +93,7 @@ Chosen 2026-11-09 so the page reads like a short video's script, one section per
 ## 19. One palette for both themes, shared by charts, words and big numbers
 Chosen 2026-11-09 after the page showed four blues and two ambers: ECharts colours are fixed in code, while Streamlit darkens `:blue[...]`/`:orange[...]` text 15% and switches it per theme. Now each role has one value in both themes (farmer blue `#4A72E0`, amber `#C77700`, deep amber `#A35400`), each at least 3:1 on both backgrounds. The theme's blue and orange, and their text colours, are set to the same values. The big numbers take their colour through `:blue[...]`/`:orange[...]` in `st.metric`, not CSS, and each headline colours its key words to match.
 - **Not a light and a dark value per role:** ECharts can't read the theme, and Streamlit reports it to Python a rerun late, so the bars and the words would drift apart again.
+
+## 20. Pork in "Check your food" as a change since 2018, never pesos side by side
+Chosen 2026-11-09, extending ADR 18's "pork appears only in section 1": pork is the food readers ask about, and PSA has its farm price only for a live hog (`Hog for Slaughter`, AFN11), against a kilo of kasim in stores. So pork's chart draws each price as a change from its own 2018 average (`change_only_monthly`, `data.since_2018`), its cards name both products, and it gets no farmer's share or peso gap.
+- **Not pesos on one axis:** the space between a live-hog line and a kasim line would read as a gap that the products' difference, not the middle, creates.

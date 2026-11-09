@@ -125,7 +125,7 @@ One part of the page, numbered top-down, each a computed headline, one chart (tw
 | 2 | Farmers get X centavos of your peso | The typical peso split between farmer, traders and stores, then each food's farmer centavos | Typical peso, farmer's share, trader's cut, store's cut |
 | 3 | Drop ₱10 at the farm, and you save only ₱X | How far the store price follows the farm price down, against up | Pass-through |
 | 4 | The gap grew faster than inflation for N of 18 foods | Foods whose middle's cut grew faster than inflation since 2018, with diesel beside it; whether traders' or stores' centavos of a peso grew more | Middle's cut, verdict, trader's cut, store's cut |
-| 5 | Check your food | One food's store price, farm price, traders' and stores' parts, its sections 3 and 4 numbers, and its farmer's share against the typical food's | Farmer's share |
+| 5 | Check your food | One food's store price, farm price, traders' and stores' parts, its sections 3 and 4 numbers, and its farmer's share against the typical food's. Pork: its two prices, then each one's change over the year and since 2018 | Farmer's share, year's change |
 
 **Typical peso**:
 The average farmer's, trader's and store's centavos of a peso over the foods with all three prices (17 of 18; kangkong has no wholesale price), so its parts add up to 100 (`data.typical_peso`). An average, not a median: each part's median need not add up.

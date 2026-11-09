@@ -50,7 +50,7 @@ def test_page_leads_with_the_farmers_share():
 
 
 @pytest.mark.parametrize(
-    "food", ["Red onion", "Regular rice", "Egg", "Repolyo", "Pechay"]
+    "food", ["Red onion", "Regular rice", "Egg", "Repolyo", "Pechay", "Pork kasim"]
 )
 def test_check_your_food_renders_each_kind_of_food(food):
     at = render(food=food)
@@ -155,3 +155,20 @@ def test_the_theme_colours_words_like_the_charts_in_both_modes():
         theme = config["theme"][mode]
         assert theme["blueColor"] == theme["blueTextColor"] == views.FARM
         assert theme["orangeColor"] == theme["orangeTextColor"] == views.AMBER
+
+
+def test_pork_shows_both_prices_and_how_each_moved_never_a_share():
+    at = render(food="Pork kasim")
+    assert not at.exception, at.exception
+    assert at.selectbox[0].options[-1] == "Pork kasim"
+    assert food_metrics(at) == ["You pay, per kg kasim", "A live hog sells for, per kg"]
+    lines = [m.value for m in at.markdown]
+    assert any(
+        "the :blue[**hog price**] fell 19%; :orange[**kasim**] fell 10%." in v
+        for v in lines
+    )
+    so_whats = [v for v in lines if ":material/lightbulb:" in v]
+    assert so_whats[-1].endswith(
+        "what you pay for kasim rose 40%, but the hog's price rose 24%."
+    )
+    assert not any("centavos of every peso you pay" in v for v in so_whats)

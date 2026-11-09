@@ -57,6 +57,19 @@ models:
       - name: cpi_change
         data_tests:
           - not_null
+  - name: int_change_only_prices
+    description: >
+      The foods in seeds/change_only_commodities by month, national: farm is the
+      farmgate price of farm_measure (pork: a live hog), store the retail price of
+      the cut. Different products, so only percent changes compare. Key (month,
+      staple).
+    columns:
+      - name: farm
+        data_tests:
+          - not_null
+      - name: store
+        data_tests:
+          - not_null
   - name: int_price_changes
     description: >
       One row per food, national: the farm and store price in the latest month

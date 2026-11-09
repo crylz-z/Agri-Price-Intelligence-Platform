@@ -27,9 +27,9 @@ The dashboard is one page, "Who's eating the farmer's peso?", for a reader new t
 One palette, the same value in light and dark (ADR 19). Blue (`FARM`) is the farmer; amber (`AMBER`) is what you pay and what to look at: a store price that rose, a food whose gap beat inflation (`DEEP`, the same hue darker, past diesel too). Traders and stores are two greys (`TRADER_GREY`, `STORE_GREY`), named on the chart; everything else is grey (`MUTED`). The theme's `blueColor`/`blueTextColor` equal `FARM` and `orangeColor`/`orangeTextColor` equal `AMBER`, so `:blue[...]` and `:orange[...]` words, the big numbers (`views.paint`) and the bars always match; a test holds them together. Each headline colours its key words like its big number, and the line under it names each colour, so colour never carries meaning alone. Every role colour keeps at least 3:1 on both backgrounds, and text drawn on a blue bar is white. ECharts text left uncoloured takes the theme's ink.
 
 ## Data
-- All data access goes through `src/dashboard/data.py`. The page reads `farmer_share_monthly`, `food_verdicts` and `price_changes_yearly`. `dbt/seeds/suspects.csv` is read from the repo when the public record is on the page, so editing that CSV on `main` is its only upkeep.
+- All data access goes through `src/dashboard/data.py`. The page reads `farmer_share_monthly`, `food_verdicts`, `price_changes_yearly` and `change_only_monthly`. `dbt/seeds/suspects.csv` is read from the repo when the public record is on the page, so editing that CSV on `main` is its only upkeep.
 - `load` caches for 6 h, and the dev server doesn't always reload imported modules, so restart it after editing `data.py`.
-- A new mart column the page reads must also be in `tests/fixtures/marts/`, or the page tests fail. `food_verdicts.parquet` and `price_changes_yearly.parquet` there are whole marts, copied from a local build; the page tests pin its numbers.
+- A new mart column the page reads must also be in `tests/fixtures/marts/`, or the page tests fail. `food_verdicts.parquet`, `price_changes_yearly.parquet` and `change_only_monthly.parquet` (with `month` cast to `timestamp[ms]`) there are whole marts, copied from a local build; the page tests pin their numbers.
 
 ## Done means
 - `pytest` is green, including `tests/test_pages.py`, which renders the page offline.

@@ -19,6 +19,7 @@ from src.core import storage
 SHARES = "mart/farmer_share_monthly.parquet"
 VERDICTS = "mart/food_verdicts.parquet"
 CHANGES = "mart/price_changes_yearly.parquet"
+CHANGE_ONLY = "mart/change_only_monthly.parquet"
 # The suspects seed is hand-kept and ships with the app, so it is read from the
 # repo: editing the CSV on main is its only upkeep.
 SUSPECTS = Path("dbt/seeds/suspects.csv")
@@ -149,6 +150,27 @@ def national_series(shares: pd.DataFrame, staple: str) -> pd.DataFrame:
         ],
         ignore_index=True,
     ).dropna(subset=["price"])
+
+
+def since_2018(monthly: pd.DataFrame, staple: str) -> pd.DataFrame:
+    """One change-only food's farm and store price by month as a change from its
+    2018 average, long, for a line chart. Percent, since its farm and store prices
+    are for different products (a live hog, a kilo of kasim)."""
+    rows = monthly[monthly["staple"] == staple].sort_values("month")
+    base = rows[rows["month"].dt.year == 2018]
+    return pd.concat(
+        [
+            pd.DataFrame(
+                {
+                    "month": rows["month"],
+                    "change": rows[column] / base[column].mean() - 1,
+                    "line": line,
+                }
+            )
+            for column, line in (("farm", FARM), ("store", STORE))
+        ],
+        ignore_index=True,
+    )
 
 
 def farm_fell(changes: pd.DataFrame) -> pd.DataFrame:

@@ -10,7 +10,7 @@ paths:
 
 ## Layer contract
 - Raw: `s3://$S3_BUCKET_NAME/raw/table=<id>/updated=<YYYYMMDDTHHMMSS>.csv`, one per PSA release, stored as returned (Windows-1252, CRLF, missing values `.`, `..` or `...`), never rewritten. `<id>` drops PSA's `.px`; `updated` is PSA's timestamp without separators. Retail, farmgate, wholesale and CPI tables share this prefix.
-- Marts, rebuilt whole by dbt from the latest snapshot per table: `mart/farmer_share_monthly.parquet` (key `month, geo_code, staple`), `mart/food_verdicts.parquet` (`staple`) and `mart/price_changes_yearly.parquet` (`staple`). Older marts on R2 (`retail_prices_monthly`, `staple_prices_monthly`, `dish_costs_monthly`, `staple_seasonality`) are no longer written.
+- Marts, rebuilt whole by dbt from the latest snapshot per table: `mart/farmer_share_monthly.parquet` (key `month, geo_code, staple`), `mart/food_verdicts.parquet` (`staple`), `mart/price_changes_yearly.parquet` (`staple`) and `mart/change_only_monthly.parquet` (`month, staple`). Older marts on R2 (`retail_prices_monthly`, `staple_prices_monthly`, `dish_costs_monthly`, `staple_seasonality`) are no longer written.
 - Order in `pipeline.main`: ingest; if it wrote anything (or `--build`), `dbt build`; a failed build exits 1.
 
 ## Ingest (`src/etl/ingest.py`)

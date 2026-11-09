@@ -11,7 +11,9 @@ video would tell them (ADR 18). Read in order, the headlines tell the story:
 3. Drop ₱10 at the farm, and you save only ₱X (food_verdicts).
 4. The gap grew faster than inflation for N foods since 2018, with diesel as a
    second yardstick (food_verdicts).
-5. Check your food: one food's prices and numbers.
+5. Check your food: one food's prices and numbers. Pork, whose farm price is
+   for a live hog, shows both prices as a change since 2018 instead
+   (change_only_monthly).
 
 Each story section opens with one or two big numbers (`hero`), sized and
 coloured by the CSS in app.py. Shares are centavos of a peso, real price moves
@@ -539,6 +541,85 @@ def food_chart(series: pd.DataFrame, unit: str) -> Any:
     )
 
 
+def change_chart(series: pd.DataFrame) -> Any:
+    """A change-only food's farm (blue) and store (amber) price as a change from
+    2018, with a zero line: percent, never pesos, since the products differ."""
+    lines = (
+        alt.Chart(series)
+        .mark_line(strokeWidth=2.5)
+        .encode(
+            x=alt.X(
+                "month:T",
+                title=None,
+                axis=alt.Axis(grid=False, format="%Y", tickCount="year"),
+            ),
+            y=alt.Y("change:Q", title=None, axis=alt.Axis(format="+.0%")),
+            color=alt.Color(
+                "line:N",
+                scale=alt.Scale(domain=[data.FARM, data.STORE], range=[FARM, AMBER]),
+                legend=alt.Legend(title=None, orient="top"),
+            ),
+            tooltip=[
+                alt.Tooltip("line:N", title="Price"),
+                alt.Tooltip("month:T", format="%B %Y", title="Month"),
+                alt.Tooltip("change:Q", format="+.0%", title="Since 2018"),
+            ],
+        )
+    )
+    zero = (
+        alt.Chart(pd.DataFrame({"change": [0.0]}))
+        .mark_rule(color=MUTED, strokeDash=[4, 4])
+        .encode(y="change:Q")
+    )
+    return (zero + lines).properties(height=280)
+
+
+def moved(change: float) -> str:
+    """A change in words: "rose 24%", "fell 19%", "stayed flat"."""
+    if round(change * 100) == 0:
+        return "stayed flat"
+    return f"{'rose' if change > 0 else 'fell'} {abs(change):.0%}"
+
+
+def change_only_food(monthly: pd.DataFrame, change: pd.Series) -> None:
+    """ "Check your food" for pork: its two prices as they are, then how each moved
+    over the past year and since 2018. No farmer's share, no peso gap."""
+    staple = str(change["staple"])
+    meat = staple.split()[-1]
+    now = monthly[monthly["staple"] == staple].sort_values("month").iloc[-1]
+    with st.container(horizontal=True):
+        st.metric(f"You pay, per kg {meat}", f"₱{now['store']:,.2f}", border=True)
+        st.metric(
+            "A live hog sells for, per kg",
+            f"₱{now['farm']:,.2f}",
+            border=True,
+            help="The farm price is for a live hog, the store price for a kilo of "
+            f"{meat}: different products, so only their changes compare.",
+        )
+    st.caption(f"{now['month']:%B %Y}, national average.")
+    st.markdown(
+        f"This year the :blue[**hog price**] {moved(change['farm_change'])}; "
+        f":orange[**{meat}**] {moved(change['store_change'])}. The chart shows how "
+        "each moved since 2018."
+    )
+    series = data.since_2018(monthly, staple)
+    st.altair_chart(
+        change_chart(series),
+        width="stretch",
+        alt=f"{staple}: the live hog price and the {meat} price as a change since "
+        "2018, by month",
+    )
+    last = series[series["month"] == series["month"].max()].set_index("line")
+    farm, store = last.loc[data.FARM, "change"], last.loc[data.STORE, "change"]
+    if round(store * 100) > round(farm * 100):
+        so_what(
+            f"So since 2018 what you pay for {meat} {moved(store)}, but the hog's "
+            f"price {moved(farm)}."
+        )
+    else:
+        so_what(f"So since 2018 the hog's price {moved(farm)}; {meat} {moved(store)}.")
+
+
 def so_what(text: str) -> None:
     """The line under a chart that says why it matters."""
     st.markdown(f":material/lightbulb: {text}")
@@ -548,6 +629,7 @@ def case_page() -> None:
     shares = data.load(data.SHARES)
     verdicts = data.load(data.VERDICTS)
     changes = data.load(data.CHANGES)
+    change_only = data.load(data.CHANGE_ONLY)
     rows = data.farmer_shares(shares)
     inflation = float(verdicts["cpi_change"].iloc[0])
     month = pd.Timestamp(rows["month"].max())
@@ -740,7 +822,8 @@ def case_page() -> None:
     # 5. Check your food
     st.space("large")
     st.header("Check your food")
-    foods = list(growth["staple"])
+    extra = [s for s in change_only["staple"].unique() if s in set(changes["staple"])]
+    foods = list(growth["staple"]) + sorted(extra)
     staple = str(
         st.selectbox(
             "Food",
@@ -752,6 +835,35 @@ def case_page() -> None:
             width=260,
         )
     )
+    if staple in extra:
+        change_only_food(change_only, changes[changes["staple"] == staple].iloc[0])
+    else:
+        share_food(staple, rows, verdicts, moves, shares, inflation, typical)
+
+    st.divider()
+    released = (
+        shares[["farmgate_released_at", "retail_released_at", "wholesale_released_at"]]
+        .max()
+        .max()
+    )
+    st.caption(
+        f"Farm, wholesale and store prices: PSA OpenSTAT, latest release "
+        f"{pd.Timestamp(released):%d %b %Y}. Inflation and diesel: PSA consumer "
+        "price index (2018 = 100)."
+    )
+
+
+def share_food(
+    staple: str,
+    rows: pd.DataFrame,
+    verdicts: pd.DataFrame,
+    moves: pd.DataFrame,
+    shares: pd.DataFrame,
+    inflation: float,
+    typical: int,
+) -> None:
+    """ "Check your food" for a food with a farmer's share: its prices and parts,
+    its gap's growth and moves, its price chart and its share against the typical."""
     picked = rows[rows["staple"] == staple]
     verdict = verdicts[verdicts["staple"] == staple].iloc[0]
     unit = "piece" if verdict["unit"] == "pc" else "kg"
@@ -810,15 +922,3 @@ def case_page() -> None:
             f"So {staple.lower()}'s farmer gets {share} centavos of every peso you "
             f"pay, {compared}."
         )
-
-    st.divider()
-    released = (
-        shares[["farmgate_released_at", "retail_released_at", "wholesale_released_at"]]
-        .max()
-        .max()
-    )
-    st.caption(
-        f"Farm, wholesale and store prices: PSA OpenSTAT, latest release "
-        f"{pd.Timestamp(released):%d %b %Y}. Inflation and diesel: PSA consumer "
-        "price index (2018 = 100)."
-    )

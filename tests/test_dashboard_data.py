@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from src.dashboard import data
 
@@ -288,3 +289,18 @@ def test_price_changes_fixture_tomato_farm_down_26_store_up_13():
     pork = changes[changes["staple"] == "Pork kasim"].iloc[0]
     assert pork["farm_measure"] == "live weight"
     assert round(pork["farm_change"] * 100) == -19
+
+
+def test_since_2018_measures_each_line_from_its_own_2018_average():
+    monthly = pd.DataFrame(
+        {
+            "month": pd.to_datetime(["2018-01-01", "2018-02-01", "2026-09-01"]),
+            "staple": "Pork kasim",
+            "farm": [100.0, 120.0, 132.0],
+            "store": [200.0, 200.0, 300.0],
+        }
+    )
+    series = data.since_2018(monthly, "Pork kasim")
+    last = series[series["month"] == "2026-09-01"].set_index("line")["change"]
+    assert last[data.FARM] == pytest.approx(0.2)
+    assert last[data.STORE] == pytest.approx(0.5)
