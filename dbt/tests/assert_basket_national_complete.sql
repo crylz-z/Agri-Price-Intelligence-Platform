@@ -1,5 +1,5 @@
--- Every staple needs a national price every month, or the headlines and the
--- seasonal index would quietly compare different baskets.
+-- Every staple needs a national price every month, or its farmer's share and
+-- verdict would quietly average over fewer months than its neighbours'.
 with months as (
     select distinct month from {{ ref('int_retail_prices') }} where geo_level = 'national'
 )

@@ -1,6 +1,8 @@
 -- How much of a staple's retail price reaches the farmer: the farmgate price, in
 -- retail units, over the retail price, same staple, geolocation and month, no lag.
--- Only months with both prices are kept.
+-- Only months with both prices are kept. The wholesale price, when PSA has one,
+-- splits the gap into the trader's cut (wholesale - farm) and the store's cut
+-- (retail - wholesale).
 with farmgate as (
     select
         prices.month,
@@ -27,6 +29,22 @@ with farmgate as (
         )
 ),
 
+wholesale as (
+    select
+        prices.month,
+        geolocations.geo_code,
+        commodities.staple,
+        prices.price as wholesale_price,
+        prices.released_at as wholesale_released_at
+    from {{ ref('stg_psa__wholesale_prices') }} as prices
+    inner join {{ ref('wholesale_commodities') }} as commodities
+        on prices.table_id = commodities.table_id
+        and prices.commodity = commodities.wholesale_commodity
+    inner join {{ ref('farmgate_geolocations') }} as geolocations
+        on prices.geo_label = geolocations.label
+    where prices.snapshot_rank = 1 and prices.price > 0
+),
+
 shares as (
     select
         farmgate.month,
@@ -42,13 +60,21 @@ shares as (
         retail.price as retail_price,
         farmgate.farmgate_equivalent / retail.price as farmer_share,
         retail.price - farmgate.farmgate_equivalent as peso_gap,
+        wholesale.wholesale_price,
+        wholesale.wholesale_price - farmgate.farmgate_equivalent as trader_cut,
+        retail.price - wholesale.wholesale_price as store_cut,
         farmgate.farmgate_released_at,
-        retail.released_at as retail_released_at
+        retail.released_at as retail_released_at,
+        wholesale.wholesale_released_at
     from farmgate
     inner join {{ ref('int_staple_prices') }} as retail
         on farmgate.month = retail.month
         and farmgate.geo_code = retail.geo_code
         and farmgate.staple = retail.staple
+    left join wholesale
+        on farmgate.month = wholesale.month
+        and farmgate.geo_code = wholesale.geo_code
+        and farmgate.staple = wholesale.staple
 )
 
 select

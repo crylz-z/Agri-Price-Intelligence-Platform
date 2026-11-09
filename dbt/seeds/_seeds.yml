@@ -12,6 +12,16 @@ seeds:
       The PSA farmgate price tables (folder NFG) the farmer's share uses, and the
       commodity group each publishes. Must match `FARMGATE_TABLES` in
       src/etl/ingest.py. Retail staging reads every raw table not listed here.
+  - name: psa_wholesale_tables
+    description: >
+      The PSA wholesale price tables (folder NWSNEW) that split the gap, and the
+      commodity group each publishes. Must match `WHOLESALE_TABLES` in
+      src/etl/ingest.py.
+  - name: psa_cpi_tables
+    description: >
+      The PSA consumer price index table (folder PI/CPI/2018NEW) ingest keeps,
+      national rows of `CPI_GROUPS` only. Must match `CPI_TABLES` in
+      src/etl/ingest.py.
   - name: staples
     description: >
       The basket: everyday staples by their plain name, each mapped to exactly one
@@ -38,19 +48,6 @@ seeds:
       A few prices fetched from OpenSTAT's JSON API on 2026-11-02, outside the
       pipeline, so a test can check the model against PSA's own numbers (ADR 11).
       Query with `"format": "json"`: OpenSTAT's json-stat2 answers 1.0 for every cell.
-  - name: recipes
-    description: >
-      One meal for a family of 5, rice included, scaled from the published recipe
-      in `source` (blank: no source found, an estimate). Rice is 0.1 kg raw per
-      person: PSA's 110 kg a year over 3 meals a day. Only PSA-tracked staples
-      count, so oil, soy sauce, vinegar and salt are left out.
-    columns:
-      - name: staple
-        data_tests:
-          - relationships:
-              arguments:
-                to: ref('staples')
-                field: staple
   - name: farmgate_commodities
     description: >
       Each staple with a farmgate price: its PSA farmgate table and commodity, and
@@ -72,6 +69,27 @@ seeds:
           - relationships:
               arguments:
                 to: ref('psa_farmgate_tables')
+                field: table_id
+  - name: wholesale_commodities
+    description: >
+      Each staple with a wholesale price: its PSA wholesale table and commodity,
+      hand-checked against the farmgate pick (Ginger Native, Mongo green, Onion
+      Red Creole, Tomato ripe, Eggplant long purple, Pechay native). Rice is
+      milled rice and egg per piece, like retail, so no yield conversion.
+      Kangkong has no wholesale price.
+    columns:
+      - name: staple
+        data_tests:
+          - unique
+          - relationships:
+              arguments:
+                to: ref('farmgate_commodities')
+                field: staple
+      - name: table_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('psa_wholesale_tables')
                 field: table_id
   - name: farmgate_geolocations
     description: >
@@ -112,28 +130,40 @@ seeds:
     description: >
       A few farmgate prices fetched from OpenSTAT's JSON API on 2026-11-07,
       outside the pipeline (ADR 11). Query with `"format": "json"`.
-  - name: wage_orders
+  - name: suspects
     description: >
-      Each region's daily non-agriculture minimum wage, one row per wage order
-      tranche, from the order in force on 2024-01-01. Rates are from NWPC's
-      "Daily minimum wage rates per wage order by region, non-agriculture, 1989 -
-      October 6, 2026"; source_url is the order on nwpc.dole.gov.ph. Where NWPC
-      gives a range, daily_wage is its top: the top non-agriculture tier (larger
-      establishments) and, where rates differ by area, the highest-paid area. By
-      NWPC's notes on the current orders, that is Metro Cebu in VII, the Cagayan
-      de Oro cluster in X and 3 cities in BARMM. NCR-27 is left out: NWPC lists it as subject of
-      pending court cases, and NCR-28 set the same 755 from 2026-09-26. Negros
-      Island Region has no order yet. On 2026-11-07 every row was matched to its
-      region's line in that PDF (order number, effective date, top rate), and
-      every rate in force from 2024-01-01 in the PDF is here.
+      Who the public record blames for a staple's middle's cut: one row per
+      staple and suspect, the claim worded as its source words it (found,
+      charged, alleged, decided), with the source and its date. role is
+      suspect or alibi (a reason that clears the middle). Agencies, trades and findings only, never a private person's
+      name. Each row's status was checked on `checked`; recheck before it goes
+      on screen. staple is a staple or a staple category (Rice).
     columns:
-      - name: geo_code
+      - name: role
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [suspect, alibi]
+      - name: source_url
+        data_tests:
+          - not_null
+  - name: change_only_commodities
+    description: >
+      Foods whose farm price is for another product than the store price (a live
+      hog against a pork cut), so the year's percent change compares but a
+      farmer's share doesn't (ADR 13, ADR 18). farm_measure says what the farm
+      price is for. Read only by int_price_changes, never by int_farmer_share.
+    columns:
+      - name: staple
+        data_tests:
+          - unique
+          - relationships:
+              arguments:
+                to: ref('staples')
+                field: staple
+      - name: table_id
         data_tests:
           - relationships:
               arguments:
-                to: ref('geolocations')
-                field: geo_code
-  - name: policy_events
-    description: >
-      Dated government actions on rice or onion supply and price, each checked
-      against its source_url. staple is a staple or a staple category (Rice).
+                to: ref('psa_farmgate_tables')
+                field: table_id

@@ -15,21 +15,65 @@ models:
     description: >
       Basket prices with the same place a month and a year earlier and the national
       price that month. Changes are ratios minus 1 (0.25 means 25 % dearer).
-  - name: int_dish_costs
-    description: >
-      Recipe cost per geolocation and month. dish_cost is null when a staple has
-      no price there that month; missing_staples names them. On region rows from
-      2024, daily_wage is the non-agriculture minimum wage in force on the 1st of
-      the month (wage_order) and dish_wage_share is dish_cost / daily_wage.
-  - name: int_staple_seasonality
-    description: >
-      National price of each staple by calendar month relative to its centred
-      13-month average, averaged over the years with a full window.
   - name: int_farmer_share
     description: >
       Farmer's share per staple, geolocation (national and region) and month with
       both prices: farmgate_equivalent (farmgate_price / retail_yield) over
-      retail_price. peso_gap is retail_price - farmgate_equivalent. is_latest marks
+      retail_price. peso_gap is retail_price - farmgate_equivalent. wholesale_price
+      is PSA's wholesale selling price, null when PSA has none (kangkong, or a
+      missing month); it splits peso_gap into trader_cut (wholesale_price -
+      farmgate_equivalent) and store_cut (retail_price - wholesale_price), either
+      of which can dip below 0 in a month. is_latest marks
       each staple's latest such month per geolocation. Rice is stored for months,
       so its same-month share is approximate. Pairs in farmer_share_exclusions
       are left out.
+  - name: int_food_verdicts
+    description: >
+      One row per staple with a farmer's share, national. *_then is the 2018
+      average and *_now the average over the 12 months to the latest month in
+      int_farmer_share (now_start to now_end); a staple with no price in a month
+      just averages fewer months (then_months, now_months). middle is peso_gap,
+      the middle's cut in pesos. *_change is now / then - 1; cpi_change is
+      inflation over the same months. up_pass_through and down_pass_through are
+      the store's peso move per peso of farm move, in 2018 pesos, over months whose
+      farm price rose (up) or fell (down) more than var('move_threshold') from a
+      year earlier; null with no such month (up_months, down_months); evidence only. verdict is
+      suspicious when middle_change > cpi_change + var('verdict_margin').
+      diesel_change, transport_change and fuel_change (electricity, gas and other
+      fuels) are those CPI groups over the same months, for context only.
+      trader_part_* and store_part_* are traders' and stores' pesos of every ₱100
+      the shopper paid, over the months with a wholesale price; null without one
+      (kangkong), and a trader's part can be below 0 when wholesale was under farm.
+    columns:
+      - name: staple
+        data_tests:
+          - unique
+          - not_null
+      - name: verdict
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [suspicious, cleared]
+      - name: cpi_change
+        data_tests:
+          - not_null
+  - name: int_price_changes
+    description: >
+      One row per food, national: the farm and store price in the latest month
+      with a farm price (month) and the same month a year earlier
+      (month_year_ago). *_change is now / year ago - 1. The foods with a farmer's
+      share (farm is farmgate_equivalent), plus seeds/change_only_commodities,
+      whose farm_measure names what the farm price is for (pork: "live weight");
+      farm_measure is null for the rest. A food without both prices in both
+      months is left out.
+    columns:
+      - name: staple
+        data_tests:
+          - unique
+          - not_null
+      - name: farm_change
+        data_tests:
+          - not_null
+      - name: store_change
+        data_tests:
+          - not_null

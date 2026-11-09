@@ -1,28 +1,17 @@
 version: 2
 
 models:
-  - name: retail_prices_monthly
-    description: >
-      Monthly retail price per commodity and geolocation, from the latest PSA
-      release. Key (month, geo_code, commodity). Written to R2 as Parquet.
-    columns:
-      - name: month
-        description: First day of the month the price describes.
-      - name: geo_code
-        description: PSGC code of the geolocation.
-      - name: geolocation
-        description: PSA's label, without the indent.
-      - name: geo_level
-        description: national, region or province (province includes cities).
-      - name: commodity_group
-        description: PSA's group, one per table, e.g. Cereals.
-      - name: commodity
-        description: PSA's name with its unit, e.g. RICE, WELL-MILLED, 1 KG.
-      - name: price
-        description: Average retail price in pesos per the commodity's unit.
-      - name: released_at
-        description: PSA's `updated` time of the release the price comes from.
   - name: farmer_share_monthly
     description: >
       Farmer's share per staple, national and region, from the latest farmgate and
       retail releases. Key (month, geo_code, staple). Written to R2 as Parquet.
+  - name: food_verdicts
+    description: >
+      Each staple's verdict: did the middle's cut grow faster than inflation from
+      2018 to the last 12 months? One row per staple, national. Columns as in
+      int_food_verdicts. Written to R2 as Parquet.
+  - name: price_changes_yearly
+    description: >
+      Each food's farm and store price change over the past year, national, as in
+      int_price_changes, biggest split first (farm down, store up). One row per
+      staple. Written to R2 as Parquet.

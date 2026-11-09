@@ -1,9 +1,11 @@
 """Ingest PSA OpenSTAT price tables as raw snapshots, one per release.
 
-Every retail table (folder `2018NEW`) and the farmgate tables in `FARMGATE_TABLES`
-(folder `NFG`). 1 GET per folder lists its tables with PSA's `updated` time. A table
+Every retail table (folder `2018NEW`), the farmgate tables in `FARMGATE_TABLES`
+(folder `NFG`), the wholesale tables in `WHOLESALE_TABLES` (folder `NWSNEW`) and the
+CPI table in `CPI_TABLES` (folder `PI/CPI/2018NEW`, national rows of `CPI_GROUPS`
+only). 1 GET per folder lists its tables with PSA's `updated` time. A table
 is downloaded only when its snapshot `raw/table=<id>/updated=<YYYYMMDDTHHMMSS>.csv`
-is missing, so a run with no new release costs those 2 GETs plus 1 HEAD per table
+is missing, so a run with no new release costs those 4 GETs plus 1 HEAD per table
 (Class B) and never lists R2. Snapshots are stored as returned (Windows-1252 CSV)
 and never rewritten.
 """
@@ -12,6 +14,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from importlib.metadata import version
+from typing import Any
 
 import requests
 from fsspec import AbstractFileSystem
@@ -26,6 +29,8 @@ logger = get_logger(__name__)
 BASE_URL = "https://openstat.psa.gov.ph/PXWeb/api/v1/en/DB/2M"
 RETAIL = "2018NEW"
 FARMGATE = "NFG"
+WHOLESALE = "NWSNEW"
+CPI = "PI/CPI/2018NEW"
 # An empty query returns the whole table; it is not capped by `maxValues`.
 CSV_QUERY = {"query": [], "response": {"format": "csv"}}
 # The first CSV columns of every retail table.
@@ -42,6 +47,48 @@ FARMGATE_TABLES = {
     "0032M4AFN11": b'"Geolocation","Type",',  # Livestock and Poultry (Establishment)
     "0142M4EFGP0": b'"Commodity","Geolocation",',  # Major Crops
 }
+# The wholesale tables that split the gap into farm -> trader and trader -> store
+# (dbt/seeds/psa_wholesale_tables.csv). All share the retail layout.
+WHOLESALE_TABLES = dict.fromkeys(
+    [
+        "0052M4AWB01",  # Cereals
+        "0052M4AWB02",  # Rootcrops
+        "0052M4AWB03",  # Beans and Legumes
+        "0052M4AWB04",  # Condiments
+        "0052M4AWB05",  # Fruit Vegetables
+        "0052M4AWB06",  # Leafy Vegetables
+        "0052M4AWB07",  # Fruits (calamansi)
+        "0052M4AWB09",  # Poultry Eggs
+    ],
+    CSV_HEADER,
+)
+# The consumer price index (2018=100), the yardstick for "grew faster than
+# inflation" (dbt/seeds/psa_cpi_tables.csv). The whole table is 120 places x 354
+# groups, so only national rows of a few groups are asked for. Value codes from the
+# table's metadata (checked 2026-11-08): Geolocation "0" is PHILIPPINES.
+CPI_TABLES = {"0012M4ACP22": b'"Geolocation","Commodity Description",'}
+CPI_GROUPS = {
+    "0": "0 - ALL ITEMS",
+    "131": "04.5 - ELECTRICITY, GAS AND OTHER FUELS",
+    "203": "07 - TRANSPORT",
+    "217": "07.2.2.1 - Diesel (ND)",
+}
+CPI_QUERY = {
+    "query": [
+        {"code": "Geolocation", "selection": {"filter": "item", "values": ["0"]}},
+        {
+            "code": "Commodity Description",
+            "selection": {"filter": "item", "values": list(CPI_GROUPS)},
+        },
+    ],
+    "response": {"format": "csv"},
+}
+# Each folder that is filtered to a few tables, and those tables' first columns.
+CHOSEN_TABLES = {
+    FARMGATE: FARMGATE_TABLES,
+    WHOLESALE: WHOLESALE_TABLES,
+    CPI: CPI_TABLES,
+}
 USER_AGENT = (
     f"ph-food-prices/{version('ph-food-prices')} "
     "(+https://github.com/crylz-z/ph-food-prices)"
@@ -52,14 +99,18 @@ REQUEST_DELAY_SECONDS = 1.0
 
 @dataclass(frozen=True)
 class Table:
-    folder: str  # RETAIL or FARMGATE
+    folder: str  # RETAIL, FARMGATE, WHOLESALE or CPI
     id: str  # "0042M4ARN01", without PSA's ".px"
     updated: str  # PSA's release time, "20261002T081513"
 
     @property
     def header(self) -> bytes:
         """The bytes a real CSV of this table starts with."""
-        return FARMGATE_TABLES[self.id] if self.folder == FARMGATE else CSV_HEADER
+        return CHOSEN_TABLES.get(self.folder, {}).get(self.id, CSV_HEADER)
+
+    @property
+    def query(self) -> dict[str, Any]:
+        return CPI_QUERY if self.folder == CPI else CSV_QUERY
 
 
 def make_session() -> requests.Session:
@@ -77,7 +128,7 @@ def make_session() -> requests.Session:
 
 
 def list_tables(session: requests.Session, folder: str) -> list[Table]:
-    """Every table in RETAIL; only FARMGATE_TABLES in FARMGATE."""
+    """Every table in RETAIL; only the CHOSEN_TABLES in the other folders."""
     response = session.get(f"{BASE_URL}/{folder}/", timeout=TIMEOUT_SECONDS)
     response.raise_for_status()
     tables = [
@@ -89,8 +140,8 @@ def list_tables(session: requests.Session, folder: str) -> list[Table]:
         for t in response.json()
         if t["type"] == "t"
     ]
-    if folder == FARMGATE:
-        tables = [t for t in tables if t.id in FARMGATE_TABLES]
+    if folder in CHOSEN_TABLES:
+        tables = [t for t in tables if t.id in CHOSEN_TABLES[folder]]
     return tables
 
 
@@ -101,7 +152,7 @@ def snapshot_path(root: str, table: Table) -> str:
 def download(session: requests.Session, table: Table) -> bytes:
     response = session.post(
         f"{BASE_URL}/{table.folder}/{table.id}.px",
-        json=CSV_QUERY,
+        json=table.query,
         timeout=TIMEOUT_SECONDS,
     )
     response.raise_for_status()
@@ -119,7 +170,11 @@ def run(
 ) -> list[str]:
     """Write a snapshot for each table PSA has re-released. Returns the paths written."""
     written = []
-    tables = [t for folder in (RETAIL, FARMGATE) for t in list_tables(session, folder)]
+    tables = [
+        t
+        for folder in (RETAIL, FARMGATE, WHOLESALE, CPI)
+        for t in list_tables(session, folder)
+    ]
     for table in tables:
         path = snapshot_path(root, table)
         if storage.exists(fs, path):

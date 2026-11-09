@@ -1,13 +1,13 @@
 -- The latest and previous snapshot of every farmgate table, national and region
 -- rows only (the farmer's share has no provinces), one row per geolocation,
 -- commodity and month. Empty cells are kept (price null).
--- depends_on: {{ ref('psa_farmgate_tables') }}
+-- depends_on: {{ ref('psa_farmgate_tables') }}, {{ ref('psa_wholesale_tables') }}, {{ ref('psa_cpi_tables') }}
 with snapshots as (
     select
         *,
         regexp_extract(filename, 'updated=(\w+)\.csv', 1) as updated
     from read_csv(
-        [{%- for file in psa_snapshot_files(farmgate=true, keep=2) %}'{{ file }}'{{ "," if not loop.last }}{% endfor -%}],
+        [{%- for file in psa_snapshot_files(kind='farmgate', keep=2) %}'{{ file }}'{{ "," if not loop.last }}{% endfor -%}],
         header = true,
         all_varchar = true,
         union_by_name = true,
