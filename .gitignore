@@ -27,11 +27,12 @@ Thumbs.db
 *.log
 tmp/
 
-# Claude Code: CLAUDE.md and .claude/rules/ are shared with the repo.
-# Personal settings, skills and session notes stay local.
+# Claude Code: CLAUDE.md, .claude/rules/, .claude/skills/ and .plans/ are shared
+# with the repo, so a fresh clone has the workflow (grilling and writing-for-agents
+# come from the owner's synced global skills). Only per-machine settings and
+# session notes stay local.
 .claude/settings.local.json
-.claude/skills/
-.plans/
+.claude/worktrees/
 handoff.md
 dbt/target/
 dbt/logs/

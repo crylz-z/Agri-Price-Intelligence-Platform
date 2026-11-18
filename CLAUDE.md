@@ -15,6 +15,9 @@ Run every tool as `uv run python -m <tool>`, as CI and the pre-commit hooks do.
 - **Times are Asia/Manila (PHT).**
 - **Raw snapshots are immutable.** Never overwrite or delete one without asking.
 
+## Workflow
+`/grill-with-docs` → `/to-spec` → `/to-tickets` → `/implement` (one ticket per session, `/clear` between). Each piece of work lives in `.plans/<slug>/`: `spec.md` plus one `NN-<slug>.md` per ticket, whose `Status:` and `## Notes` carry progress between sessions. Work not yet specced is in `.plans/backlog.md`; finished plans move to `.plans/_archive/`.
+
 ## Docs
 - Before editing any Markdown doc, load the `writing-for-agents` skill.
-- `.claude/rules/` holds durable, general rules, and each file loads when you touch its paths (`pipeline.md`, `dashboard.md`, `tests.md`). Add a rule there only when a general rule changes. The current behaviour lives in the code, and session state lives in `handoff.md`.
+- `.claude/rules/` holds durable, general rules, and each file loads when you touch its paths (`pipeline.md`, `dashboard.md`, `tests.md`). Add a rule there only when a general rule changes. The current behaviour lives in the code, and progress lives in the tickets.
