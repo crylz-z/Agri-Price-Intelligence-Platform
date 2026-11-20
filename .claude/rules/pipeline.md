@@ -10,7 +10,7 @@ paths:
 
 ## Layer contract
 - Raw: `s3://$S3_BUCKET_NAME/raw/table=<id>/updated=<YYYYMMDDTHHMMSS>.csv`, one per PSA release, stored as returned (Windows-1252, CRLF, missing values `.`, `..` or `...`), never rewritten. `<id>` drops PSA's `.px`; `updated` is PSA's timestamp without separators. Retail, farmgate, wholesale and CPI tables share this prefix.
-- Marts, rebuilt whole by dbt from the latest snapshot per table: `mart/farmer_share_monthly.parquet` (key `month, geo_code, staple`), `mart/food_verdicts.parquet` (`staple`), `mart/price_changes_yearly.parquet` (`staple`) and `mart/change_only_monthly.parquet` (`month, staple`). Older marts on R2 (`retail_prices_monthly`, `staple_prices_monthly`, `dish_costs_monthly`, `staple_seasonality`) are no longer written.
+- Marts, rebuilt whole by dbt from the latest snapshot per table: `mart/farmer_share_monthly.parquet` (key `month, geo_code, staple`), `mart/food_verdicts.parquet` (`staple`), `mart/price_changes_yearly.parquet` (`staple`), `mart/growth_since_2018.parquet` (`staple`) and `mart/change_only_monthly.parquet` (`month, staple`). Older marts on R2 (`retail_prices_monthly`, `staple_prices_monthly`, `dish_costs_monthly`, `staple_seasonality`) are no longer written.
 - Order in `pipeline.main`: ingest; if it wrote anything (or `--build`), `dbt build`; a failed build exits 1.
 
 ## Ingest (`src/etl/ingest.py`)
@@ -33,10 +33,12 @@ paths:
   - Province price cells carry footnote marks, so staging drops province rows before the cast.
   - `0.00` means no sales, not a price: the share keeps `price > 0` only.
   - AFN11 names its commodity column `Type`; EFGP0 puts `Commodity` first.
+  - Fish (`0152M4GFPF0`) is quarterly ("2018 Quarter 3"), with a `Species` column indented under ALL SPECIES and one misspelt region ("Nothern Mindanao", mapped in the seed). `union_by_name` gives every table every period column, so staging keeps quarters only where `Species` is set. A fish row is one quarter (`months_in_period` 3, `month` its first); `int_farmer_share` sets it against the quarter's average retail and wholesale price when all three months exist, and the pass-through leaves it out (ADR 22).
+  - Meat's farm price is a live animal (`Hog for Slaughter`, `Broiler Chicken`, `Cattle for Slaughter` in AFN11), so meat lives in `seeds/change_only_commodities.csv` (with `farm_name` and `store_name` for the page) and never in `int_farmer_share`.
   - Units are PSA's stated unit: pesos per kg for most, per piece for eggs.
 - Wholesale (`stg_psa__wholesale_prices`, `seeds/wholesale_commodities.csv`): same layout and region labels as farmgate (joined through `farmgate_geolocations`), with no footnote marks or 0.00 cells seen on 2026-11-08. Rice is milled and egg per piece, so no yield conversion. Kangkong has none. The trader's and store's cuts can dip below 0 in a month; the dashboard clips them for drawing only.
 - `lake_root` var overrides `s3://$S3_BUCKET_NAME` for a local build; DuckDB won't create the local `mart/` folder.
 
 ## Known limits
-- Staging reads 2 snapshots × 27 tables (11 retail, about 12 MB a snapshot set; 8 farmgate, about 11 MB; 8 wholesale, about 5.5 MB) from R2 on each build, about 57 MB. Wholesale adds about 66 MB of raw storage a year. Retail alone took about 20 s; the farmgate share is not yet timed on R2.
+- Staging reads 2 snapshots × 29 tables (11 retail, about 12 MB a snapshot set; 9 farmgate, about 16 MB with fish; 9 wholesale, about 7.5 MB with fish) from R2 on each build, about 71 MB. Wholesale adds about 66 MB of raw storage a year. Retail alone took about 20 s; the farmgate share is not yet timed on R2.
 - DuckDB over s3fs reads Parquet in many small range requests (57 for the 3 MB mart). Code that reads the whole mart should `cat_file` it once, as `src/dashboard/data.py` does.
