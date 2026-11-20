@@ -20,6 +20,7 @@ SHARES = "mart/farmer_share_monthly.parquet"
 VERDICTS = "mart/food_verdicts.parquet"
 CHANGES = "mart/price_changes_yearly.parquet"
 CHANGE_ONLY = "mart/change_only_monthly.parquet"
+GROWTH = "mart/growth_since_2018.parquet"
 # The suspects seed is hand-kept and ships with the app, so it is read from the
 # repo: editing the CSV on main is its only upkeep.
 SUSPECTS = Path("dbt/seeds/suspects.csv")
@@ -34,6 +35,11 @@ FETCH_TIMEOUT_SECONDS = 90
 FARM, WHOLESALE, STORE = "Farm", "Wholesale", "Store"
 # The three parts of every ₱100 a shopper pays, in supply-chain order.
 FARMER, TRADERS, STORES = "Farmer", "Traders", "Stores"
+# The page's hook: the 2023 onion crisis, national. The months are a fixed choice
+# (Dec 2022's farm price sits above the store's, and Aug to Nov 2022 have none);
+# every number shown comes from the mart.
+HOOK_FOOD = "Red onion"
+HOOK_START, HOOK_END = pd.Timestamp("2023-01-01"), pd.Timestamp("2023-06-01")
 
 
 def read_parquet(root: str, path: str) -> pd.DataFrame:
@@ -173,6 +179,38 @@ def since_2018(monthly: pd.DataFrame, staple: str) -> pd.DataFrame:
     )
 
 
+def hook(shares: pd.DataFrame) -> pd.DataFrame:
+    """The hook's months, HOOK_START to HOOK_END: HOOK_FOOD's national farm,
+    wholesale and store price, wide, one row per month, plus the farmer's
+    centavos of every peso (`farmer`)."""
+    rows = shares[
+        (shares["staple"] == HOOK_FOOD)
+        & (shares["geo_code"] == PHILIPPINES)
+        & shares["month"].between(HOOK_START, HOOK_END)
+    ].sort_values("month")
+    return pd.DataFrame(
+        {
+            "month": rows["month"],
+            FARM: rows["farmgate_equivalent"],
+            WHOLESALE: rows["wholesale_price"],
+            STORE: rows["retail_price"],
+            "farmer": rows["farmer_share"] * 100,
+        }
+    ).reset_index(drop=True)
+
+
+def outran(growth: pd.DataFrame) -> pd.DataFrame:
+    """Each food's farm and store growth since 2018, the store's biggest lead
+    first. `outran` is True when the store price grew faster than the farm price,
+    compared as the whole percents the chart labels show."""
+    rows = growth.assign(
+        lead=growth["store_change"] - growth["farm_change"],
+        outran=(growth["store_change"] * 100).round()
+        > (growth["farm_change"] * 100).round(),
+    )
+    return rows.sort_values("lead", ascending=False).reset_index(drop=True)
+
+
 def farm_fell(changes: pd.DataFrame) -> pd.DataFrame:
     """The foods whose farm price fell over the past year, biggest split first:
     the store's change minus the farm's, so "farm down, store up" leads."""
@@ -183,20 +221,6 @@ def farm_fell(changes: pd.DataFrame) -> pd.DataFrame:
         .sort_values("split", ascending=False)
         .reset_index(drop=True)
     )
-
-
-def growth_vs_prices(verdicts: pd.DataFrame) -> pd.DataFrame:
-    """Each staple's growth in the middle's cut since 2018, biggest first, with
-    whether it beat inflation (the mart's verdict)."""
-    rows = verdicts.sort_values("middle_change", ascending=False)
-    return rows[["staple", "middle_change", "verdict"]].reset_index(drop=True)
-
-
-def grew_faster(growth: pd.DataFrame, change: float) -> int:
-    """How many foods' gap grew faster than `change` (e.g. diesel), compared as
-    the whole percents the chart labels show, so a tie on screen isn't counted."""
-    shown = (growth["middle_change"] * 100).round()
-    return int((shown > round(change * 100)).sum())
 
 
 # Fewer months than this in either direction and a food's up/down pair is noise.

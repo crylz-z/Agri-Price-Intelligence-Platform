@@ -70,6 +70,8 @@ def test_farmer_shares_clip_the_rest_when_farmgate_tops_retail():
 VERDICTS_FIXTURE = (
     Path(__file__).parent / "fixtures" / "marts" / "food_verdicts.parquet"
 )
+GROWTH_FIXTURE = VERDICTS_FIXTURE.with_name("growth_since_2018.parquet")
+SHARES_FIXTURE = VERDICTS_FIXTURE.with_name("farmer_share_monthly.parquet")
 VERDICT_ANSWERS = {
     "Ginger": (42, 103, 31, 89, 191),
     "Sitaw": (76, 96, 24, 53, 121),
@@ -129,22 +131,56 @@ def test_national_series_pairs_farm_and_store_by_month():
     assert out["price"].tolist() == [216.0, 117.0, 400.0, 468.0, 344.0]
 
 
-def test_grew_faster_ignores_a_tie_in_whole_percents():
-    # Carrot's +80.6% and diesel's +81.1% both show as +81%.
-    growth = pd.DataFrame({"middle_change": [1.02, 0.806, 0.5]})
-    assert data.grew_faster(growth, 0.811) == 1
-
-
-def test_growth_vs_prices_ranks_the_biggest_growth_first():
-    verdicts = pd.DataFrame(
+def test_outran_ranks_the_stores_lead_and_ignores_a_tie_in_whole_percents():
+    growth = pd.DataFrame(
         {
-            "staple": ["A", "B", "C"],
-            "middle_change": [0.2, 0.9, 0.5],
-            "verdict": ["cleared", "suspicious", "suspicious"],
+            "staple": ["Tie", "Farm ahead", "Store ahead"],
+            # +40.4% and +40.2% both show as +40%.
+            "farm_change": [0.404, 0.70, -0.17],
+            "store_change": [0.402, 0.50, 0.48],
         }
     )
-    out = data.growth_vs_prices(verdicts)
-    assert out["staple"].tolist() == ["B", "C", "A"]
+    out = data.outran(growth)
+    assert out["staple"].tolist() == ["Store ahead", "Tie", "Farm ahead"]
+    assert out["outran"].tolist() == [True, False, False]
+
+
+def test_growth_fixture_store_prices_outran_farm_prices_for_19_of_25_foods():
+    # From the local lake on 2026-11-11: red onion's farm price fell 17% since
+    # 2018 while its store price rose 48%; meat counts too, as percent only.
+    growth = data.outran(pd.read_parquet(GROWTH_FIXTURE))
+    assert len(growth) == 25 and int(growth["outran"].sum()) == 19
+    onion = growth.set_index("staple").loc["Red onion"]
+    assert (round(onion["farm_change"] * 100), round(onion["store_change"] * 100)) == (
+        -17,
+        48,
+    )
+    assert set(growth.loc[growth["change_only"], "staple"]) == {
+        "Pork kasim",
+        "Pork liempo",
+        "Whole chicken",
+        "Beef with bones",
+    }
+    # Foods with a farmer's share match food_verdicts' own growth.
+    verdicts = pd.read_parquet(VERDICTS_FIXTURE).set_index("staple")
+    shared = growth[~growth["change_only"]].set_index("staple")
+    assert set(shared.index) == set(verdicts.index)
+    assert (shared["store_change"] - verdicts["store_change"]).abs().max() < 1e-9
+
+
+def test_hook_is_the_2023_onion_crisis_from_the_mart():
+    shares = pd.read_parquet(SHARES_FIXTURE)
+    hook = data.hook(shares)
+    assert hook["month"].dt.month.tolist() == [1, 2, 3, 4, 5, 6]
+    jan = hook.iloc[0]
+    assert (round(jan[data.STORE]), round(jan[data.FARM])) == (468, 216)
+    low = hook.loc[hook[data.FARM].idxmin()]
+    assert (low["month"].month, round(low[data.FARM]), round(low[data.STORE])) == (
+        3,
+        65,
+        220,
+    )
+    assert (round(jan["farmer"]), round(low["farmer"])) == (46, 30)
 
 
 def test_claims_for_match_the_staple_or_its_category_newest_first():
@@ -214,17 +250,19 @@ def test_whole_centavos_keep_the_total_when_rounding_would_drift():
     assert sum(data.whole_centavos({"a": 44.5, "b": 22.6, "c": 32.9}).values()) == 100
 
 
-def test_food_verdicts_fixture_typical_peso_is_44_23_33():
-    shares = pd.read_parquet(
-        Path(__file__).parent / "fixtures/marts/farmer_share_monthly.parquet"
-    )
-    parts, foods = data.typical_peso(data.farmer_shares(shares))
-    assert foods == 17
+def test_food_verdicts_fixture_typical_peso_is_46_21_33():
+    # Fish (bangus 59, tilapia 57, galunggong 54 centavos) lifts the farmer's part.
+    shares = pd.read_parquet(SHARES_FIXTURE)
+    rows = data.farmer_shares(shares)
+    parts, foods = data.typical_peso(rows)
+    assert foods == 20
     assert data.whole_centavos(parts) == {
-        data.FARMER: 44,
-        data.TRADERS: 23,
+        data.FARMER: 46,
+        data.TRADERS: 21,
         data.STORES: 33,
     }
+    fish = rows.set_index("staple").loc[["Bangus", "Tilapia", "Galunggong"], "farmer"]
+    assert fish.round().tolist() == [59, 57, 54]
 
 
 def test_parts_then_now_are_medians_skipping_foods_without_wholesale():
@@ -254,12 +292,12 @@ def test_ratchet_returns_the_farm_to_its_start_and_lifts_the_store():
 
 
 def test_food_verdicts_fixture_traders_part_grew_more_than_stores():
-    # From the local lake on 2026-11-09: traders ₱16 -> ₱21, stores ₱34 -> ₱36.
+    # From the local lake on 2026-11-11: traders ₱16 -> ₱21, stores ₱33 -> ₱36.
     parts = data.parts_then_now(pd.read_parquet(VERDICTS_FIXTURE))
     assert {k: round(v) for k, v in parts.items()} == {
         "trader_part_then": 16,
         "trader_part_now": 21,
-        "store_part_then": 34,
+        "store_part_then": 33,
         "store_part_now": 36,
     }
 
@@ -285,10 +323,23 @@ def test_price_changes_fixture_tomato_farm_down_26_store_up_13():
     assert top["staple"] == "Tomato"
     assert round(top["farm_change"] * 100) == -26
     assert round(top["store_change"] * 100) == 13
-    assert int((fell["store_change"] > 0).sum()) == 4
+    assert int((fell["store_change"] > 0).sum()) == 6
     pork = changes[changes["staple"] == "Pork kasim"].iloc[0]
     assert pork["farm_measure"] == "live weight"
+    assert pork["farm_name"] == "live hog"
     assert round(pork["farm_change"] * 100) == -19
+    # Fish compares its latest quarter, Jul-Sep 2026, with the same months a year
+    # earlier: bangus farm -2%, store +4%.
+    bangus = changes.set_index("staple").loc["Bangus"]
+    assert bangus["months_in_period"] == 3
+    assert pd.Timestamp(bangus["month"]) == pd.Timestamp("2026-07-01")
+    assert (
+        round(bangus["farm_change"] * 100),
+        round(bangus["store_change"] * 100),
+    ) == (
+        -2,
+        4,
+    )
 
 
 def test_since_2018_measures_each_line_from_its_own_2018_average():
