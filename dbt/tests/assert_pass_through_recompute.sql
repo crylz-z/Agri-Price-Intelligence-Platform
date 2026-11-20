@@ -7,7 +7,7 @@ with national as (
     from {{ ref('int_farmer_share') }} as f
     inner join {{ ref('stg_psa__cpi') }} as c
         on f.month = c.month and c.commodity = '0 - ALL ITEMS'
-    where f.geo_level = 'national'
+    where f.geo_level = 'national' and f.months_in_period = 1
 ),
 
 pairs as (

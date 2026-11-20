@@ -56,6 +56,8 @@ seeds:
       USDA (the PSA resolution itself wasn't reachable). Ginger is Native and
       monggo green, shiny (retail names no variety; confirmed with the owner
       2026-11-07). Egg farmgate and retail are both per piece; the rest per kg.
+      Fish (bangus, tilapia, galunggong) comes from the quarterly fisheries
+      table, the same species as retail (ADR 22).
     columns:
       - name: staple
         data_tests:
@@ -150,9 +152,11 @@ seeds:
   - name: change_only_commodities
     description: >
       Foods whose farm price is for another product than the store price (a live
-      hog against a pork cut), so the year's percent change compares but a
-      farmer's share doesn't (ADR 13, ADR 18). farm_measure says what the farm
-      price is for. Read only by int_price_changes, never by int_farmer_share.
+      animal against a cut of meat), so a percent change compares but a
+      farmer's share doesn't (ADR 13, ADR 18, ADR 23). farm_measure says what the
+      farm price is for; farm_name and store_name name the two products on the
+      page ("live hog", "kasim"). Read by int_change_only_prices, never by
+      int_farmer_share.
     columns:
       - name: staple
         data_tests:

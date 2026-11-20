@@ -5,7 +5,7 @@
 Views: `raw`, every snapshot as PSA returned it (one column per month) plus `table`
 and `updated` from the path; `shares` and `verdicts`, the dbt marts
 (`farmer_share_monthly`, `food_verdicts`), `changes` (`price_changes_yearly`),
-`change_only` (`change_only_monthly`). A view the
+`change_only` (`change_only_monthly`), `growth` (`growth_since_2018`). A view the
 query names may list its prefix (1 Class A op on R2), so run queries by hand, never
 in a loop.
 """
@@ -26,6 +26,7 @@ GLOBS = {
     "verdicts": "mart/food_verdicts.parquet",
     "changes": "mart/price_changes_yearly.parquet",
     "change_only": "mart/change_only_monthly.parquet",
+    "growth": "mart/growth_since_2018.parquet",
 }
 # PSA marks missing values ".", ".." or "..." (farmgate AFN11); its CSV is
 # Windows-1252, close enough to latin-1 for reading. updated=... is a file name, so

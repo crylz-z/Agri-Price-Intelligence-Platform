@@ -1,11 +1,14 @@
 -- Recompute every farmer's share straight from the staged farmgate prices and the
--- retail prices, independent of int_farmer_share and int_staple_prices.
+-- retail prices, independent of int_farmer_share and int_staple_prices. A fish
+-- quarter's retail price is the mean of the retail months whose date_trunc
+-- quarter is the farm row's month, all three of them.
 with expected as (
     select
-        retail.month,
-        retail.geo_code,
+        farmgate.month,
+        labels.geo_code,
         commodities.staple,
-        (farmgate.price / commodities.retail_yield) / retail.price as share
+        (any_value(farmgate.price) / any_value(commodities.retail_yield))
+            / (sum(retail.price) / count(*)) as share
     from {{ ref('farmgate_commodities') }} as commodities
     inner join {{ ref('staples') }} as staples on commodities.staple = staples.staple
     inner join {{ ref('stg_psa__farmgate_prices') }} as farmgate
@@ -18,10 +21,13 @@ with expected as (
     inner join {{ ref('int_retail_prices') }} as retail
         on staples.commodity = retail.commodity
         and labels.geo_code = retail.geo_code
-        and farmgate.month = retail.month
+        and if(farmgate.months_in_period = 3, date_trunc('quarter', retail.month),
+            retail.month) = farmgate.month
     anti join {{ ref('farmer_share_exclusions') }} as exclusions
         on labels.geo_code = exclusions.geo_code
         and commodities.staple = exclusions.staple
+    group by farmgate.month, labels.geo_code, commodities.staple
+    having count(*) = any_value(farmgate.months_in_period)
 )
 
 select expected.*, model.farmer_share

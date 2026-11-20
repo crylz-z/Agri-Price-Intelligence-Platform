@@ -5,7 +5,7 @@
 -- Diesel, transport and fuel CPI over the same months answer "is the gap just
 -- fuel costs?".
 with national as (
-    select month, staple, category, unit,
+    select month, staple, category, unit, months_in_period,
         farmgate_equivalent as farm, retail_price as store, peso_gap as middle,
         trader_cut, store_cut
     from {{ ref('int_farmer_share') }}
@@ -93,7 +93,8 @@ averages as (
 -- Both prices are in 2018 pesos (divided by CPI), so general inflation does not
 -- lift the "up" figure or shrink the "down" one. 1 means the store moved peso for
 -- peso; below 1 on the way down means shoppers kept paying for a fall they never
--- saw. Months overlap, so these are evidence, not a test of significance.
+-- saw. Months overlap, so these are evidence, not a test of significance. Fish
+-- (quarterly) is left out: a few quarters a year are too coarse to time a move.
 real_prices as (
     select national.staple, national.month,
         national.farm / cpi.cpi * 100 as farm,
@@ -101,6 +102,7 @@ real_prices as (
     from national
     inner join {{ ref('stg_psa__cpi') }} as cpi
         on national.month = cpi.month and cpi.commodity = '0 - ALL ITEMS'
+    where national.months_in_period = 1
 ),
 
 moves as (

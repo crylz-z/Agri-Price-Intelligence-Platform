@@ -1,6 +1,8 @@
 -- The latest and previous snapshot of every farmgate table, national and region
 -- rows only (the farmer's share has no provinces), one row per geolocation,
--- commodity and month. Empty cells are kept (price null).
+-- commodity and period. Empty cells are kept (price null). Most tables are
+-- monthly; fish (0152M4GFPF0) is quarterly, so its row's month is the quarter's
+-- first and months_in_period is 3.
 -- depends_on: {{ ref('psa_farmgate_tables') }}, {{ ref('psa_wholesale_tables') }}, {{ ref('psa_cpi_tables') }}
 with snapshots as (
     select
@@ -44,9 +46,23 @@ select
     -- trailing footnote mark some tables add ("NEGROS ISLAND REGION 1/").
     lower(trim(regexp_replace(ltrim(Geolocation, '.'), '\s+\d+/$', ''))) as geo_label,
     if(Geolocation = ltrim(Geolocation, '.'), 'national', 'region') as geo_level,
-    -- AFN11 (livestock and eggs) calls the commodity column "Type".
-    coalesce(Commodity, "Type") as commodity,
-    strptime(period, '%Y %B')::date as month,
+    -- AFN11 (livestock and eggs) calls the commodity column "Type", and fish
+    -- "Species", indented under ALL SPECIES ("..Milkfish").
+    coalesce(Commodity, "Type", ltrim(Species, '.')) as commodity,
+    -- "2018 January", or for fish "2018 Quarter 3" (July to September).
+    coalesce(
+        try_strptime(period, '%Y %B')::date,
+        make_date(
+            cast(left(period, 4) as integer),
+            cast(right(period, 1) as integer) * 3 - 2,
+            1
+        )
+    ) as month,
+    if(period like '% Quarter %', 3, 1) as months_in_period,
     cast(price as double) as price
 from cells
 where period not like '% Annual'
+    -- union_by_name gives every table every period column: keep each table's own,
+    -- quarters for the fish table (the only one with a Species column), months
+    -- for the rest.
+    and (period like '% Quarter %') = (Species is not null)

@@ -46,6 +46,8 @@ FARMGATE_TABLES = {
     "0032M4AFN06": CSV_HEADER,  # Leafy Vegetables
     "0032M4AFN11": b'"Geolocation","Type",',  # Livestock and Poultry (Establishment)
     "0142M4EFGP0": b'"Commodity","Geolocation",',  # Major Crops
+    # Quarterly ("2018 Quarter 1"); species indented under ALL SPECIES.
+    "0152M4GFPF0": b'"Geolocation","Species",',  # Fisheries
 }
 # The wholesale tables that split the gap into farm -> trader and trader -> store
 # (dbt/seeds/psa_wholesale_tables.csv). All share the retail layout.
@@ -59,6 +61,7 @@ WHOLESALE_TABLES = dict.fromkeys(
         "0052M4AWB06",  # Leafy Vegetables
         "0052M4AWB07",  # Fruits (calamansi)
         "0052M4AWB09",  # Poultry Eggs
+        "0052M4AWB10",  # Fish
     ],
     CSV_HEADER,
 )

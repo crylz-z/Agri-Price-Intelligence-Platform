@@ -21,8 +21,9 @@ models:
     description: >
       The latest (snapshot_rank 1) and previous (2) snapshot of every farmgate
       table in seeds/psa_farmgate_tables.csv, national and region rows, one row
-      per geolocation, commodity and month, empty cells kept. PSA fills cells with
-      no sales with 0.
+      per geolocation, commodity and period, empty cells kept. PSA fills cells with
+      no sales with 0. Fish is quarterly: its row's month is the quarter's first
+      and months_in_period is 3 (1 for every other table).
     columns:
       - name: table_id
         data_tests:

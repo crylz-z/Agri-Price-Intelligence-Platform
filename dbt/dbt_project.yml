@@ -76,6 +76,8 @@ seeds:
         table_id: varchar
         farmgate_commodity: varchar
         farm_measure: varchar
+        farm_name: varchar
+        store_name: varchar
     psa_cpi_tables:
       +column_types:
         table_id: varchar

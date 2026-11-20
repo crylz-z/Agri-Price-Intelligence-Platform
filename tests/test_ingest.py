@@ -15,18 +15,20 @@ LISTING = [
     {"id": "0042M4ARN04.px", "type": "t", "updated": "2026-10-02T08:15:49"},
     {"id": "old", "type": "l", "updated": "2020-01-01T00:00:00"},
 ]
-# The 3 farmgate layouts (first CSV columns as PSA returned them on 2026-11-07),
-# and a farmgate table we don't use.
+# The 4 farmgate layouts (first CSV columns as PSA returned them on 2026-11-07;
+# fish, quarterly, on 2026-11-11), and a farmgate table we don't use.
 FARMGATE_LISTING = [
     {"id": "0032M4AFN01.px", "type": "t", "updated": "2026-10-30T10:06:08"},
     {"id": "0032M4AFN08.px", "type": "t", "updated": "2026-08-28T14:43:36"},
     {"id": "0032M4AFN11.px", "type": "t", "updated": "2026-11-06T10:50:35"},
     {"id": "0142M4EFGP0.px", "type": "t", "updated": "2026-11-06T08:15:46"},
+    {"id": "0152M4GFPF0.px", "type": "t", "updated": "2026-11-06T13:19:46"},
 ]
 FARMGATE_CSV = {
     "0032M4AFN01": b'"Geolocation","Commodity","2010 January"\r\n',
     "0032M4AFN11": b'"Geolocation","Type","2010 January"\r\n',
     "0142M4EFGP0": b'"Commodity","Geolocation","2010 January"\r\n',
+    "0152M4GFPF0": b'"Geolocation","Species","2002 Quarter 1"\r\n',
 }
 # The CPI folder holds a dozen tables; only the one in CPI_TABLES is kept.
 CPI_LISTING = [
@@ -34,8 +36,8 @@ CPI_LISTING = [
     {"id": "0012M4ACP23.px", "type": "t", "updated": "2026-11-05T08:35:53"},
 ]
 CPI_CSV = b'"Geolocation","Commodity Description","2018 Jan"\r\n'
-# The wholesale folder holds 10 tables; fruits (AWB07) is kept, commercial crops
-# (AWB08) and fish (AWB10) are not.
+# The wholesale folder holds 10 tables; fruits (AWB07) and fish (AWB10) are kept,
+# commercial crops (AWB08) is not.
 WHOLESALE_LISTING = [
     {"id": f"0052M4AWB{n:02}.px", "type": "t", "updated": "2026-11-04T08:31:39"}
     for n in range(1, 11)
@@ -110,7 +112,7 @@ def test_list_tables_keeps_tables_and_compacts_updated():
 def test_farmgate_listing_keeps_only_the_tables_we_use():
     session = FakeSession(LISTING, farmgate=FARMGATE_LISTING)
     ids = [t.id for t in ingest.list_tables(session, ingest.FARMGATE)]
-    assert ids == ["0032M4AFN01", "0032M4AFN11", "0142M4EFGP0"]
+    assert ids == ["0032M4AFN01", "0032M4AFN11", "0142M4EFGP0", "0152M4GFPF0"]
 
 
 def test_farmgate_tables_match_the_dbt_seed():
@@ -122,7 +124,7 @@ def test_farmgate_tables_match_the_dbt_seed():
 def test_wholesale_listing_keeps_only_the_tables_we_use():
     session = FakeSession(LISTING, wholesale=WHOLESALE_LISTING)
     ids = [t.id for t in ingest.list_tables(session, ingest.WHOLESALE)]
-    assert ids == [f"0052M4AWB{n:02}" for n in (1, 2, 3, 4, 5, 6, 7, 9)]
+    assert ids == [f"0052M4AWB{n:02}" for n in (1, 2, 3, 4, 5, 6, 7, 9, 10)]
 
 
 def test_wholesale_tables_match_the_dbt_seed():
@@ -173,8 +175,14 @@ def test_farmgate_snapshots_are_written_with_each_tables_header(lake):
         f"{root}/raw/table=0032M4AFN01/updated=20261030T100608.csv",
         f"{root}/raw/table=0032M4AFN11/updated=20261106T105035.csv",
         f"{root}/raw/table=0142M4EFGP0/updated=20261106T081546.csv",
+        f"{root}/raw/table=0152M4GFPF0/updated=20261106T131946.csv",
     ]
-    assert session.posts == ["0032M4AFN01.px", "0032M4AFN11.px", "0142M4EFGP0.px"]
+    assert session.posts == [
+        "0032M4AFN01.px",
+        "0032M4AFN11.px",
+        "0142M4EFGP0.px",
+        "0152M4GFPF0.px",
+    ]
     assert [fs.cat_file(p) for p in written] == list(FARMGATE_CSV.values())
     assert (
         ingest.run(FakeSession([], farmgate=FARMGATE_LISTING), fs, root, delay=0) == []
