@@ -355,7 +355,7 @@ def test_every_chart_has_a_so_what_line():
         for m in at.markdown
         if ":material/lightbulb:" in m.value
     ]
-    assert len(so_whats) == 7
+    assert len(so_whats) == 8
     assert "farmers got only 30 centavos of every peso" in so_whats[0]
     assert "January's peak, they got 46" in so_whats[0]
     assert "farmers and fisherfolk are among the poorest" in so_whats[1]
@@ -363,10 +363,13 @@ def test_every_chart_has_a_so_what_line():
         "So of the ₱575 you pay, ₱274 is spent after the farm. Bought every week, "
         "that's about ₱1,187 a month."
     )
-    assert "You pay ₱6 the farmer never saw" in so_whats[3]
-    assert "for 15 of 21 foods, farmers get less than half" in so_whats[4]
-    assert "the difference went to the middle" in so_whats[5]
-    assert so_whats[6].startswith(":material/lightbulb: So red onion's farmer gets")
+    assert so_whats[3].endswith(
+        "So more of every peso you pay now stops with the traders."
+    )
+    assert "You pay ₱6 the farmer never saw" in so_whats[4]
+    assert "for 15 of 21 foods, farmers get less than half" in so_whats[5]
+    assert "the difference went to the middle" in so_whats[6]
+    assert so_whats[7].startswith(":material/lightbulb: So red onion's farmer gets")
 
 
 def test_the_public_record_is_on_the_page_rulings_first_each_sourced():

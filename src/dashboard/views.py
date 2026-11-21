@@ -1158,6 +1158,15 @@ def growing_section(verdicts: pd.DataFrame) -> None:
         ),
         anchor=False,
     )
+    # No chart here, so the so-what closes the section and it doesn't read as a
+    # hole before section 5.
+    so_what(
+        "So more of every peso you pay now stops with the traders."
+        if now > then
+        else "So traders' part hasn't grown since 2018."
+        if now == then
+        else "So traders keep less of every peso than in 2018."
+    )
 
 
 def proof_section(rows: pd.DataFrame, growth: pd.DataFrame) -> None:
@@ -1220,9 +1229,8 @@ def ratchet_section(verdicts: pd.DataFrame) -> None:
     slower = int((moves["down"] < moves["up"]).sum())
     up, down = float(moves["up"].median()), float(moves["down"].median())
     most = "Most foods" if slower > len(moves) / 2 else "Some foods"
-    # Section 4 ends on its headline, with no chart or so-what under it, so a
-    # large space here reads as a hole.
-    st.space("small")
+    # Section 4 has no chart, so a large space here would read as a hole.
+    st.space("medium")
     chapter("story", "Up fast, down slow")
     hero("ratchet", ("Of a ₱10 farm drop, you see", f"₱{down:.0f}", "plain"))
     st.header(
