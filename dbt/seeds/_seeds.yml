@@ -114,7 +114,9 @@ seeds:
       Staple and region pairs left out of the farmer's share because their
       farmgate price sits at or above retail most months, which points to
       different units (bundle vs kg) rather than a real share. Decided with the
-      owner 2026-11-07; the dashboard shows a caveat for them.
+      owner 2026-11-07; the dashboard shows a caveat for them. A row with a
+      month drops that month only: a national price that no region's price
+      supports (pechay, Jan-Mar 2026, decided with the owner 2026-11-21).
     columns:
       - name: geo_code
         data_tests:

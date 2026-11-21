@@ -29,6 +29,8 @@ with farmgate as (
             select 1 from {{ ref('farmer_share_exclusions') }} as exclusions
             where exclusions.geo_code = geolocations.geo_code
                 and exclusions.staple = commodities.staple
+                -- A blank month excludes the pair in every month.
+                and (exclusions.month is null or exclusions.month = prices.month)
         )
 ),
 

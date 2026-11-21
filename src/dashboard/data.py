@@ -122,8 +122,7 @@ def parts_then_now(verdicts: pd.DataFrame) -> dict[str, float]:
 
 
 def ratchet(up: float, down: float, moves: Sequence[int]) -> pd.DataFrame:
-    """An example for the reader, not data: each move (+1 or −1, the reader's
-    presses) takes the farm price ₱10 up or down, and the store price follows by
+    """An example for the reader, not data: each move (+1 or −1) takes the farm price ₱10 up or down, and the store price follows by
     `up` or `down` pesos. Long, one row per step and line; `price` is pesos from
     where each line started."""
     farm, store, rows = 0.0, 0.0, [(0, 0.0, 0.0)]
@@ -251,15 +250,34 @@ BASKET = (
 )
 
 
-def receipt(shares: pd.DataFrame) -> pd.DataFrame:
-    """The example basket at each food's latest national month (galunggong: its
-    quarter, `months` 3): what you pay and the farmer's, traders' and stores'
-    parts, in whole pesos that add up to it, then a "Total" row summing each
-    column. A food without a wholesale price that month drops out."""
+def basket_choices(shares: pd.DataFrame) -> tuple[tuple[str, str, float], ...]:
+    """Every food the reader can put in their basket: the example basket's
+    first, as BASKET words them, then each other food with a national farm,
+    wholesale and store price in its latest month, one of its unit ("Ginger,
+    1 kg"), A to Z."""
+    latest = shares[shares["is_latest"] & (shares["geo_code"] == PHILIPPINES)]
+    latest = latest.dropna(subset=["wholesale_price"])
+    picked = {staple for staple, _, _ in BASKET}
+    others = sorted(
+        (str(row.staple), f"{row.staple}, 1 {'piece' if row.unit == 'pc' else 'kg'}", 1)
+        for row in latest.itertuples()
+        if row.staple not in picked
+    )
+    return (*BASKET, *others)
+
+
+def receipt(
+    shares: pd.DataFrame, basket: Sequence[tuple[str, str, float]] = BASKET
+) -> pd.DataFrame:
+    """A basket (the example one unless the reader picked theirs) at each food's
+    latest national month (fish: its quarter, `months` 3): what you pay and the
+    farmer's, traders' and stores' parts, in whole pesos that add up to it, then
+    a "Total" row summing each column. A food without a wholesale price that
+    month drops out; with none left, the frame is empty."""
     latest = shares[shares["is_latest"] & (shares["geo_code"] == PHILIPPINES)]
     latest = latest.dropna(subset=["wholesale_price"]).set_index("staple")
     lines = []
-    for staple, item, quantity in BASKET:
+    for staple, item, quantity in basket:
         if staple not in latest.index:
             continue
         row = latest.loc[staple]
@@ -279,8 +297,46 @@ def receipt(shares: pd.DataFrame) -> pd.DataFrame:
                 **parts,
             }
         )
+    if not lines:
+        return pd.DataFrame()
     rows = pd.DataFrame(lines)
     total = rows[["pay", "farmer", "traders", "stores"]].sum()
     return pd.concat(
         [rows, pd.DataFrame([{"item": "Total", **total}])], ignore_index=True
+    )
+
+
+def newest_move(shares: pd.DataFrame) -> pd.Series | None:
+    """The newest month's biggest move in a farmer's share, national: of the
+    monthly foods priced in the newest month and the month before, the one whose
+    farmer centavos (`now`, `before`, whole) moved most, with `month` and
+    `previous`. None when no food has both months or none moved a whole centavo.
+    Fish is quarterly, so it never counts."""
+    rows = shares[
+        (shares["geo_code"] == PHILIPPINES) & (shares["months_in_period"] == 1)
+    ]
+    rows = rows.dropna(subset=["farmer_share"])
+    if rows.empty:
+        return None
+    month = rows["month"].max()
+    previous = month - pd.DateOffset(months=1)
+    now = rows[rows["month"] == month].set_index("staple")["farmer_share"]
+    before = rows[rows["month"] == previous].set_index("staple")["farmer_share"]
+    pairs = pd.DataFrame({"now": now, "before": before}).dropna()
+    pairs = (pairs * 100).round().astype(int)
+    pairs = pairs[pairs["now"] != pairs["before"]]
+    if pairs.empty:
+        return None
+    moves = (pairs["now"] - pairs["before"]).abs()
+    # The biggest move; a tie goes to the food first A to Z.
+    staple = moves.sort_index(kind="stable").idxmax()
+    row = pairs.loc[staple]
+    return pd.Series(
+        {
+            "staple": staple,
+            "month": month,
+            "previous": previous,
+            "now": int(row["now"]),
+            "before": int(row["before"]),
+        }
     )

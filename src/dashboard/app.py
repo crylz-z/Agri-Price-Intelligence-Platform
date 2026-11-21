@@ -5,7 +5,7 @@ uv run python -m streamlit run src/dashboard/app.py
 
 import streamlit as st
 
-from src.dashboard import views
+from src.dashboard import nav
 
 st.set_page_config(
     page_title="Who's eating the farmer's peso?",
@@ -50,4 +50,5 @@ st.html(
 }
 </style>"""
 )
-views.case_page()
+# Top, not the sidebar: a phone hides the sidebar behind a menu (ADR 25).
+st.navigation(nav.pages(), position="top").run()

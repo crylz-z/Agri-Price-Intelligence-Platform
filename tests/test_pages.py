@@ -14,7 +14,7 @@ import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from src.dashboard import context, data, views
+from src.dashboard import context, data, how, nav, views
 
 MARTS = Path(__file__).parent / "fixtures" / "marts"
 
@@ -26,17 +26,27 @@ def offline(monkeypatch):
     )
 
 
-def render(guess: int | None = 150, **params: str) -> AppTest:
-    """The page with the hook already answered (a guess of ₱150), unless
-    `guess` is None: then it shows as a reader first sees it."""
-    at = AppTest.from_string(
-        "from src.dashboard.views import case_page\ncase_page()", default_timeout=60
-    )
+APP = Path(__file__).parents[1] / "src" / "dashboard" / "app.py"
+
+
+def render(page: str = "story", guess: int | None = 150, **params: str) -> AppTest:
+    """One page (`nav.PAGES`) with the hook already answered (a guess of ₱150),
+    unless `guess` is None: then it shows as a reader first sees it. Query
+    params go on the first run, as a shared link's would."""
+    at = AppTest.from_file(str(APP), default_timeout=60)
     if guess is not None:
         at.session_state[views.HOOK_GUESS] = guess
     for key, value in params.items():
         at.query_params[key] = value
-    return at.run()
+    at.run()
+    if page != "story" and not params:
+        at.switch_page(f"app_pages/{page}.py").run()
+    return at
+
+
+def food(name: str) -> AppTest:
+    """The food page with `name` picked, through an old `/?food=` link."""
+    return render("food", food=name)
 
 
 def test_the_hook_asks_for_a_guess_before_it_shows_the_store_price():
@@ -59,12 +69,15 @@ def test_the_hook_asks_for_a_guess_before_it_shows_the_store_price():
     assert at.header[0].value.endswith("Where did the :orange[₱155] go?")
     assert at.metric[1].label == "Stores charged"
     lines = [m.value for m in at.markdown]
-    assert "Your guess was ₱150. Stores charged ₱220, ₱70 more." in lines
+    assert (
+        "Your guess was ₱150, ₱70 short. The :orange[**shaded gap**] is what "
+        "traders and stores kept."
+    ) in lines
     assert not at.slider
 
 
 def test_who_got_caught_opens_on_the_fine_and_shows_each_case_as_a_card():
-    at = render()
+    at = render("caught")
     fine = next(m for m in at.metric if m.label.startswith("Fined so far"))
     assert (fine.label, fine.value) == (
         "Fined so far, Oct 2026",
@@ -81,7 +94,7 @@ def test_who_got_caught_opens_on_the_fine_and_shows_each_case_as_a_card():
 
 
 def test_what_can_be_done_has_titled_cards_and_a_report_button():
-    at = render()
+    at = render("caught")
     button = at.get("link_button")[0]
     assert button.proto.label == "Report a cartel to the PCC"
     assert button.proto.url == context.PCC_PORTAL
@@ -91,7 +104,7 @@ def test_what_can_be_done_has_titled_cards_and_a_report_button():
         assert f"{fact.text} {views.cite(fact)}" in lines
 
 
-def test_the_headlines_tell_the_story_in_order():
+def test_the_story_headlines_in_order():
     at = render()
     assert not at.exception, at.exception
     assert at.title[0].value == "Who's eating the farmer's peso?"
@@ -100,20 +113,153 @@ def test_the_headlines_tell_the_story_in_order():
         "₱220. Where did the :orange[₱155] go?",
         "Between the farmer and you: traders, wholesalers and stores",
         "Farmers get :blue[46 centavos] of your peso",
-        "Traders now take :orange[21 centavos] of your peso, up from 16",
+        "Traders now take :orange[21 centavos], up from 16",
         "Drop ₱10 at the farm, and you save only ₱8",
-        "Who got caught",
-        "What can be done",
-        "Check your food",
     ]
-    assert at.subheader[-1].value.startswith("Farmers get 46 centavos of your peso.")
+    # The ending: the fine, then the link on to the record.
+    assert [h.value for h in at.subheader] == [
+        "Regulators have fined :orange[₱1.76 billion] so far"
+    ]
     assert at.button(key="theme").label == "Dark"
     at.button(key="theme").click().run()
     assert not at.exception, at.exception
 
 
+def test_who_got_caught_headlines_in_order():
+    at = render("caught")
+    assert not at.exception, at.exception
+    assert [h.value for h in at.header] == [
+        "It's not one food, and it's not new",
+        "Who got caught",
+        "What can be done",
+    ]
+    assert [h.value for h in at.subheader] == [
+        "Carrot farmers get only :blue[23 centavos] of your peso",
+        "Since 2018, store prices outran farm prices for :orange[19 of 25 foods]",
+        "Being done",
+        "Where to report",
+    ]
+    assert [len(c["yAxis"][0]["data"]) for c in echarts(at)[:1]] == [21]
+
+
+def test_how_its_built_shows_the_pipeline_and_its_live_numbers():
+    at = render("how")
+    assert not at.exception, at.exception
+    assert [h.value for h in at.header] == ["How it's built"]
+    dot = at.get("graphviz_chart")[0].proto.spec
+    for step in ("PSA OpenSTAT", "raw", "dbt build", "marts", "This page", "GitHub"):
+        assert step in dot, step
+    lines = [m.value for m in at.markdown]
+    for title, icon, text in how.FACTS:
+        assert f"**:material/{icon}: {title}**" in lines and text in lines
+    assert [(m.label, m.value) for m in at.metric] == [
+        ("Latest PSA release", "06 Nov 2026"),
+        ("Foods", "25"),
+    ]
+    button = at.get("link_button")[0]
+    assert (
+        button.proto.url
+        == how.REPO
+        == ("https://github.com/crylz-z/Agri-Price-Intelligence-Platform")
+    )
+
+
+def test_the_story_has_no_dots_or_growth_chart():
+    # Both moved to "Who got caught" (spec: Page 1).
+    charts = echarts(render())
+    assert [len(c["series"]) for c in charts] == [4, 2]  # the hook, the ratchet
+
+
+def top_level(node) -> list:
+    """The page's running text, in order: a plain container's contents (a
+    fragment, a reveal, the big numbers) count, a card's, a column's or an
+    expander's do not."""
+    out = []
+    for child in node.children.values():
+        if type(child).__name__ != "Block":
+            out.append(child)
+        elif child.type == "flex_container" and not child.proto.flex_container.border:
+            out.extend(top_level(child))
+    return out
+
+
+def words(markdown: str) -> int:
+    """Words a reader reads: links shown as their text, icons and colour marks
+    dropped."""
+    text = re.sub(r"\]\([^)]*\)", "]", markdown)
+    text = re.sub(r":material/\w+:|:\w+\[|\*\*|[\[\]()]", " ", text)
+    return len(text.split())
+
+
+@pytest.mark.parametrize("page", ["story", "caught"])
+def test_each_headline_has_at_most_one_line_and_one_so_what(page):
+    """The word budget (spec): under each headline, one short line at most,
+    then at most one so-what; no paragraphs. Tooltips, cards and the Sources
+    expander hold the rest."""
+    at = render(page)
+    sections: list[list[str]] = [[]]
+    for element in top_level(at.main):
+        kind = type(element).__name__
+        if kind in ("Header", "Subheader", "Title"):
+            sections.append([])
+        elif kind == "Markdown" and element.value != views.CHAIN_ARROW:
+            sections[-1].append(element.value)
+    for lines in sections:
+        so_whats = [v for v in lines if v.startswith(":material/lightbulb:")]
+        others = [v for v in lines if v not in so_whats]
+        assert len(so_whats) <= 1, lines
+        assert len(others) <= 1, lines
+        for line in lines:
+            assert words(line) <= 30, line
+
+
+def test_the_hook_chart_dots_only_its_labelled_months():
+    hook = echarts(render())[0]
+    for line in (hook["series"][1], hook["series"][3]):
+        dotted = [p["symbol"] != "none" for p in line["data"]]
+        labelled = [p["label"]["show"] for p in line["data"]]
+        assert dotted == labelled and any(dotted)
+
+
+def test_the_story_cites_its_facts_in_a_closed_sources_expander():
+    at = render()
+    sources = at.expander[0]
+    assert sources.label == "Sources" and not sources.proto.expanded
+    inside = " ".join(m.value for m in sources.markdown)
+    for fact in (
+        context.ONION_VS_MEAT,
+        *(fact for _, _, fact in context.CHAIN),
+        *context.FAIR_CUT,
+        context.POVERTY,
+    ):
+        assert f"{fact.text} {views.cite(fact)}" in inside
+    outside = [m.value for m in at.markdown if m.value not in inside]
+    assert not any("](http" in v for v in outside)
+
+
+PAGES = ["story", "caught", "food", "how"]
+
+
+@pytest.mark.parametrize("page", PAGES)
+def test_every_page_has_the_masthead_and_ends_on_the_next_page(page):
+    at = render(page)
+    assert not at.exception, at.exception
+    assert at.caption[0].value.startswith("Philippines · 25 everyday foods")
+    assert at.button(key="theme")
+    assert at.caption[-1].value.startswith("Farm, wholesale and store prices: PSA")
+    following = nav.after(page)
+    assert [link.value for link in at.page_link] == [f"{views.NEXT[page]} →"]
+    assert at.page_link[0].proto.page.endswith(nav.PAGES[following][2])
+
+
+def test_the_food_page_opens_on_the_hook_food():
+    at = render("food")
+    assert not at.exception, at.exception
+    assert at.selectbox[0].value == "Red onion"
+
+
 @pytest.mark.parametrize(
-    "food",
+    "name",
     [
         "Red onion",
         "Regular rice",
@@ -126,20 +272,17 @@ def test_the_headlines_tell_the_story_in_order():
         "Whole chicken",
     ],
 )
-def test_check_your_food_renders_each_kind_of_food(food):
-    at = render(food=food)
+def test_an_old_food_link_opens_that_food_on_the_food_page(name):
+    at = food(name)
     assert not at.exception, at.exception
-    assert at.selectbox[0].value == food
+    assert [h.value for h in at.header] == ["Check your food"]
+    assert at.selectbox[0].value == name
 
 
 def test_lines_under_the_headlines_say_how_to_read_each_chart():
-    at = render()
-    lines = [m.value for m in at.markdown]
-    assert any("from ₱216 in January to ₱65 by March" in v for v in lines)
-    assert any("lowest first: carrot gets 23" in v for v in lines)
-    assert any("Most foods, 14 of 16, come down slower" in v for v in lines)
-    assert any(c.value.startswith(":material/science: An example") for c in at.caption)
-    assert food_metrics(at)[2:] == ["Traders", "Stores"]
+    caught = [m.value for m in render("caught").markdown]
+    assert any("lowest first" in v for v in caught)
+    assert food_metrics(food("Red onion"))[2:] == ["Traders", "Stores"]
 
 
 def food_metrics(at: AppTest) -> list[str]:
@@ -163,7 +306,8 @@ def test_each_story_section_opens_with_its_big_numbers():
 
 
 def echarts(at: AppTest) -> list[dict]:
-    """Each ECharts chart's option, in page order: hook, dots, middle, ratchet."""
+    """Each ECharts chart's option, in page order: the story's hook and ratchet,
+    or who got caught's dots and growth."""
     return [json.loads(element.proto.spec) for element in at.get("echarts_chart")]
 
 
@@ -179,45 +323,43 @@ def test_the_hook_shades_the_gap_between_farm_and_store_in_amber():
     assert labelled == ["₱216", "₱65"]
 
 
-def test_the_middle_chart_joins_each_foods_farm_and_store_growth():
-    middle = echarts(render())[2]
+def test_the_middle_chart_is_one_bar_per_food_amber_where_the_store_grew_faster():
+    middle = echarts(render("caught"))[1]
     foods = middle["yAxis"]["data"]
     assert len(foods) == 25 and foods[0] == "Red onion"
-    bars, store, farm = middle["series"]
-    assert "itemStyle" not in store
-    ratchet = echarts(render())[3]
-    assert [s.get("color") for s in ratchet["series"]] == [None, None]
-    links = bars["markLine"]["data"]
-    assert sum(link[0]["lineStyle"]["color"] == views.AMBER for link in links) == 19
-    onion = farm["data"][0]
-    assert onion["label"]["formatter"] == "−17%"
-    assert store["data"][0]["label"]["formatter"] == "+48%"
-    hollow = {
-        foods[i] for i, d in enumerate(farm["data"]) if d["symbol"] == "emptyCircle"
-    }
-    assert hollow == {"Pork kasim", "Pork liempo", "Whole chicken", "Beef with bones"}
-    assert store["markLine"]["label"]["formatter"] == "Inflation +33%"
+    (bars,) = middle["series"]
+    colours = [d["itemStyle"]["color"] for d in bars["data"]]
+    assert colours.count(views.AMBER) == 19
+    labels = [d["label"]["formatter"] for d in bars["data"]]
+    assert labels[0] == "+65 pts"  # store +48% against farm −17%
+    assert labels[-1] == "−43 pts" and colours[-1] == views.MUTED
+    # Every label sits right, so a grey bar's stays clear of the food names.
+    assert {d["label"]["position"] for d in bars["data"]} == {"right"}
 
 
 def test_every_chart_has_a_so_what_line():
-    at = render(food="Red onion")
-    assert not at.exception, at.exception
-    so_whats = [m.value for m in at.markdown if ":material/lightbulb:" in m.value]
-    # The ratchet's so-what waits for the reader's first press.
-    assert len(so_whats) == 5
+    so_whats = [
+        m.value
+        for at in (render(), render("caught"), food("Red onion"))
+        for m in at.markdown
+        if ":material/lightbulb:" in m.value
+    ]
+    assert len(so_whats) == 7
     assert "farmers got only 30 centavos of every peso" in so_whats[0]
     assert "January's peak, they got 46" in so_whats[0]
     assert "farmers and fisherfolk are among the poorest" in so_whats[1]
     assert so_whats[2].endswith(
-        "So more than half your peso, 54 centavos, is spent after the farm, by "
-        "traders and stores."
+        "So of the ₱575 you pay, ₱274 is spent after the farm. Bought every week, "
+        "that's about ₱1,187 a month."
     )
-    assert "for 19 of 25 foods, the store price grew faster" in so_whats[3]
-    assert so_whats[4].startswith(":material/lightbulb: So red onion's farmer gets")
+    assert "You pay ₱6 the farmer never saw" in so_whats[3]
+    assert "for 15 of 21 foods, farmers get less than half" in so_whats[4]
+    assert "the difference went to the middle" in so_whats[5]
+    assert so_whats[6].startswith(":material/lightbulb: So red onion's farmer gets")
 
 
 def test_the_public_record_is_on_the_page_rulings_first_each_sourced():
-    at = render()
+    at = render("caught")
     assert not at.exception, at.exception
     record = data.load_suspects()
     record = record[record["role"] == "suspect"]
@@ -236,13 +378,13 @@ def test_the_public_record_is_on_the_page_rulings_first_each_sourced():
 
 
 def test_a_food_without_wholesale_shows_one_gap():
-    at = render(food="Kangkong")
+    at = food("Kangkong")
     assert not at.exception, at.exception
     assert food_metrics(at)[2:] == ["The gap"]
 
 
 def test_fish_shows_its_quarter_and_its_farmer_share():
-    at = render(food="Bangus")
+    at = food("Bangus")
     assert not at.exception, at.exception
     assert any(c.value == "July–September 2026, national average." for c in at.caption)
     so_whats = [m.value for m in at.markdown if ":material/lightbulb:" in m.value]
@@ -272,9 +414,8 @@ def test_the_receipt_adds_up_and_every_food_gets_a_dot():
         and "galunggong July–September 2026" in c.value
         for c in at.caption
     )
-    charts = echarts(at)
-    assert len(charts) == 4
-    dots = charts[1]
+    charts = echarts(at) + echarts(render("caught"))
+    dots = charts[2]
     assert len(dots["yAxis"][0]["data"]) == 21
     assert dots["yAxis"][0]["data"][0] == "Carrot"
     assert dots["yAxis"][1]["data"][0] == "23"
@@ -286,13 +427,14 @@ def test_the_receipt_adds_up_and_every_food_gets_a_dot():
 def test_every_series_eases_like_its_chart():
     # ECharts gives a line series its own linear easing, which overrides the
     # chart's: the hook's line crept at full speed to a dead stop (ticket 08).
-    for spec in echarts(render(food="Red onion")):
+    for spec in echarts(render()) + echarts(render("caught")):
         for series in spec["series"]:
             assert series["animationEasing"] == spec["animationEasing"], series
 
 
-def test_no_sentence_on_the_page_starts_with_a_numeral():
-    at = render(food="Red onion")
+@pytest.mark.parametrize("page", PAGES)
+def test_no_sentence_on_the_page_starts_with_a_numeral(page):
+    at = render(page)
     texts = [e.value for e in (*at.header, *at.subheader, *at.markdown, *at.caption)]
     for text in texts:
         plain = re.sub(r":material/\w+:|:\w+\[|\*\*|\]", "", text).strip()
@@ -317,7 +459,7 @@ def test_the_theme_colours_words_like_the_charts_in_both_modes():
 
 
 def test_meat_shows_both_prices_and_how_each_moved_never_a_share():
-    at = render(food="Pork kasim")
+    at = food("Pork kasim")
     assert not at.exception, at.exception
     assert food_metrics(at) == ["You pay, per kg kasim", "Farm price, per kg live hog"]
     lines = [m.value for m in at.markdown]
@@ -330,17 +472,18 @@ def test_meat_shows_both_prices_and_how_each_moved_never_a_share():
         "what you pay for kasim rose 40%, but the live hog price rose 24%."
     )
     assert not any("centavos of every peso you pay" in v for v in so_whats[-1:])
-    beef = render(food="Beef with bones")
+    beef = food("Beef with bones")
     assert food_metrics(beef) == [
         "You pay, per kg beef",
         "Farm price, per kg live cattle",
     ]
 
 
-def test_headings_carry_no_link_so_the_page_always_opens_at_the_top():
+@pytest.mark.parametrize("page", PAGES)
+def test_headings_carry_no_link_so_the_page_always_opens_at_the_top(page):
     """A heading's link icon puts "#<heading>" in the address bar, and the
     browser then reopens the page scrolled to that heading."""
-    at = render()
+    at = render(page)
     headings = [*at.title, *at.header, *at.subheader]
     assert headings and all(h.proto.hide_anchor for h in headings)
 
@@ -351,7 +494,7 @@ def test_the_chain_names_each_step_and_cites_every_fact():
     at = render()
     lines = [m.value for m in at.markdown]
     titles = [v for v in lines if v.startswith("**:material/") and v.endswith("**")]
-    steps = titles[:4]  # section 7's cards follow, titled the same way
+    steps = titles[:4]
     assert [s.split("**")[1].split(" ", 1)[1] for s in steps] == [
         "Farmer",
         "Trader",
@@ -361,7 +504,8 @@ def test_the_chain_names_each_step_and_cites_every_fact():
     arrows = [i for i, v in enumerate(lines) if v == views.CHAIN_ARROW]
     first = lines.index(steps[0])
     assert arrows == [first + 2, first + 5, first + 8]  # one between each step
-    page = " ".join(lines)
+    # Section 7's facts are on the caught page.
+    page = " ".join(lines + [m.value for m in render("caught").markdown])
     for fact in context.facts():
         assert f"{fact.text} {views.cite(fact)}" in page
     assert views.cite(context.SPOILAGE) == (
@@ -370,23 +514,48 @@ def test_the_chain_names_each_step_and_cites_every_fact():
     )
 
 
-def test_the_reader_plays_the_ratchet():
+def test_the_ratchet_is_a_still_example_of_three_moves_up_and_back():
     at = render()
-    farm, store = echarts(at)[3]["series"]
-    assert len(farm["data"]) == 1 and len(store["data"]) == 1
-    assert at.button(key="ratchet_reset").disabled
-    at.button(key="ratchet_up").click().run()
-    assert any("kept pace" in m.value for m in at.markdown)
-    at.button(key="ratchet_down").click().run()
-    assert not at.exception, at.exception
-    farm, store = echarts(at)[3]["series"]
-    assert [p[1] for p in farm["data"]] == [0, 10, 0]
+    assert not any(b.key.startswith("ratchet") for b in at.button)  # no toy
+    farm, store = echarts(at)[1]["series"]
+    assert [s.get("color") for s in (farm, store)] == [None, None]
+    assert [p[1] for p in farm["data"]] == [0, 10, 0, 10, 0, 10, 0]
     assert farm["endLabel"]["formatter"] == "back to start"
-    assert store["endLabel"]["formatter"] == "+₱2"
+    assert store["endLabel"]["formatter"] == "+₱6"
     assert any(
-        "the farm price is back where it started, but the store price is ₱2 "
-        "higher. You pay ₱2 the farmer never saw." in m.value
+        "the farm price is back where it started, but the store price is ₱6 "
+        "higher. You pay ₱6 the farmer never saw." in m.value
         for m in at.markdown
     )
-    at.button(key="ratchet_reset").click().run()
-    assert len(echarts(at)[3]["series"][0]["data"]) == 1
+
+
+def test_the_reader_builds_their_own_basket_and_the_receipt_follows():
+    at = render()
+    basket = at.multiselect(key="basket")
+    assert basket.value == [item for _, item, _ in data.BASKET]
+    basket.set_value(["Rice, 1 kg", "Galunggong, 1 kg", "Carrot, 1 kg"]).run()
+    assert not at.exception, at.exception
+    receipt = at.table[0].value
+    assert list(receipt.index) == [
+        "Rice, 1 kg",
+        "Galunggong, 1 kg",
+        "Carrot, 1 kg",
+        "**Total**",
+    ]
+    assert any(
+        c.value.startswith(":material/receipt_long: Your basket") for c in at.caption
+    )
+    total = receipt.loc["**Total**"].str.strip("*₱").str.replace(",", "").astype(int)
+    assert total.iloc[0] == total.iloc[1:].sum()
+    at.multiselect(key="basket").set_value([]).run()
+    assert not at.exception, at.exception
+    assert not at.table
+    assert "Pick a food to see its receipt." in [c.value for c in at.caption]
+
+
+def test_the_story_opens_on_the_newest_months_biggest_move():
+    at = render()
+    assert (
+        ":material/update: New for September 2026: repolyo farmers' part rose to "
+        ":blue[49 centavos] of your peso, from 26 in August."
+    ) in [m.value for m in at.markdown]

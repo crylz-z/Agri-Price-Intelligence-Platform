@@ -375,3 +375,59 @@ def test_receipt_splits_the_example_basket_into_whole_pesos_that_add_up():
         3,
     )
     assert receipt.iloc[0]["month"] == pd.Timestamp("2026-09-01")
+
+
+def test_basket_choices_put_the_example_first_then_every_split_food_a_to_z():
+    choices = data.basket_choices(pd.read_parquet(SHARES_FIXTURE))
+    assert choices[: len(data.BASKET)] == data.BASKET
+    others = [item for _, item, _ in choices[len(data.BASKET) :]]
+    assert others == sorted(others) and "Carrot, 1 kg" in others
+    # Kangkong has no wholesale price, so it can't be split on a receipt.
+    assert "Kangkong" not in {staple for staple, _, _ in choices}
+
+
+def test_receipt_of_an_empty_basket_is_empty():
+    assert data.receipt(pd.read_parquet(SHARES_FIXTURE), []).empty
+
+
+def shares_row(month: str, staple: str, share: float, months: int = 1) -> dict:
+    return {
+        "month": pd.Timestamp(month),
+        "geo_code": data.PHILIPPINES,
+        "staple": staple,
+        "months_in_period": months,
+        "farmer_share": share,
+    }
+
+
+def test_newest_move_is_the_biggest_whole_centavo_move_into_the_newest_month():
+    shares = pd.DataFrame(
+        [
+            shares_row("2026-08-01", "Tomato", 0.40),
+            shares_row("2026-09-01", "Tomato", 0.35),
+            shares_row("2026-08-01", "Carrot", 0.20),
+            shares_row("2026-09-01", "Carrot", 0.28),
+            # Fish is quarterly, so even a big move doesn't count.
+            shares_row("2026-08-01", "Bangus", 0.10, months=3),
+            shares_row("2026-09-01", "Bangus", 0.90, months=3),
+            # Only in the newest month: no month before to compare.
+            shares_row("2026-09-01", "Egg", 0.75),
+        ]
+    )
+    move = data.newest_move(shares)
+    assert move is not None
+    assert (move["staple"], move["before"], move["now"]) == ("Carrot", 20, 28)
+    assert (move["month"], move["previous"]) == (
+        pd.Timestamp("2026-09-01"),
+        pd.Timestamp("2026-08-01"),
+    )
+
+
+def test_newest_move_is_none_when_no_share_moved_a_whole_centavo():
+    shares = pd.DataFrame(
+        [
+            shares_row("2026-08-01", "Tomato", 0.401),
+            shares_row("2026-09-01", "Tomato", 0.398),
+        ]
+    )
+    assert data.newest_move(shares) is None

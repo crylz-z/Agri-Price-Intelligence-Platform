@@ -26,6 +26,7 @@ with expected as (
     anti join {{ ref('farmer_share_exclusions') }} as exclusions
         on labels.geo_code = exclusions.geo_code
         and commodities.staple = exclusions.staple
+        and (exclusions.month is null or exclusions.month = farmgate.month)
     group by farmgate.month, labels.geo_code, commodities.staple
     having count(*) = any_value(farmgate.months_in_period)
 )

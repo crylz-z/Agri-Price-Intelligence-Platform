@@ -53,6 +53,7 @@ seeds:
       +column_types:
         geo_code: varchar
         staple: varchar
+        month: date
         reason: varchar
     psa_farmgate_spot_checks:
       +column_types:

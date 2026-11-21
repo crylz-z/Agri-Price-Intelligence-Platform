@@ -1,4 +1,7 @@
-geo_code,staple,reason
-080000000,Kangkong,"Median farmer share 1.04 (2018-2026): farmgate and retail likely priced in different units (bundle vs kg)"
-140000000,Pechay,"Median farmer share 1.14 (2018-2026): farmgate and retail likely priced in different units (bundle vs kg)"
-060000000,Pechay,"Median farmer share 0.90, 50 of 102 months above 1 (2018-2026): farmgate and retail likely priced in different units (bundle vs kg)"
+geo_code,staple,month,reason
+080000000,Kangkong,,"Median farmer share 1.04 (2018-2026): farmgate and retail likely priced in different units (bundle vs kg)"
+140000000,Pechay,,"Median farmer share 1.14 (2018-2026): farmgate and retail likely priced in different units (bundle vs kg)"
+060000000,Pechay,,"Median farmer share 0.90, 50 of 102 months above 1 (2018-2026): farmgate and retail likely priced in different units (bundle vs kg)"
+000000000,Pechay,2026-01-01,"PSA national farmgate ₱9.58 sits far from most regions' ₱30-75 that month and from Dec 2025's ₱59 (checked 2026-11-21): likely a PSA error"
+000000000,Pechay,2026-02-01,"PSA national farmgate ₱15.10 sits far from most regions' ₱30-75 that month and from Dec 2025's ₱59 (checked 2026-11-21): likely a PSA error"
+000000000,Pechay,2026-03-01,"PSA national farmgate ₱83.00 sits far from most regions' ₱30-75 that month and from Dec 2025's ₱59 (checked 2026-11-21): likely a PSA error"

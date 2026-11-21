@@ -117,26 +117,29 @@ A short note beside a chart or number that names a known limit of the data behin
 _Avoid_: disclaimer, warning, footnote
 
 **Page**:
-The dashboard's one screen, "Who's eating the farmer's peso?" (`/`, `?food=…` picks the food in section 8).
+One of the dashboard's four screens, in reading order under a top navigation (ADR 25): the story (`/`), who got caught (`/caught`), check your food (`/food`, `?food=…` picks the food; an old `/?food=…` link forwards there) and how it's built (`/how`).
 _Avoid_: tab, view, report
 
 **Section**:
-One part of the page, numbered top-down, e.g. "section 3". Read in order, the sections solve a mystery (ADR 24): a question the reader feels, who stands between farm and store, whether the gap is everywhere, growing and sticky, who was caught, what can be done, then one food of the reader's choosing and a one-line ending. A data section carries a computed headline, a chart and a so-what line; a context section may be text only, each fact with a cited source.
+One part of a page, numbered top-down within it, e.g. "page 1, section 3". Read in order across pages 1 and 2, the sections solve a mystery (ADR 24): page 1 gives the whole finding in about 90 seconds, page 2 the proof and the record. Each section has a headline, at most one line under it and one so-what line; detail goes in a tooltip or page 1's Sources expander (the word budget). A context section may be cards, each fact cited on the card or in Sources.
 
-| # | Section | Plain meaning | Glossary term |
-|---|---|---|---|
-| 1 | The hook | March 2023: farmers sold onions for ₱65 a kilo, stores still charged ₱220. Where did the gap go? | Farmer's share, middle's cut |
-| 2 | The chain | Who stands between farm and store, and what a fair cut pays for (trucking, storage, spoilage) | Middle's cut |
-| 3 | Is it only onions? | The typical peso split between farmer, traders and stores, shown as a receipt, then each food's farmer centavos | Typical peso, receipt |
-| 4 | It's growing | Traders' centavos of a peso in 2018 and now, then each food's farm and store growth since 2018 against inflation | Trader's cut, growth since 2018 |
-| 5 | It sticks | How far the store price follows the farm price down, against up, drawn as an example | Pass-through |
-| 6 | Who got caught | The public record, rulings first | Public record, suspect |
-| 7 | What can be done | What is being done, and what the reader can do | |
-| 8 | Check your food | One food's store price, farm price, traders' and stores' parts, its gap's growth and moves, and its farmer's share against the typical food's. Meat: its two prices, then each one's change over the year and since 2018 | Farmer's share, year's change |
-| 9 | The ending | One computed line | Typical peso |
+| Page | # | Section | Plain meaning | Glossary term |
+|---|---|---|---|---|
+| The story | – | Newest move | One line under the title: the newest month's biggest move in a farmer's share (ADR 26) | Farmer's share |
+| | 1 | The hook | March 2023: farmers sold onions for ₱65 a kilo, the reader guesses the store price (₱220). Where did the gap go? | Farmer's share, middle's cut |
+| | 2 | The chain | Farmer, trader, wholesaler, store as four cards; what a fair cut pays for sits in the tooltip | Middle's cut |
+| | 3 | Your peso | The typical peso's farmer centavos, then a receipt splitting the reader's basket (the example until they change it) | Typical peso, receipt |
+| | 4 | It's growing | Traders' centavos of a peso in 2018 and now, no chart | Trader's cut |
+| | 5 | It sticks | An example chart: the farm price goes ₱10 up and back three times, and the store price ratchets up | Pass-through |
+| | 6 | The ending | Regulators have fined ₱X so far, on to page 2; then the Sources expander | Public record |
+| Who got caught | 1 | It's not one food, and it's not new | Each food's farmer centavos, then one bar per food for how many points more its store price grew than its farm price since 2018 | Farmer's share, growth since 2018 |
+| | 2 | Who got caught | The public record, rulings first | Public record, suspect |
+| | 3 | What can be done | What is being done, and where the reader can report | |
+| Check your food | 1 | Check your food | One food's store price, farm price, traders' and stores' parts, its gap's growth and moves, and its farmer's share against the typical food's. Meat: its two prices, then each one's change over the year and since 2018 | Farmer's share, year's change |
+| How it's built | 1 | How it's built | The pipeline as a picture, four facts, the latest PSA release and the repo link | |
 
 **Receipt**:
-An example shopping basket drawn as a receipt, each line's price split into the farmer's, traders' and stores' pesos. The basket is our pick and is labelled an example on screen.
+A week's shopping basket drawn as a receipt, each line's price split into the farmer's, traders' and stores' pesos. It opens on our example basket, labelled an example, and the reader adds or drops foods; then it reads "Your basket" (ADR 26).
 _Avoid_: basket chart, cart
 
 **Public record**:

@@ -1,8 +1,8 @@
 # PH Food Prices
 
-When food gets expensive, the farmer often isn't the one getting the money. For 25 everyday foods (vegetables, rice, eggs, fish and meat), this dashboard shows how many centavos of every peso at the store reach the farmer, how much traders' part grew since 2018, and whether store prices come down when farm prices fall. It opens on the 2023 onion crisis.
+A daily pipeline that stores every Philippine Statistics Authority (PSA) food price release unchanged on Cloudflare R2, models and tests it with dbt, and publishes it to a four-page Streamlit dashboard, for $0 a month. It covers monthly retail, wholesale and farmgate prices (retail: national, 18 regions and 100 provinces and cities, 197 commodities, from January 2018) and the consumer price index (all items, diesel, transport, electricity and fuels).
 
-It is built on monthly retail, wholesale and farmgate food prices for the Philippines (retail: national, 18 regions and 100 provinces and cities, 197 commodities, from January 2018) and the consumer price index (all items, diesel, transport, electricity and fuels), all from the Philippine Statistics Authority. A daily job stores each PSA release unchanged on Cloudflare R2, a dbt project models and tests it, and a one-page Streamlit dashboard shows the result. It costs $0 to run.
+The dashboard asks who's eating the farmer's peso: for 25 everyday foods (vegetables, rice, eggs, fish and meat), how many centavos of every peso at the store reach the farmer, how much traders' part grew since 2018, and whether store prices come down when farm prices fall.
 
 **Live dashboard:** [ph-food-prices.streamlit.app](https://ph-food-prices.streamlit.app/)
 
@@ -10,7 +10,7 @@ It is built on monthly retail, wholesale and farmgate food prices for the Philip
 graph LR
     PSA[("PSA OpenSTAT API")] -->|ingest.py, only new releases| RAW[("R2 raw/<br/>1 CSV snapshot per release")]
     RAW -->|dbt build: staging, intermediate, tests| MART[("R2 mart/<br/>5 Parquet marts")]
-    MART --> UI["Streamlit dashboard<br/>1 page"]
+    MART --> UI["Streamlit dashboard<br/>4 pages"]
     CRON["GitHub Actions<br/>daily cron"] -.-> PSA
 ```
 
@@ -33,17 +33,12 @@ graph LR
   - a release with far fewer filled cells than the one before
 
   All tests run upstream of the marts, so a failure skips the write and R2 keeps the last good mart. Three checks only warn: a latest month more than 3 months old, a national price that doubles or halves in a month, and a farmer's share above 100%.
-- **pytest** covers ingest (change detection, HEAD-only R2 checks, rejecting non-CSV responses), the pipeline's dbt trigger, the dashboard's data layer and an offline render of the page, all without network.
-- **Dashboard** (`src/dashboard/`), one page, "Who's eating the farmer's peso?". It reads as a mystery: a question the reader feels, who stands between farm and store, the gap everywhere, growing and sticky, who got caught and what can be done. A data section opens with one or two big numbers, then one computed headline, one chart (two in section 3) and a so-what line; a context section is cited cards. The story charts are ECharts with a brief entry animation and fade in as they scroll into view. Blue is the farmer, amber the middle (traders and the gap), and the store price is ink:
-  1. The hook: in March 2023 farmers got ₱65 for a kilo of red onion. The reader guesses the store price before the page shows it (₱220), then the farm price's crash from January.
-  2. The chain: traders, wholesalers and stores between the farmer and you, and what a fair cut pays for (trucking, storage, spoilage), each fact cited.
-  3. Of a typical peso at the store, how many centavos reach the farmer, then a receipt splitting an example basket between farmer, traders and stores, then the farmer's centavos per food.
-  4. It's growing: traders' centavos of a peso in 2018 and now, then each food's farm and store growth since 2018 against inflation.
-  5. It sticks: when the farm price falls ₱10, how far the store price falls, against when it rises ₱10. The reader pushes the typical food's farm price up and down and watches the store price ratchet up.
-  6. Who got caught: the public record (`dbt/seeds/suspects.csv`), rulings first, under the total fined so far, each card with its stage and source.
-  7. What can be done: what regulators and the government are doing, and a button to report a cartel to the Philippine Competition Commission.
-  8. Check your food: one food's prices, its numbers, and its farmer's share against the typical food's. Meat shows its live-animal and cut prices, then how each moved since 2018.
-  9. A one-line ending.
+- **pytest** covers ingest (change detection, HEAD-only R2 checks, rejecting non-CSV responses), the pipeline's dbt trigger, the dashboard's data layer and an offline render of each page, all without network.
+- **Dashboard** (`src/dashboard/`), four pages under a top navigation, each section a headline, at most one line and a so-what line. The story charts are ECharts with a brief entry animation. Blue is the farmer, amber the middle (traders and the gap), and the store price is ink:
+  1. **The story** (`/`): the newest month's biggest move in a farmer's share; the 2023 onion crisis, where the reader guesses the store price before the page shows it; who stands between farm and store; a receipt splitting the reader's own basket (an example until they change it) between farmer, traders and stores; traders' centavos of a peso in 2018 and now; an example where the farm price goes up and back down and the store price ratchets up; and the total regulators have fined so far.
+  2. **Who got caught** (`/caught`): each food's farmer centavos and farm and store growth since 2018, then the public record (`dbt/seeds/suspects.csv`), rulings first, and what can be done, with a button to report a cartel to the Philippine Competition Commission.
+  3. **Check your food** (`/food?food=…`): one food's prices, its numbers, and its farmer's share against the typical food's. Meat shows its live-animal and cut prices, then how each moved since 2018.
+  4. **How it's built** (`/how`): this pipeline as a picture, the latest PSA release and the repo link.
 
   Streamlit Community Cloud updates on every push to `main`.
 - **$0 on R2**: a release day has up to 30 snapshot writes and 5 mart writes, plus about 30 HEADs a day, well inside the free tier. See `docs/cloudfare-agent-notes/free-tier-r2.md`. The reasons behind each tool are in `docs/adr.md`; the terms are defined in `GLOSSARY.md`.
