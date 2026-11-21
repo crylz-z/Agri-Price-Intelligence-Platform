@@ -56,18 +56,23 @@ def test_the_hook_asks_for_a_guess_before_it_shows_the_store_price():
         "In March 2023, farmers got :blue[₱65] for a kilo of onions. What do you "
         "think stores charged?"
     )
-    assert [(m.label, m.value) for m in at.metric][:1] == [
-        ("Farmers got, Mar 2023", ":blue[₱65]")
-    ]
-    assert at.metric[1].label != "Stores charged"
+    # Before the guess: no big number, and ₱65 shows once, in the header.
+    shown = [e.value for e in (*at.header, *at.markdown, *at.caption)]
+    shown += [f"{m.label} {m.value}" for m in at.metric]
+    assert sum(text.count("₱65") for text in shown) == 1
+    assert not any(m.label.startswith("Farmers got") for m in at.metric)
     assert not any("₱220" in m.value for m in at.markdown)
     slider = at.slider(key="hook_slider")
-    assert (slider.min, slider.max, slider.step) == (65, 450, 5)
+    assert slider.label == "Drag to guess"
+    assert (slider.min, slider.max, slider.step, slider.value) == (0, 450, 5, 0)
     slider.set_value(150)
     at.button(key="hook_show").click().run()
     assert not at.exception, at.exception
     assert at.header[0].value.endswith("Where did the :orange[₱155] go?")
-    assert at.metric[1].label == "Stores charged"
+    assert [m.label for m in at.metric][:2] == [
+        "Farmers got, Mar 2023",
+        "Stores charged",
+    ]
     lines = [m.value for m in at.markdown]
     assert (
         "Your guess was ₱150, ₱70 short. The :orange[**shaded gap**] is what "
@@ -237,7 +242,7 @@ def test_the_story_cites_its_facts_in_a_closed_sources_expander():
     assert not any("](http" in v for v in outside)
 
 
-PAGES = ["story", "caught", "food", "how"]
+PAGES = list(nav.PAGES)
 
 
 @pytest.mark.parametrize("page", PAGES)
@@ -248,8 +253,8 @@ def test_every_page_has_the_masthead_and_ends_on_the_next_page(page):
     assert at.button(key="theme")
     assert at.caption[-1].value.startswith("Farm, wholesale and store prices: PSA")
     following = nav.after(page)
-    assert [link.value for link in at.page_link] == [f"{views.NEXT[page]} →"]
-    assert at.page_link[0].proto.page.endswith(nav.PAGES[following][2])
+    assert at.page_link[-1].value == f"{views.NEXT[page]} →"
+    assert at.page_link[-1].proto.page.endswith(nav.PAGES[following][2])
 
 
 def test_the_food_page_opens_on_the_hook_food():
@@ -323,18 +328,24 @@ def test_the_hook_shades_the_gap_between_farm_and_store_in_amber():
     assert labelled == ["₱216", "₱65"]
 
 
-def test_the_middle_chart_is_one_bar_per_food_amber_where_the_store_grew_faster():
+def test_the_middle_chart_joins_each_foods_farm_and_store_growth():
     middle = echarts(render("caught"))[1]
-    foods = middle["yAxis"]["data"]
-    assert len(foods) == 25 and foods[0] == "Red onion"
-    (bars,) = middle["series"]
-    colours = [d["itemStyle"]["color"] for d in bars["data"]]
-    assert colours.count(views.AMBER) == 19
-    labels = [d["label"]["formatter"] for d in bars["data"]]
-    assert labels[0] == "+65 pts"  # store +48% against farm −17%
-    assert labels[-1] == "−43 pts" and colours[-1] == views.MUTED
-    # Every label sits right, so a grey bar's stays clear of the food names.
-    assert {d["label"]["position"] for d in bars["data"]} == {"right"}
+    labels = middle["yAxis"]["data"]
+    assert len(labels) == 25
+    assert labels[0] == "{food|Red onion}\n{growth|farm −17%, store +48%}"
+    farm, store = middle["series"]
+    # Both uncoloured, farm first: the palette gives blue, then the store's ink.
+    assert "color" not in farm and "itemStyle" not in farm
+    assert "color" not in store and "itemStyle" not in store
+    assert middle["series"].index(store) == views.STORE_SLOT
+    segments = farm["markLine"]["data"]
+    colours = [start["lineStyle"]["color"] for start, _ in segments]
+    assert len(segments) == 25 and colours.count(views.AMBER) == 19
+    assert colours[-1] == views.MUTED
+    assert segments[0] == [
+        {"coord": [-17, 0], "lineStyle": {"color": views.AMBER}},
+        {"coord": [48, 0]},
+    ]
 
 
 def test_every_chart_has_a_so_what_line():
@@ -344,7 +355,7 @@ def test_every_chart_has_a_so_what_line():
         for m in at.markdown
         if ":material/lightbulb:" in m.value
     ]
-    assert len(so_whats) == 7
+    assert len(so_whats) == 8
     assert "farmers got only 30 centavos of every peso" in so_whats[0]
     assert "January's peak, they got 46" in so_whats[0]
     assert "farmers and fisherfolk are among the poorest" in so_whats[1]
@@ -352,10 +363,13 @@ def test_every_chart_has_a_so_what_line():
         "So of the ₱575 you pay, ₱274 is spent after the farm. Bought every week, "
         "that's about ₱1,187 a month."
     )
-    assert "You pay ₱6 the farmer never saw" in so_whats[3]
-    assert "for 15 of 21 foods, farmers get less than half" in so_whats[4]
-    assert "the difference went to the middle" in so_whats[5]
-    assert so_whats[6].startswith(":material/lightbulb: So red onion's farmer gets")
+    assert so_whats[3].endswith(
+        "So more of every peso you pay now stops with the traders."
+    )
+    assert "You pay ₱6 the farmer never saw" in so_whats[4]
+    assert "for 15 of 21 foods, farmers get less than half" in so_whats[5]
+    assert "the difference went to the middle" in so_whats[6]
+    assert so_whats[7].startswith(":material/lightbulb: So red onion's farmer gets")
 
 
 def test_the_public_record_is_on_the_page_rulings_first_each_sourced():
@@ -553,9 +567,48 @@ def test_the_reader_builds_their_own_basket_and_the_receipt_follows():
     assert "Pick a food to see its receipt." in [c.value for c in at.caption]
 
 
-def test_the_story_opens_on_the_newest_months_biggest_move():
+def test_the_story_links_to_the_short_version_and_opens_on_the_onion():
     at = render()
-    assert (
-        ":material/update: New for September 2026: repolyo farmers' part rose to "
-        ":blue[49 centavos] of your peso, from 26 in August."
-    ) in [m.value for m in at.markdown]
+    assert at.page_link[0].value == "Short on time? Read the short version →"
+    assert at.page_link[0].proto.page.endswith(nav.PAGES["short"][2])
+    assert not any("New for" in m.value for m in at.markdown)
+    assert at.caption[0].value.endswith("Updated with PSA's September 2026 release")
+
+
+def test_the_short_version_says_the_whole_finding_in_bullets_with_no_charts():
+    at = render("short")
+    assert not at.exception, at.exception
+    assert at.caption[1].value == "TL;DR"
+    assert at.title[0].value == "The short version"
+    assert not echarts(at) and not at.get("arrow_vega_lite_chart")
+    (bullets,) = [m.value for m in at.markdown if m.value.startswith("- **")]
+    lines = bullets.split("\n")
+    assert [line.split("**")[1] for line in lines] == [
+        "In March 2023, stores charged ₱155 a kilo more for onions than farmers got.",
+        "Between the farmer and you stand traders, wholesalers and stores.",
+        "Farmers get ₱46 of every ₱100 you pay.",
+        "Traders take ₱5 more of every ₱100 than in 2018.",
+        "When the farm price drops ₱10, you save only ₱8.",
+        "It's not just onions: farmers get under half for 15 of 21 foods.",
+        "It's not new: since 2018, store prices grew faster than farm prices for "
+        "19 of 25 foods.",
+        "Regulators have fined firms in the middle ₱1.76 billion so far.",
+        "In September 2026, repolyo farmers' part rose to ₱49 of every ₱100.",
+        context.SABOTAGE.text,
+    ]
+    # Each bullet: its bold finding, then a "so what" that starts with "So".
+    assert all(line.split("** ", 1)[1].startswith("So ") for line in lines)
+    assert [link.value for link in at.page_link] == [
+        "Want the proof? Read the full story →",
+        "Check your own food →",
+        f"{views.NEXT['short']} →",
+    ]
+
+
+@pytest.mark.parametrize("page", list(views.CHAPTERS))
+def test_each_section_carries_its_part_label_in_order(page):
+    names = views.CHAPTERS[page]
+    labels = [c.value for c in render(page).caption if c.value.startswith("Part ")]
+    assert labels == [
+        f"Part {i} of {len(names)} · {name}" for i, name in enumerate(names, 1)
+    ]

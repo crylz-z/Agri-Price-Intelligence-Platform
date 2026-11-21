@@ -1,4 +1,4 @@
-"""The dashboard's four pages (ADR 25), in reading order.
+"""The dashboard's five pages (ADR 25), in reading order.
 
 Each page is a file in `app_pages/` that calls its function in `views.py`, so
 `AppTest.switch_page` can reach it. Paths are absolute, because
@@ -16,6 +16,7 @@ PAGES = {
     "story": ("The story", "menu_book", ""),
     "caught": ("Who got caught", "gavel", "caught"),
     "food": ("Check your food", "search", "food"),
+    "short": ("The short version", "bolt", "short"),
     "how": ("How it's built", "construction", "how"),
 }
 

@@ -117,7 +117,7 @@ A short note beside a chart or number that names a known limit of the data behin
 _Avoid_: disclaimer, warning, footnote
 
 **Page**:
-One of the dashboard's four screens, in reading order under a top navigation (ADR 25): the story (`/`), who got caught (`/caught`), check your food (`/food`, `?food=…` picks the food; an old `/?food=…` link forwards there) and how it's built (`/how`).
+One of the dashboard's five screens, in reading order under a top navigation (ADR 25): the story (`/`), who got caught (`/caught`), check your food (`/food`, `?food=…` picks the food; an old `/?food=…` link forwards there), the short version (`/short`) and how it's built (`/how`).
 _Avoid_: tab, view, report
 
 **Section**:
@@ -125,17 +125,17 @@ One part of a page, numbered top-down within it, e.g. "page 1, section 3". Read 
 
 | Page | # | Section | Plain meaning | Glossary term |
 |---|---|---|---|---|
-| The story | – | Newest move | One line under the title: the newest month's biggest move in a farmer's share (ADR 26) | Farmer's share |
-| | 1 | The hook | March 2023: farmers sold onions for ₱65 a kilo, the reader guesses the store price (₱220). Where did the gap go? | Farmer's share, middle's cut |
+| The story | 1 | The hook | March 2023: farmers sold onions for ₱65 a kilo, the reader guesses the store price (₱220). Where did the gap go? | Farmer's share, middle's cut |
 | | 2 | The chain | Farmer, trader, wholesaler, store as four cards; what a fair cut pays for sits in the tooltip | Middle's cut |
 | | 3 | Your peso | The typical peso's farmer centavos, then a receipt splitting the reader's basket (the example until they change it) | Typical peso, receipt |
 | | 4 | It's growing | Traders' centavos of a peso in 2018 and now, no chart | Trader's cut |
 | | 5 | It sticks | An example chart: the farm price goes ₱10 up and back three times, and the store price ratchets up | Pass-through |
 | | 6 | The ending | Regulators have fined ₱X so far, on to page 2; then the Sources expander | Public record |
-| Who got caught | 1 | It's not one food, and it's not new | Each food's farmer centavos, then one bar per food for how many points more its store price grew than its farm price since 2018 | Farmer's share, growth since 2018 |
+| Who got caught | 1 | It's not one food, and it's not new | Each food's farmer centavos, then a dumbbell per food joining its farm and store growth since 2018 | Farmer's share, growth since 2018 |
 | | 2 | Who got caught | The public record, rulings first | Public record, suspect |
 | | 3 | What can be done | What is being done, and where the reader can report | |
 | Check your food | 1 | Check your food | One food's store price, farm price, traders' and stores' parts, its gap's growth and moves, and its farmer's share against the typical food's. Meat: its two prices, then each one's change over the year and since 2018 | Farmer's share, year's change |
+| The short version | 1 | The short version | The whole finding as plain bullets, no charts, the newest month's biggest move among them | |
 | How it's built | 1 | How it's built | The pipeline as a picture, four facts, the latest PSA release and the repo link | |
 
 **Receipt**:

@@ -431,3 +431,30 @@ def test_newest_move_is_none_when_no_share_moved_a_whole_centavo():
         ]
     )
     assert data.newest_move(shares) is None
+
+
+def test_short_version_numbers_match_the_story_and_who_got_caught():
+    shares, verdicts, growth = (
+        pd.read_parquet(VERDICTS_FIXTURE.parent / name)
+        for name in (
+            "farmer_share_monthly.parquet",
+            "food_verdicts.parquet",
+            "growth_since_2018.parquet",
+        )
+    )
+    numbers = data.short_version(shares, verdicts, data.outran(growth))
+    # The same numbers the page tests pin on the story and who got caught.
+    assert numbers == {
+        "hook_month": pd.Timestamp("2023-03-01"),
+        "hook_farm": 65,
+        "hook_store": 220,
+        "hook_farmer": 30,
+        "farmer": 46,
+        "traders_then": 16,
+        "traders_now": 21,
+        "drop_save": 8,
+        "under_half": 15,
+        "shared": 21,
+        "outran": 19,
+        "foods": 25,
+    }

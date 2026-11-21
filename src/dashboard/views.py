@@ -81,7 +81,8 @@ HOOK_GUESS = "hook_guess"
 NEXT = {
     "story": "See who got caught",
     "caught": "Check your food",
-    "food": "See how it's built",
+    "food": "Read the short version",
+    "short": "See how it's built",
     "how": "Back to the story",
 }
 # Each public-record stage (suspects.csv `stage`) as its card's badge.
@@ -193,6 +194,27 @@ def paint(text: str, role: str) -> str:
     """Text in its role's theme colour: "farm" blue, "middle" amber, else as is."""
     colour = {"farm": "blue", "middle": "orange"}.get(role)
     return f":{colour}[{text}]" if colour else text
+
+
+# Each page's chapters, in order: a small grey label above each section fills
+# the gap before it, so the space reads as a break, not missing content.
+CHAPTERS = {
+    "story": (
+        "The onion question",
+        "Who's in between",
+        "Where your peso goes",
+        "The middle's growing part",
+        "Up fast, down slow",
+    ),
+    "caught": ("Every food", "Not new", "Who got caught", "What can be done"),
+}
+
+
+def chapter(page: str, name: str) -> None:
+    """The label above a section: "Part 2 of 5 · Who's in between". It opens
+    with a word, so no sentence on the page starts with a numeral."""
+    names = CHAPTERS[page]
+    st.caption(f"Part {names.index(name) + 1} of {len(names)} · {name}")
 
 
 def reveal(name: str) -> Any:
@@ -365,62 +387,80 @@ def farmer_dots(rows: pd.DataFrame, typical: float) -> dict[str, Any]:
 
 
 def middle_chart(rows: pd.DataFrame) -> dict[str, Any]:
-    """Each food's lead since 2018 as one bar: how many points more its store
-    price grew than its farm price, amber where the store grew faster (the
-    middle grew) and grey where it didn't. Leads are the difference of the whole
-    percents, as `data.outran` compares them."""
-    foods = list(rows["staple"])
-    leads = [
-        int(round(s * 100) - round(f * 100))
-        for f, s in zip(rows["farm_change"], rows["store_change"])
+    """Each food's farm and store growth since 2018 as a dumbbell, in the rows'
+    order (`data.outran`: the store's biggest lead first): a blue farm dot and
+    an ink store dot, joined by an amber line where the store grew faster (the
+    middle grew) and a grey one where it didn't. Each food's label says both
+    percents, so no one subtracts in their head, and sits left of the plot on
+    two lines, which keeps the plot wide on a phone."""
+    farms = [round(f * 100) for f in rows["farm_change"]]
+    stores = [round(s * 100) for s in rows["store_change"]]
+    labels = [
+        f"{{food|{food}}}\n{{growth|farm {pct(f)}, store {pct(s)}}}"
+        for food, f, s in zip(
+            rows["staple"], rows["farm_change"], rows["store_change"], strict=True
+        )
     ]
-    low, high = min(0, *leads), max(0, *leads)
-    # Room right of the longest bar for its label, even at phone width. A grey
-    # bar's label sits right of zero, clear of the food names on the left.
-    pad = 0.35 * (high - low)
+
+    def dots(name: str, values: list[int], **extra: Any) -> dict[str, Any]:
+        # Uncoloured, farm first: the palette's blue, then the store's ink.
+        return {
+            "type": "scatter",
+            "name": name,
+            "symbolSize": 10,
+            "z": 3,
+            "silent": True,
+            "data": [[value, i] for i, value in enumerate(values)],
+            **extra,
+        }
+
+    segments = [
+        [
+            {"coord": [f, i], "lineStyle": {"color": AMBER if up else MUTED}},
+            {"coord": [s, i]},
+        ]
+        for i, (f, s, up) in enumerate(zip(farms, stores, rows["outran"], strict=True))
+    ]
     return _once(
         {
-            "grid": {"left": 4, "right": 4, "top": 4, "bottom": 4},
+            "grid": {"left": 4, "right": 12, "top": 4, "bottom": 20},
             "xAxis": {
                 "type": "value",
-                "min": low,
-                "max": high + pad,
-                "show": False,
+                # Few ticks, and none that would touch, at phone width.
+                "splitNumber": 3,
+                "axisLabel": {"formatter": "{value}%", "hideOverlap": True},
+                "splitLine": {"lineStyle": {"opacity": 0.3}},
             },
             "yAxis": {
                 "type": "category",
                 "inverse": True,
-                "data": foods,
+                "data": labels,
                 "axisTick": {"show": False},
                 "axisLine": {"show": False},
+                "axisLabel": {
+                    "align": "left",
+                    "margin": 160,
+                    "rich": {
+                        "food": {"fontSize": 13, "fontWeight": 600, "lineHeight": 17},
+                        "growth": {"color": MUTED, "fontSize": 12, "lineHeight": 15},
+                    },
+                },
             },
             "tooltip": {"show": False},
             "series": [
-                {
-                    "type": "bar",
-                    "name": "store growth minus farm growth",
-                    "barWidth": "60%",
-                    "silent": True,
-                    "data": [
-                        {
-                            "value": lead,
-                            "itemStyle": {
-                                "color": AMBER if up else MUTED,
-                                "borderRadius": [0, 3, 3, 0]
-                                if lead >= 0
-                                else [3, 0, 0, 3],
-                            },
-                            "label": {
-                                "show": True,
-                                "position": "right",
-                                "formatter": f"{lead:+d} pts".replace("-", "−"),
-                                "fontWeight": 700,
-                                "color": AMBER if up else MUTED,
-                            },
-                        }
-                        for lead, up in zip(leads, rows["outran"])
-                    ],
-                },
+                dots(
+                    "farm growth",
+                    farms,
+                    markLine={
+                        "silent": True,
+                        "symbol": "none",
+                        "z": 1,
+                        "label": {"show": False},
+                        "lineStyle": {"width": 3, "type": "solid", "opacity": 1},
+                        "data": segments,
+                    },
+                ),
+                dots("store growth", stores),
             ],
         }
     )
@@ -667,6 +707,7 @@ def record_section() -> None:
     source. Context, so text only."""
     claims = suspects()
     st.space("large")
+    chapter("caught", "Who got caught")
     fine = fined(claims)
     if fine:
         total, latest = fine
@@ -691,6 +732,7 @@ def remedy_section() -> None:
     where a reader can report. Facts only, no policy positions, each cited.
     Context, so text only."""
     st.space("large")
+    chapter("caught", "What can be done")
     st.header("What can be done", anchor=False)
     st.subheader("Being done", anchor=False)
     # Two cards a row, so a phone, which stacks the columns, keeps their order.
@@ -719,15 +761,16 @@ def remedy_section() -> None:
 
 
 def masthead(shares: pd.DataFrame, growth: pd.DataFrame) -> None:
-    """The caption row atop every page: place, food count, latest month, and
-    the light/dark button."""
+    """The caption row atop every page: place, food count, the newest PSA
+    release's month, and the light/dark button."""
     month = pd.Timestamp(shares["month"].max())
     with st.container(
         horizontal=True, horizontal_alignment="distribute", vertical_alignment="center"
     ):
         # No sentence starts with a numeral, so the count follows the place.
         st.caption(
-            f"Philippines · {len(growth)} everyday foods · PSA prices to {month:%B %Y}"
+            f"Philippines · {len(growth)} everyday foods · Updated with PSA's "
+            f"{month:%B %Y} release"
         )
         theme.theme_button()
 
@@ -774,7 +817,7 @@ def story_page() -> None:
     rows = data.farmer_shares(shares)
     masthead(shares, growth)
     st.title("Who's eating the farmer's peso?", anchor=False)
-    newest_line(shares)
+    st.page_link(nav.page("short"), label="Short on time? Read the short version →")
     hook_section(shares)
     chain_section()
     peso_section(shares, rows)
@@ -834,6 +877,110 @@ def food_page() -> None:
     footer("food", shares)
 
 
+def short_bullets(
+    numbers: dict[str, Any], fine: str | None, move: pd.Series | None
+) -> list[str]:
+    """The short version, one bullet per finding in the story's order: a bold
+    finding with at most one number (a share as pesos of every ₱100), then its
+    plain "so what". Every number comes from `data.short_version`, `fined` and
+    `data.newest_move`, so the bullets follow each release like the headlines."""
+    n = numbers
+    gap = n["hook_store"] - n["hook_farm"]
+    bullets = [
+        (
+            f"In {n['hook_month']:%B %Y}, stores charged ₱{gap} a kilo more for "
+            "onions than farmers got.",
+            "So most of what you paid never reached the person who grew them."
+            if n["hook_farmer"] < 50
+            else "So the gap between farm and store, not the farmer, set your price.",
+        ),
+        (
+            "Between the farmer and you stand traders, wholesalers and stores.",
+            "So your peso is split before any of it reaches the farm, and some of "
+            "the split pays for real costs: trucking, storage and spoilage.",
+        ),
+        (
+            f"Farmers get ₱{n['farmer']} of every ₱100 you pay.",
+            "So most of your money feeds the traders and stores between the farm "
+            "and you, not the person who grew it."
+            if n["farmer"] < 50
+            else "So the farmer gets most of your money, but not by much.",
+        ),
+        (
+            f"Traders take ₱{n['traders_now'] - n['traders_then']} more of every "
+            "₱100 than in 2018.",
+            "So the part of your money that misses the farmer is growing.",
+        )
+        if n["traders_now"] > n["traders_then"]
+        else (
+            "Traders take no more of every ₱100 than in 2018.",
+            "So the middle's part isn't growing, but the farmer's isn't either.",
+        ),
+        (
+            f"When the farm price drops ₱10, you save only ₱{n['drop_save']}.",
+            "So when farmers are paid less, you don't get all of it back: the rest "
+            "stays in the middle.",
+        )
+        if n["drop_save"] < 10
+        else (
+            "When the farm price drops ₱10, you save the whole ₱10.",
+            "So falling farm prices do reach you.",
+        ),
+        (
+            f"It's not just onions: farmers get under half for {n['under_half']} "
+            f"of {n['shared']} foods.",
+            "So it's how your whole basket is priced, not one bad harvest.",
+        ),
+        (
+            f"It's not new: since 2018, store prices grew faster than farm prices "
+            f"for {n['outran']} of {n['foods']} foods.",
+            "So this has been building for years, not one bad season.",
+        ),
+    ]
+    if fine:
+        bullets.append(
+            (
+                f"Regulators have fined firms in the middle {fine} so far.",
+                "So some of the gap isn't costs: the competition regulator ruled "
+                "that onion traders and importers divided up the trade.",
+            )
+        )
+    if move is not None:
+        went = "rose" if move["now"] > move["before"] else "fell"
+        bullets.append(
+            (
+                f"In {move['month']:%B %Y}, {str(move['staple']).lower()} farmers' "
+                f"part {went} to ₱{move['now']} of every ₱100.",
+                "So the split moves month to month, and this page follows each PSA "
+                "release.",
+            )
+        )
+    bullets.append((context.SABOTAGE.text, "So a cartel in your food is a crime."))
+    return [f"**{finding}** {meaning}" for finding, meaning in bullets]
+
+
+def short_page() -> None:
+    """Page 4, the short version: the whole finding as plain bullets, no charts,
+    then the way to the proof and to the reader's own food."""
+    shares = data.load(data.SHARES)
+    verdicts = data.load(data.VERDICTS)
+    growth = data.outran(data.load(data.GROWTH))
+    masthead(shares, growth)
+    st.caption("TL;DR")
+    st.title("The short version", anchor=False)
+    fine = fined(suspects())
+    bullets = short_bullets(
+        data.short_version(shares, verdicts, growth),
+        fine[0] if fine else None,
+        data.newest_move(shares),
+    )
+    st.markdown("\n".join(f"- {bullet}" for bullet in bullets))
+    st.space("small")
+    st.page_link(nav.page("story"), label="Want the proof? Read the full story →")
+    st.page_link(nav.page("food"), label="Check your own food →")
+    footer("short", shares)
+
+
 def hook_section(shares: pd.DataFrame) -> None:
     """1. The hook: the 2023 onion crisis asked as a question, at the farm
     price's lowest month."""
@@ -850,10 +997,11 @@ def hook_section(shares: pd.DataFrame) -> None:
         f"In {low['month']:%B %Y}, farmers got :blue[₱{farm}] for a kilo of {food}."
     )
     help_text = HOOK_HELP.format(start=data.HOOK_START, end=data.HOOK_END)
+    chapter("story", "The onion question")
     guess = st.session_state.get(HOOK_GUESS)
     if guess is None:
         # The reader guesses the store price before seeing it (spec: Engagement).
-        hero("hook", farm_number)
+        # No big number yet, and the slider starts at ₱0, so ₱65 shows once.
         st.header(
             f"{farmers_got} What do you think stores charged?",
             help=help_text,
@@ -861,10 +1009,10 @@ def hook_section(shares: pd.DataFrame) -> None:
         )
         st.markdown(context.ONION_VS_MEAT.text)
         st.slider(
-            "Your guess, a kilo",
-            min_value=farm,
+            "Drag to guess",
+            min_value=0,
             max_value=math.ceil(2 * store / 50) * 50,
-            value=farm,
+            value=0,
             step=5,
             format="₱%d",
             key="hook_slider",
@@ -907,25 +1055,11 @@ def hook_section(shares: pd.DataFrame) -> None:
     )
 
 
-def newest_line(shares: pd.DataFrame) -> None:
-    """Under the title: the newest month's biggest move in a farmer's share, so
-    a reader who comes back after a PSA release sees what changed."""
-    move = data.newest_move(shares)
-    if move is None:
-        return
-    went = "rose" if move["now"] > move["before"] else "fell"
-    st.markdown(
-        f":material/update: New for {move['month']:%B %Y}: "
-        f"{str(move['staple']).lower()} farmers' part {went} to "
-        f":blue[{move['now']} centavos] of your peso, from {move['before']} in "
-        f"{move['previous']:%B}."
-    )
-
-
 def chain_section() -> None:
     """2. The chain: who stands between farm and store, what a fair cut pays
     for, and why it matters. Context, so text only, each fact cited."""
     st.space("large")
+    chapter("story", "Who's in between")
     st.header(
         "Between the farmer and you: traders, wholesalers and stores",
         help=CHAIN_HELP,
@@ -959,6 +1093,7 @@ def peso_section(shares: pd.DataFrame, rows: pd.DataFrame) -> None:
     peso, averaged = data.typical_peso(rows)
     typical = data.whole_centavos(peso)[data.FARMER]
     st.space("large")
+    chapter("story", "Where your peso goes")
     # Traders' part is section 4's number alone: this one (the latest month's
     # average) differs from its (the last 12 months' median) by a centavo or so.
     hero("peso", ("The farmer's part of a peso", f"{typical}¢", "farm"))
@@ -1003,6 +1138,7 @@ def growing_section(verdicts: pd.DataFrame) -> None:
     then, now = round(parts["trader_part_then"]), round(parts["trader_part_now"])
     first = verdicts.iloc[0]
     st.space("large")
+    chapter("story", "The middle's growing part")
     hero(
         "middle",
         ("Traders' part of a peso, 2018", f"{then}¢", "plain"),
@@ -1022,6 +1158,15 @@ def growing_section(verdicts: pd.DataFrame) -> None:
         ),
         anchor=False,
     )
+    # No chart here, so the so-what closes the section and it doesn't read as a
+    # hole before section 5.
+    so_what(
+        "So more of every peso you pay now stops with the traders."
+        if now > then
+        else "So traders' part hasn't grown since 2018."
+        if now == then
+        else "So traders keep less of every peso than in 2018."
+    )
 
 
 def proof_section(rows: pd.DataFrame, growth: pd.DataFrame) -> None:
@@ -1029,6 +1174,7 @@ def proof_section(rows: pd.DataFrame, growth: pd.DataFrame) -> None:
     and it's not new (each food's farm and store growth since 2018)."""
     low = rows.iloc[0]
     peso, _ = data.typical_peso(rows)
+    chapter("caught", "Every food")
     st.header("It's not one food, and it's not new", anchor=False)
     st.space("small")
     st.subheader(
@@ -1055,22 +1201,23 @@ def proof_section(rows: pd.DataFrame, growth: pd.DataFrame) -> None:
     )
     ahead = int(growth["outran"].sum())
     st.space("small")
+    chapter("caught", "Not new")
     st.subheader(
         f"Since 2018, store prices outran farm prices for :orange[{ahead} of "
         f"{len(growth)} foods]",
         anchor=False,
     )
     st.markdown(
-        "Each bar is how much faster a food's store price grew than its farm "
-        "price, in percentage points. :gray[**Grey**]: the farm price kept up."
+        "Each row joins a food's :blue[**farm**] and **store** growth since 2018; "
+        "an :orange[**amber**] line means the store grew faster."
     )
     with reveal("middle"):
         st.echarts_chart(
             middle_chart(growth),
-            height=24 * len(growth) + 16,
+            height=36 * len(growth) + 40,
             key="middle_chart",
-            alt="How many points more each food's store price grew than its farm "
-            "price since 2018",
+            alt="Each food's farm and store price growth since 2018, joined by a "
+            "line, the store's biggest lead first",
         )
     so_what("So the difference went to the middle, not the farmer.")
 
@@ -1082,9 +1229,9 @@ def ratchet_section(verdicts: pd.DataFrame) -> None:
     slower = int((moves["down"] < moves["up"]).sum())
     up, down = float(moves["up"].median()), float(moves["down"].median())
     most = "Most foods" if slower > len(moves) / 2 else "Some foods"
-    # Section 4 ends on its headline, with no chart or so-what under it, so a
-    # large space here reads as a hole.
-    st.space("small")
+    # Section 4 has no chart, so a large space here would read as a hole.
+    st.space("medium")
+    chapter("story", "Up fast, down slow")
     hero("ratchet", ("Of a ₱10 farm drop, you see", f"₱{down:.0f}", "plain"))
     st.header(
         f"Drop ₱10 at the farm, and you save only ₱{down:.0f}"
