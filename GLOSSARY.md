@@ -117,28 +117,38 @@ A short note beside a chart or number that names a known limit of the data behin
 _Avoid_: disclaimer, warning, footnote
 
 **Page**:
-The dashboard's one screen, "Who's eating the farmer's peso?" (`/`, `?food=…` picks the food in section 6).
+The dashboard's one screen, "Who's eating the farmer's peso?" (`/`, `?food=…` picks the food in section 8).
 _Avoid_: tab, view, report
 
 **Section**:
-One part of the page, numbered top-down, each a computed headline, one chart (two in section 3) and a so-what line, e.g. "section 3"; each story section opens with one or two big numbers. Read in order, the headlines tell the story: a crisis as the hook, what happened this year, how much reaches the farmer, how the middle grew, how prices fall slower than they rise, then one food of the reader's choosing and a one-line ending.
+One part of the page, numbered top-down, e.g. "section 3". Read in order, the sections solve a mystery (ADR 24): a question the reader feels, who stands between farm and store, whether the gap is everywhere, growing and sticky, who was caught, what can be done, then one food of the reader's choosing and a one-line ending. A data section carries a computed headline, a chart and a so-what line; a context section may be text only, each fact with a cited source.
 
-| # | Headline on screen | Plain meaning | Glossary term |
+| # | Section | Plain meaning | Glossary term |
 |---|---|---|---|
-| 1 | In January 2023, onions hit ₱X a kilo. Farmers got ₱Y. | The 2023 onion crisis: farm and store price by month, the gap between them shaded | Farmer's share, middle's cut |
-| 2 | Farmers got X% less for a food this year. You paid Y% more. | The foods whose farm price fell over the past year, beside their store price, biggest split first | Year's change |
-| 3 | Farmers get X centavos of your peso | The typical peso split between farmer, traders and stores, then each food's farmer centavos | Typical peso, farmer's share, trader's cut, store's cut |
-| 4 | Traders now take X centavos of your peso, up from Y | Traders' centavos of a peso for the typical food in 2018 and now, then each food's farm and store growth since 2018 against inflation | Trader's cut, growth since 2018, suspect |
-| 5 | Drop ₱10 at the farm, and you save only ₱X | How far the store price follows the farm price down, against up, drawn as an example | Pass-through |
-| 6 | Check your food | One food's store price, farm price, traders' and stores' parts, its gap's growth and moves, and its farmer's share against the typical food's. Meat: its two prices, then each one's change over the year and since 2018 | Farmer's share, year's change |
-| 7 | Farmers get X centavos of your peso. Next time a price jumps, ask who kept the difference. | The ending | Typical peso |
+| 1 | The hook | March 2023: farmers sold onions for ₱65 a kilo, stores still charged ₱220. Where did the gap go? | Farmer's share, middle's cut |
+| 2 | The chain | Who stands between farm and store, and what a fair cut pays for (trucking, storage, spoilage) | Middle's cut |
+| 3 | Is it only onions? | The typical peso split between farmer, traders and stores, shown as a receipt, then each food's farmer centavos | Typical peso, receipt |
+| 4 | It's growing | Traders' centavos of a peso in 2018 and now, then each food's farm and store growth since 2018 against inflation | Trader's cut, growth since 2018 |
+| 5 | It sticks | How far the store price follows the farm price down, against up, drawn as an example | Pass-through |
+| 6 | Who got caught | The public record, rulings first | Public record, suspect |
+| 7 | What can be done | What is being done, and what the reader can do | |
+| 8 | Check your food | One food's store price, farm price, traders' and stores' parts, its gap's growth and moves, and its farmer's share against the typical food's. Meat: its two prices, then each one's change over the year and since 2018 | Farmer's share, year's change |
+| 9 | The ending | One computed line | Typical peso |
+
+**Receipt**:
+An example shopping basket drawn as a receipt, each line's price split into the farmer's, traders' and stores' pesos. The basket is our pick and is labelled an example on screen.
+_Avoid_: basket chart, cart
+
+**Public record**:
+The cited claims about who takes part of the middle's cut (`dbt/seeds/suspects.csv`): rulings, findings and charges, plus allegations labelled "alleged". Opinions stay out.
+_Avoid_: evidence, proof, receipts
 
 **Typical peso**:
 The average farmer's, trader's and store's centavos of a peso over the foods with all three prices (20 of 21; kangkong has no wholesale price, and meat has no farmer's share), so its parts add up to 100 (`data.typical_peso`). An average, not a median: each part's median need not add up.
 _Avoid_: median share, average food
 
 **So-what line**:
-The sentence under a section's chart, computed like its headline, that says why the chart matters to a shopper (`views.so_what`), e.g. "So after 3 ups and downs … the store price is ₱6 higher."
+The sentence under a section's chart, computed like its headline, that says why the chart matters to a shopper (`views.so_what`), e.g. "So the farm price is back where it started, but the store price is ₱2 higher."
 _Avoid_: insight, takeaway, conclusion
 
 On screen, a share is in centavos of a peso and a price move in pesos. "Farm price" is the farmgate price, "store price" the retail price, "the gap" the middle's cut, "the middle" the traders and stores who take it, "traders" the trader's cut, "stores" the store's cut, "wholesale" the wholesale price, and "inflation" the CPI's change.

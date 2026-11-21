@@ -18,5 +18,5 @@ Skip everything else. An easy-to-reverse choice with no famous rival needs no en
 ```
 
 - **Not lines:** include one only for an alternative whose rejection isn't obvious. Use at most 3; most entries need 0–2.
-- **Changing a decision:** add a new entry, and append ` (superseded by N)` to the old heading. Leave the old body as it was.
+- **Changing a decision:** add a new entry and delete the one it replaces, rewording any entry that cited it; git history keeps the old one. Numbers are never reused, so gaps are expected.
 - **Write facts, not adjectives:** "costs $0 under R2's 1M-write tier" beats "cheap and scalable".

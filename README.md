@@ -34,16 +34,18 @@ graph LR
 
   All tests run upstream of the marts, so a failure skips the write and R2 keeps the last good mart. Three checks only warn: a latest month more than 3 months old, a national price that doubles or halves in a month, and a farmer's share above 100%.
 - **pytest** covers ingest (change detection, HEAD-only R2 checks, rejecting non-CSV responses), the pipeline's dbt trigger, the dashboard's data layer and an offline render of the page, all without network.
-- **Dashboard** (`src/dashboard/`), one page, "Who's eating the farmer's peso?". Its sections run in the order a short video would tell them. Each opens with one or two big numbers, then one computed headline, one chart (two in section 3) and a so-what line. The story charts are ECharts with a brief entry animation and fade in as they scroll into view. Blue is the farmer, amber the middle (traders and the gap), and the store price is ink:
-  1. The hook: the 2023 onion crisis, store ₱468 against farm ₱216 in January, then the farm price's crash.
-  2. This year: the foods whose farm price fell over the past year, beside their store price (meat as percent changes only, fish by quarter).
-  3. Of a typical peso at the store, how many centavos reach the farmer, traders and stores, then the farmer's centavos per food.
-  4. The middle: traders' centavos of a peso in 2018 and now, then each food's farm and store growth since 2018 against inflation.
-  5. When the farm price falls ₱10, how far the store price falls, against when it rises ₱10, drawn as an example.
-  6. Check your food: one food's prices, its numbers, and its farmer's share against the typical food's. Meat shows its live-animal and cut prices, then how each moved since 2018.
-  7. A one-line ending.
+- **Dashboard** (`src/dashboard/`), one page, "Who's eating the farmer's peso?". It reads as a mystery: a question the reader feels, who stands between farm and store, the gap everywhere, growing and sticky, who got caught and what can be done. A data section opens with one or two big numbers, then one computed headline, one chart (two in section 3) and a so-what line; a context section is cited cards. The story charts are ECharts with a brief entry animation and fade in as they scroll into view. Blue is the farmer, amber the middle (traders and the gap), and the store price is ink:
+  1. The hook: in March 2023 farmers got ₱65 for a kilo of red onion. The reader guesses the store price before the page shows it (₱220), then the farm price's crash from January.
+  2. The chain: traders, wholesalers and stores between the farmer and you, and what a fair cut pays for (trucking, storage, spoilage), each fact cited.
+  3. Of a typical peso at the store, how many centavos reach the farmer, then a receipt splitting an example basket between farmer, traders and stores, then the farmer's centavos per food.
+  4. It's growing: traders' centavos of a peso in 2018 and now, then each food's farm and store growth since 2018 against inflation.
+  5. It sticks: when the farm price falls ₱10, how far the store price falls, against when it rises ₱10. The reader pushes the typical food's farm price up and down and watches the store price ratchet up.
+  6. Who got caught: the public record (`dbt/seeds/suspects.csv`), rulings first, under the total fined so far, each card with its stage and source.
+  7. What can be done: what regulators and the government are doing, and a button to report a cartel to the Philippine Competition Commission.
+  8. Check your food: one food's prices, its numbers, and its farmer's share against the typical food's. Meat shows its live-animal and cut prices, then how each moved since 2018.
+  9. A one-line ending.
 
-  `suspects.csv` (the public record) is off the page until its sources are checked by hand. Streamlit Community Cloud updates on every push to `main`.
+  Streamlit Community Cloud updates on every push to `main`.
 - **$0 on R2**: a release day has up to 30 snapshot writes and 5 mart writes, plus about 30 HEADs a day, well inside the free tier. See `docs/cloudfare-agent-notes/free-tier-r2.md`. The reasons behind each tool are in `docs/adr.md`; the terms are defined in `GLOSSARY.md`.
 
 ## Run it
