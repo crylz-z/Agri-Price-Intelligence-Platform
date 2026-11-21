@@ -328,18 +328,24 @@ def test_the_hook_shades_the_gap_between_farm_and_store_in_amber():
     assert labelled == ["₱216", "₱65"]
 
 
-def test_the_middle_chart_is_one_bar_per_food_amber_where_the_store_grew_faster():
+def test_the_middle_chart_joins_each_foods_farm_and_store_growth():
     middle = echarts(render("caught"))[1]
-    foods = middle["yAxis"]["data"]
-    assert len(foods) == 25 and foods[0] == "Red onion"
-    (bars,) = middle["series"]
-    colours = [d["itemStyle"]["color"] for d in bars["data"]]
-    assert colours.count(views.AMBER) == 19
-    labels = [d["label"]["formatter"] for d in bars["data"]]
-    assert labels[0] == "+65 pts"  # store +48% against farm −17%
-    assert labels[-1] == "−43 pts" and colours[-1] == views.MUTED
-    # Every label sits right, so a grey bar's stays clear of the food names.
-    assert {d["label"]["position"] for d in bars["data"]} == {"right"}
+    labels = middle["yAxis"]["data"]
+    assert len(labels) == 25
+    assert labels[0] == "{food|Red onion}\n{growth|farm −17%, store +48%}"
+    farm, store = middle["series"]
+    # Both uncoloured, farm first: the palette gives blue, then the store's ink.
+    assert "color" not in farm and "itemStyle" not in farm
+    assert "color" not in store and "itemStyle" not in store
+    assert middle["series"].index(store) == views.STORE_SLOT
+    segments = farm["markLine"]["data"]
+    colours = [start["lineStyle"]["color"] for start, _ in segments]
+    assert len(segments) == 25 and colours.count(views.AMBER) == 19
+    assert colours[-1] == views.MUTED
+    assert segments[0] == [
+        {"coord": [-17, 0], "lineStyle": {"color": views.AMBER}},
+        {"coord": [48, 0]},
+    ]
 
 
 def test_every_chart_has_a_so_what_line():

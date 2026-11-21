@@ -387,62 +387,80 @@ def farmer_dots(rows: pd.DataFrame, typical: float) -> dict[str, Any]:
 
 
 def middle_chart(rows: pd.DataFrame) -> dict[str, Any]:
-    """Each food's lead since 2018 as one bar: how many points more its store
-    price grew than its farm price, amber where the store grew faster (the
-    middle grew) and grey where it didn't. Leads are the difference of the whole
-    percents, as `data.outran` compares them."""
-    foods = list(rows["staple"])
-    leads = [
-        int(round(s * 100) - round(f * 100))
-        for f, s in zip(rows["farm_change"], rows["store_change"])
+    """Each food's farm and store growth since 2018 as a dumbbell, in the rows'
+    order (`data.outran`: the store's biggest lead first): a blue farm dot and
+    an ink store dot, joined by an amber line where the store grew faster (the
+    middle grew) and a grey one where it didn't. Each food's label says both
+    percents, so no one subtracts in their head, and sits left of the plot on
+    two lines, which keeps the plot wide on a phone."""
+    farms = [round(f * 100) for f in rows["farm_change"]]
+    stores = [round(s * 100) for s in rows["store_change"]]
+    labels = [
+        f"{{food|{food}}}\n{{growth|farm {pct(f)}, store {pct(s)}}}"
+        for food, f, s in zip(
+            rows["staple"], rows["farm_change"], rows["store_change"], strict=True
+        )
     ]
-    low, high = min(0, *leads), max(0, *leads)
-    # Room right of the longest bar for its label, even at phone width. A grey
-    # bar's label sits right of zero, clear of the food names on the left.
-    pad = 0.35 * (high - low)
+
+    def dots(name: str, values: list[int], **extra: Any) -> dict[str, Any]:
+        # Uncoloured, farm first: the palette's blue, then the store's ink.
+        return {
+            "type": "scatter",
+            "name": name,
+            "symbolSize": 10,
+            "z": 3,
+            "silent": True,
+            "data": [[value, i] for i, value in enumerate(values)],
+            **extra,
+        }
+
+    segments = [
+        [
+            {"coord": [f, i], "lineStyle": {"color": AMBER if up else MUTED}},
+            {"coord": [s, i]},
+        ]
+        for i, (f, s, up) in enumerate(zip(farms, stores, rows["outran"], strict=True))
+    ]
     return _once(
         {
-            "grid": {"left": 4, "right": 4, "top": 4, "bottom": 4},
+            "grid": {"left": 4, "right": 12, "top": 4, "bottom": 20},
             "xAxis": {
                 "type": "value",
-                "min": low,
-                "max": high + pad,
-                "show": False,
+                # Few ticks, and none that would touch, at phone width.
+                "splitNumber": 3,
+                "axisLabel": {"formatter": "{value}%", "hideOverlap": True},
+                "splitLine": {"lineStyle": {"opacity": 0.3}},
             },
             "yAxis": {
                 "type": "category",
                 "inverse": True,
-                "data": foods,
+                "data": labels,
                 "axisTick": {"show": False},
                 "axisLine": {"show": False},
+                "axisLabel": {
+                    "align": "left",
+                    "margin": 160,
+                    "rich": {
+                        "food": {"fontSize": 13, "fontWeight": 600, "lineHeight": 17},
+                        "growth": {"color": MUTED, "fontSize": 12, "lineHeight": 15},
+                    },
+                },
             },
             "tooltip": {"show": False},
             "series": [
-                {
-                    "type": "bar",
-                    "name": "store growth minus farm growth",
-                    "barWidth": "60%",
-                    "silent": True,
-                    "data": [
-                        {
-                            "value": lead,
-                            "itemStyle": {
-                                "color": AMBER if up else MUTED,
-                                "borderRadius": [0, 3, 3, 0]
-                                if lead >= 0
-                                else [3, 0, 0, 3],
-                            },
-                            "label": {
-                                "show": True,
-                                "position": "right",
-                                "formatter": f"{lead:+d} pts".replace("-", "−"),
-                                "fontWeight": 700,
-                                "color": AMBER if up else MUTED,
-                            },
-                        }
-                        for lead, up in zip(leads, rows["outran"])
-                    ],
-                },
+                dots(
+                    "farm growth",
+                    farms,
+                    markLine={
+                        "silent": True,
+                        "symbol": "none",
+                        "z": 1,
+                        "label": {"show": False},
+                        "lineStyle": {"width": 3, "type": "solid", "opacity": 1},
+                        "data": segments,
+                    },
+                ),
+                dots("store growth", stores),
             ],
         }
     )
@@ -1181,16 +1199,16 @@ def proof_section(rows: pd.DataFrame, growth: pd.DataFrame) -> None:
         anchor=False,
     )
     st.markdown(
-        "Each bar is how much faster a food's store price grew than its farm "
-        "price, in percentage points. :gray[**Grey**]: the farm price kept up."
+        "Each row joins a food's :blue[**farm**] and **store** growth since 2018; "
+        "an :orange[**amber**] line means the store grew faster."
     )
     with reveal("middle"):
         st.echarts_chart(
             middle_chart(growth),
-            height=24 * len(growth) + 16,
+            height=36 * len(growth) + 40,
             key="middle_chart",
-            alt="How many points more each food's store price grew than its farm "
-            "price since 2018",
+            alt="Each food's farm and store price growth since 2018, joined by a "
+            "line, the store's biggest lead first",
         )
     so_what("So the difference went to the middle, not the farmer.")
 
