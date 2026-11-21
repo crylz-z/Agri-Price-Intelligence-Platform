@@ -21,7 +21,6 @@ paths:
 - Honest bot: fixed `ph-food-prices/<version>` User-Agent, sequential, 1 s delay. Cloudflare 403s bare `urllib` but serves `requests` with this UA. Don't add UA rotation, spoofed headers or jitter.
 
 ## dbt (`dbt/`)
-- Run as `uv run python -m dbt.cli.main <cmd> --project-dir dbt --profiles-dir dbt`; bare `python -m dbt` has no `__main__`.
 - R2 access goes through the plugin `src/etl/dbt_storage.py` → `storage.configure_duckdb`; don't put S3 settings in `profiles.yml`.
 - `external` models are written **before** their own tests run. Put every blocking test on `stg_`/`int_` (table) models, so a failure skips the mart and R2 keeps the last good one.
 - `psa_snapshot_files(kind=…)` picks the newest snapshots per table with one `glob()` (1 list); staging reads only those files. `farmgate`, `wholesale` and `cpi` mean listed in `seeds/psa_<kind>_tables.csv`, and every other table is `retail`, so a new PSA retail table still trips the retail tests. The calling model needs `-- depends_on:` on all three seeds (copy the line from a staging model).
@@ -32,6 +31,7 @@ paths:
   - Region labels differ from retail and some carry a footnote mark (`1/`): strip it and map through `seeds/farmgate_geolocations.csv`.
   - Province price cells carry footnote marks, so staging drops province rows before the cast.
   - `0.00` means no sales, not a price: the share keeps `price > 0` only.
+  - `seeds/farmer_share_exclusions.csv` drops a staple and place pair: in every month when `month` is blank (bundle vs kg units), or that month only, for a national price no regional price supports (pechay, Jan–Mar 2026). Add a month only with the owner, and give its reason.
   - AFN11 names its commodity column `Type`; EFGP0 puts `Commodity` first.
   - Fish (`0152M4GFPF0`) is quarterly ("2018 Quarter 3"), with a `Species` column indented under ALL SPECIES and one misspelt region ("Nothern Mindanao", mapped in the seed). `union_by_name` gives every table every period column, so staging keeps quarters only where `Species` is set. A fish row is one quarter (`months_in_period` 3, `month` its first); `int_farmer_share` sets it against the quarter's average retail and wholesale price when all three months exist, and the pass-through leaves it out (ADR 22).
   - Meat's farm price is a live animal (`Hog for Slaughter`, `Broiler Chicken`, `Cattle for Slaughter` in AFN11), so meat lives in `seeds/change_only_commodities.csv` (with `farm_name` and `store_name` for the page) and never in `int_farmer_share`.

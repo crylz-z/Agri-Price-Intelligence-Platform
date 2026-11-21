@@ -27,11 +27,11 @@ Thumbs.db
 *.log
 tmp/
 
-# Claude Code: CLAUDE.md, .claude/rules/, .claude/skills/, .plans/ and handoff.md
-# are shared with the repo, so a fresh clone has the workflow (grilling and
-# writing-for-agents come from the owner's synced global skills). Only
-# per-machine settings stay local.
+# Claude Code: CLAUDE.md, .claude/rules/, .claude/skills/, .plans/ and HANDOFF.md
+# are shared with the repo; the workflow skills (grilling, to-plan, build) come
+# from the owner's harness plugin. Only per-machine state stays local.
 .claude/settings.local.json
+.claude/stop-gate.stamp
 .claude/worktrees/
 dbt/target/
 dbt/logs/
