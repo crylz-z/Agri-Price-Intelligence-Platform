@@ -8,6 +8,7 @@ retail mart on 2026-11-02; one cat_file took 2 s.
 import io
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import pyarrow.parquet as pq
@@ -304,6 +305,41 @@ def receipt(
     return pd.concat(
         [rows, pd.DataFrame([{"item": "Total", **total}])], ignore_index=True
     )
+
+
+def short_version(
+    shares: pd.DataFrame, verdicts: pd.DataFrame, growth: pd.DataFrame
+) -> dict[str, Any]:
+    """The numbers behind the short version's bullets, from the same helpers the
+    story and who got caught use, so the two never disagree:
+
+    - `hook_month`, `hook_farm`, `hook_store`, `hook_farmer`: the hook's lowest
+      farm month, its whole-peso prices and the farmer's centavos then;
+    - `farmer`: the typical peso's farmer centavos;
+    - `traders_then`, `traders_now`: traders' typical centavos, 2018 and now;
+    - `drop_save`: of a ₱10 farm drop, the pesos the typical store passes on;
+    - `under_half`, `shared`: foods whose farmer gets under 50 centavos, of the
+      foods with a share;
+    - `outran`, `foods`: foods whose store price outran the farm since 2018
+      (`growth` as `outran` ranks it), of all foods."""
+    hooked = hook(shares)
+    low = hooked.loc[hooked[FARM].idxmin()]
+    rows = farmer_shares(shares)
+    parts = parts_then_now(verdicts)
+    return {
+        "hook_month": pd.Timestamp(str(low["month"])),
+        "hook_farm": round(low[FARM]),
+        "hook_store": round(low[STORE]),
+        "hook_farmer": round(low["farmer"]),
+        "farmer": whole_centavos(typical_peso(rows)[0])[FARMER],
+        "traders_then": round(parts["trader_part_then"]),
+        "traders_now": round(parts["trader_part_now"]),
+        "drop_save": round(float(up_and_down(verdicts)["down"].median())),
+        "under_half": int((rows["farmer"] < 50).sum()),
+        "shared": len(rows),
+        "outran": int(growth["outran"].sum()),
+        "foods": len(growth),
+    }
 
 
 def newest_move(shares: pd.DataFrame) -> pd.Series | None:

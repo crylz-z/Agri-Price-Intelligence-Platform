@@ -237,7 +237,7 @@ def test_the_story_cites_its_facts_in_a_closed_sources_expander():
     assert not any("](http" in v for v in outside)
 
 
-PAGES = ["story", "caught", "food", "how"]
+PAGES = list(nav.PAGES)
 
 
 @pytest.mark.parametrize("page", PAGES)
@@ -248,8 +248,8 @@ def test_every_page_has_the_masthead_and_ends_on_the_next_page(page):
     assert at.button(key="theme")
     assert at.caption[-1].value.startswith("Farm, wholesale and store prices: PSA")
     following = nav.after(page)
-    assert [link.value for link in at.page_link] == [f"{views.NEXT[page]} →"]
-    assert at.page_link[0].proto.page.endswith(nav.PAGES[following][2])
+    assert at.page_link[-1].value == f"{views.NEXT[page]} →"
+    assert at.page_link[-1].proto.page.endswith(nav.PAGES[following][2])
 
 
 def test_the_food_page_opens_on_the_hook_food():
@@ -559,3 +559,34 @@ def test_the_story_opens_on_the_newest_months_biggest_move():
         ":material/update: New for September 2026: repolyo farmers' part rose to "
         ":blue[49 centavos] of your peso, from 26 in August."
     ) in [m.value for m in at.markdown]
+
+
+def test_the_short_version_says_the_whole_finding_in_bullets_with_no_charts():
+    at = render("short")
+    assert not at.exception, at.exception
+    assert at.caption[1].value == "TL;DR"
+    assert at.title[0].value == "The short version"
+    assert not echarts(at) and not at.get("arrow_vega_lite_chart")
+    (bullets,) = [m.value for m in at.markdown if m.value.startswith("- **")]
+    lines = bullets.split("\n")
+    print("\n".join(lines))
+    assert [line.split("**")[1] for line in lines] == [
+        "In March 2023, stores charged ₱155 a kilo more for onions than farmers got.",
+        "Between the farmer and you stand traders, wholesalers and stores.",
+        "Farmers get ₱46 of every ₱100 you pay.",
+        "Traders take ₱5 more of every ₱100 than in 2018.",
+        "When the farm price drops ₱10, you save only ₱8.",
+        "It's not just onions: farmers get under half for 15 of 21 foods.",
+        "It's not new: since 2018, store prices grew faster than farm prices for "
+        "19 of 25 foods.",
+        "Regulators have fined firms in the middle ₱1.76 billion so far.",
+        "In September 2026, repolyo farmers' part rose to ₱49 of every ₱100.",
+        context.SABOTAGE.text,
+    ]
+    # Each bullet: its bold finding, then a "so what" that starts with "So".
+    assert all(line.split("** ", 1)[1].startswith("So ") for line in lines)
+    assert [link.value for link in at.page_link] == [
+        "Want the proof? Read the full story →",
+        "Check your own food →",
+        f"{views.NEXT['short']} →",
+    ]

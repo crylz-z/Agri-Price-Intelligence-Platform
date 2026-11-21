@@ -81,7 +81,8 @@ HOOK_GUESS = "hook_guess"
 NEXT = {
     "story": "See who got caught",
     "caught": "Check your food",
-    "food": "See how it's built",
+    "food": "Read the short version",
+    "short": "See how it's built",
     "how": "Back to the story",
 }
 # Each public-record stage (suspects.csv `stage`) as its card's badge.
@@ -832,6 +833,110 @@ def food_page() -> None:
     else:
         share_food(staple, rows, verdicts, moves, shares, typical)
     footer("food", shares)
+
+
+def short_bullets(
+    numbers: dict[str, Any], fine: str | None, move: pd.Series | None
+) -> list[str]:
+    """The short version, one bullet per finding in the story's order: a bold
+    finding with at most one number (a share as pesos of every ₱100), then its
+    plain "so what". Every number comes from `data.short_version`, `fined` and
+    `data.newest_move`, so the bullets follow each release like the headlines."""
+    n = numbers
+    gap = n["hook_store"] - n["hook_farm"]
+    bullets = [
+        (
+            f"In {n['hook_month']:%B %Y}, stores charged ₱{gap} a kilo more for "
+            "onions than farmers got.",
+            "So most of what you paid never reached the person who grew them."
+            if n["hook_farmer"] < 50
+            else "So the gap between farm and store, not the farmer, set your price.",
+        ),
+        (
+            "Between the farmer and you stand traders, wholesalers and stores.",
+            "So your peso is split before any of it reaches the farm, and some of "
+            "the split pays for real costs: trucking, storage and spoilage.",
+        ),
+        (
+            f"Farmers get ₱{n['farmer']} of every ₱100 you pay.",
+            "So most of your money feeds the traders and stores between the farm "
+            "and you, not the person who grew it."
+            if n["farmer"] < 50
+            else "So the farmer gets most of your money, but not by much.",
+        ),
+        (
+            f"Traders take ₱{n['traders_now'] - n['traders_then']} more of every "
+            "₱100 than in 2018.",
+            "So the part of your money that misses the farmer is growing.",
+        )
+        if n["traders_now"] > n["traders_then"]
+        else (
+            "Traders take no more of every ₱100 than in 2018.",
+            "So the middle's part isn't growing, but the farmer's isn't either.",
+        ),
+        (
+            f"When the farm price drops ₱10, you save only ₱{n['drop_save']}.",
+            "So when farmers are paid less, you don't get all of it back: the rest "
+            "stays in the middle.",
+        )
+        if n["drop_save"] < 10
+        else (
+            "When the farm price drops ₱10, you save the whole ₱10.",
+            "So falling farm prices do reach you.",
+        ),
+        (
+            f"It's not just onions: farmers get under half for {n['under_half']} "
+            f"of {n['shared']} foods.",
+            "So it's how your whole basket is priced, not one bad harvest.",
+        ),
+        (
+            f"It's not new: since 2018, store prices grew faster than farm prices "
+            f"for {n['outran']} of {n['foods']} foods.",
+            "So this has been building for years, not one bad season.",
+        ),
+    ]
+    if fine:
+        bullets.append(
+            (
+                f"Regulators have fined firms in the middle {fine} so far.",
+                "So some of the gap isn't costs: the competition regulator ruled "
+                "that onion traders and importers divided up the trade.",
+            )
+        )
+    if move is not None:
+        went = "rose" if move["now"] > move["before"] else "fell"
+        bullets.append(
+            (
+                f"In {move['month']:%B %Y}, {str(move['staple']).lower()} farmers' "
+                f"part {went} to ₱{move['now']} of every ₱100.",
+                "So the split moves month to month, and this page follows each PSA "
+                "release.",
+            )
+        )
+    bullets.append((context.SABOTAGE.text, "So a cartel in your food is a crime."))
+    return [f"**{finding}** {meaning}" for finding, meaning in bullets]
+
+
+def short_page() -> None:
+    """Page 4, the short version: the whole finding as plain bullets, no charts,
+    then the way to the proof and to the reader's own food."""
+    shares = data.load(data.SHARES)
+    verdicts = data.load(data.VERDICTS)
+    growth = data.outran(data.load(data.GROWTH))
+    masthead(shares, growth)
+    st.caption("TL;DR")
+    st.title("The short version", anchor=False)
+    fine = fined(suspects())
+    bullets = short_bullets(
+        data.short_version(shares, verdicts, growth),
+        fine[0] if fine else None,
+        data.newest_move(shares),
+    )
+    st.markdown("\n".join(f"- {bullet}" for bullet in bullets))
+    st.space("small")
+    st.page_link(nav.page("story"), label="Want the proof? Read the full story →")
+    st.page_link(nav.page("food"), label="Check your own food →")
+    footer("short", shares)
 
 
 def hook_section(shares: pd.DataFrame) -> None:
