@@ -553,12 +553,12 @@ def test_the_reader_builds_their_own_basket_and_the_receipt_follows():
     assert "Pick a food to see its receipt." in [c.value for c in at.caption]
 
 
-def test_the_story_opens_on_the_newest_months_biggest_move():
+def test_the_story_links_to_the_short_version_and_opens_on_the_onion():
     at = render()
-    assert (
-        ":material/update: New for September 2026: repolyo farmers' part rose to "
-        ":blue[49 centavos] of your peso, from 26 in August."
-    ) in [m.value for m in at.markdown]
+    assert at.page_link[0].value == "Short on time? Read the short version →"
+    assert at.page_link[0].proto.page.endswith(nav.PAGES["short"][2])
+    assert not any("New for" in m.value for m in at.markdown)
+    assert at.caption[0].value.endswith("Updated with PSA's September 2026 release")
 
 
 def test_the_short_version_says_the_whole_finding_in_bullets_with_no_charts():
@@ -569,7 +569,6 @@ def test_the_short_version_says_the_whole_finding_in_bullets_with_no_charts():
     assert not echarts(at) and not at.get("arrow_vega_lite_chart")
     (bullets,) = [m.value for m in at.markdown if m.value.startswith("- **")]
     lines = bullets.split("\n")
-    print("\n".join(lines))
     assert [line.split("**")[1] for line in lines] == [
         "In March 2023, stores charged ₱155 a kilo more for onions than farmers got.",
         "Between the farmer and you stand traders, wholesalers and stores.",

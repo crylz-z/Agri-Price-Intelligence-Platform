@@ -23,7 +23,7 @@ Slider mechanics, the chapter names, the dumbbell's sort order and phone density
 
 ## Checklist
 - [x] Short version page, end to end: a new page in `nav.PAGES` and `app_pages/`, the bullets computed in `data.py` with tests, and a page test that renders it offline — done when `pytest` passes, the new page renders in `test_pages.py` with every bullet present, and every sentence opens with a word.
-- [ ] Page 1 link to the short version, and the newest-month line moved to the masthead caption and the short version — done when the page test finds the link and no "New for" line under the title.
+- [x] Page 1 link to the short version, and the newest-month line moved to the masthead caption and the short version — done when the page test finds the link and no "New for" line under the title.
 - [ ] Hook before the guess: no hero, ₱65 once, "Drag to guess" — done when a page test before the click counts one "₱65" on screen.
 - [ ] Chapter labels on pages 1 and 2 — done when the page tests find "N of M" labels in order on both pages.
 - [ ] Dumbbell on page 2, replacing `middle_chart` — done when its test checks both percents in the labels, and screenshots at 375 and 1440 px, light and dark, pass the `screenshot-checker`.
@@ -40,3 +40,4 @@ Slider mechanics, the chapter names, the dumbbell's sort order and phone density
 - Short version: the numbers come from one helper, `data.short_version`, built on the story's own helpers, so the page and the story never disagree; the bullet text is `views.short_bullets`, with a fallback wording wherever a number could flip a finding (traders not rising, a full ₱10 passed on).
 - Short version: the fix bullet is `context.SABOTAGE` word for word (the law, cited in context.py); the who-got-caught bullet names the PCC ruling's own words ("divided up the trade").
 - Short version: the page keeps the footer's "See how it's built →" after its two closing links, so every page still ends on the next one; the page test now checks each page's last link.
+- Masthead: "PSA prices to {month}" became "Updated with PSA's {month} release" on every page; `newest_line` and its test are gone, since the short version carries the newest move. The short page test's `print` went too (cp1252 can't print ₱).

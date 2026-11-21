@@ -720,15 +720,16 @@ def remedy_section() -> None:
 
 
 def masthead(shares: pd.DataFrame, growth: pd.DataFrame) -> None:
-    """The caption row atop every page: place, food count, latest month, and
-    the light/dark button."""
+    """The caption row atop every page: place, food count, the newest PSA
+    release's month, and the light/dark button."""
     month = pd.Timestamp(shares["month"].max())
     with st.container(
         horizontal=True, horizontal_alignment="distribute", vertical_alignment="center"
     ):
         # No sentence starts with a numeral, so the count follows the place.
         st.caption(
-            f"Philippines · {len(growth)} everyday foods · PSA prices to {month:%B %Y}"
+            f"Philippines · {len(growth)} everyday foods · Updated with PSA's "
+            f"{month:%B %Y} release"
         )
         theme.theme_button()
 
@@ -775,7 +776,7 @@ def story_page() -> None:
     rows = data.farmer_shares(shares)
     masthead(shares, growth)
     st.title("Who's eating the farmer's peso?", anchor=False)
-    newest_line(shares)
+    st.page_link(nav.page("short"), label="Short on time? Read the short version →")
     hook_section(shares)
     chain_section()
     peso_section(shares, rows)
@@ -1009,21 +1010,6 @@ def hook_section(shares: pd.DataFrame) -> None:
         f"So in {low['month']:%B}, farmers got only {low['farmer']:.0f} centavos of "
         f"every peso. Even at {first['month']:%B}'s peak, they got "
         f"{first['farmer']:.0f}."
-    )
-
-
-def newest_line(shares: pd.DataFrame) -> None:
-    """Under the title: the newest month's biggest move in a farmer's share, so
-    a reader who comes back after a PSA release sees what changed."""
-    move = data.newest_move(shares)
-    if move is None:
-        return
-    went = "rose" if move["now"] > move["before"] else "fell"
-    st.markdown(
-        f":material/update: New for {move['month']:%B %Y}: "
-        f"{str(move['staple']).lower()} farmers' part {went} to "
-        f":blue[{move['now']} centavos] of your peso, from {move['before']} in "
-        f"{move['previous']:%B}."
     )
 
 
