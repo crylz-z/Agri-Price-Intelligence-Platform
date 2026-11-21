@@ -56,18 +56,23 @@ def test_the_hook_asks_for_a_guess_before_it_shows_the_store_price():
         "In March 2023, farmers got :blue[₱65] for a kilo of onions. What do you "
         "think stores charged?"
     )
-    assert [(m.label, m.value) for m in at.metric][:1] == [
-        ("Farmers got, Mar 2023", ":blue[₱65]")
-    ]
-    assert at.metric[1].label != "Stores charged"
+    # Before the guess: no big number, and ₱65 shows once, in the header.
+    shown = [e.value for e in (*at.header, *at.markdown, *at.caption)]
+    shown += [f"{m.label} {m.value}" for m in at.metric]
+    assert sum(text.count("₱65") for text in shown) == 1
+    assert not any(m.label.startswith("Farmers got") for m in at.metric)
     assert not any("₱220" in m.value for m in at.markdown)
     slider = at.slider(key="hook_slider")
-    assert (slider.min, slider.max, slider.step) == (65, 450, 5)
+    assert slider.label == "Drag to guess"
+    assert (slider.min, slider.max, slider.step, slider.value) == (0, 450, 5, 0)
     slider.set_value(150)
     at.button(key="hook_show").click().run()
     assert not at.exception, at.exception
     assert at.header[0].value.endswith("Where did the :orange[₱155] go?")
-    assert at.metric[1].label == "Stores charged"
+    assert [m.label for m in at.metric][:2] == [
+        "Farmers got, Mar 2023",
+        "Stores charged",
+    ]
     lines = [m.value for m in at.markdown]
     assert (
         "Your guess was ₱150, ₱70 short. The :orange[**shaded gap**] is what "

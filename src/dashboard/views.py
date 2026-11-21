@@ -959,7 +959,7 @@ def hook_section(shares: pd.DataFrame) -> None:
     guess = st.session_state.get(HOOK_GUESS)
     if guess is None:
         # The reader guesses the store price before seeing it (spec: Engagement).
-        hero("hook", farm_number)
+        # No big number yet, and the slider starts at ₱0, so ₱65 shows once.
         st.header(
             f"{farmers_got} What do you think stores charged?",
             help=help_text,
@@ -967,10 +967,10 @@ def hook_section(shares: pd.DataFrame) -> None:
         )
         st.markdown(context.ONION_VS_MEAT.text)
         st.slider(
-            "Your guess, a kilo",
-            min_value=farm,
+            "Drag to guess",
+            min_value=0,
             max_value=math.ceil(2 * store / 50) * 50,
-            value=farm,
+            value=0,
             step=5,
             format="₱%d",
             key="hook_slider",
