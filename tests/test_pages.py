@@ -594,3 +594,12 @@ def test_the_short_version_says_the_whole_finding_in_bullets_with_no_charts():
         "Check your own food →",
         f"{views.NEXT['short']} →",
     ]
+
+
+@pytest.mark.parametrize("page", list(views.CHAPTERS))
+def test_each_section_carries_its_part_label_in_order(page):
+    names = views.CHAPTERS[page]
+    labels = [c.value for c in render(page).caption if c.value.startswith("Part ")]
+    assert labels == [
+        f"Part {i} of {len(names)} · {name}" for i, name in enumerate(names, 1)
+    ]

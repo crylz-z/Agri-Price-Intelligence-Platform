@@ -196,6 +196,27 @@ def paint(text: str, role: str) -> str:
     return f":{colour}[{text}]" if colour else text
 
 
+# Each page's chapters, in order: a small grey label above each section fills
+# the gap before it, so the space reads as a break, not missing content.
+CHAPTERS = {
+    "story": (
+        "The onion question",
+        "Who's in between",
+        "Where your peso goes",
+        "The middle's growing part",
+        "Up fast, down slow",
+    ),
+    "caught": ("Every food", "Not new", "Who got caught", "What can be done"),
+}
+
+
+def chapter(page: str, name: str) -> None:
+    """The label above a section: "Part 2 of 5 · Who's in between". It opens
+    with a word, so no sentence on the page starts with a numeral."""
+    names = CHAPTERS[page]
+    st.caption(f"Part {names.index(name) + 1} of {len(names)} · {name}")
+
+
 def reveal(name: str) -> Any:
     """A container that app.py's CSS fades in as it scrolls into view (ADR 18)."""
     return st.container(key=f"reveal_{name}")
@@ -668,6 +689,7 @@ def record_section() -> None:
     source. Context, so text only."""
     claims = suspects()
     st.space("large")
+    chapter("caught", "Who got caught")
     fine = fined(claims)
     if fine:
         total, latest = fine
@@ -692,6 +714,7 @@ def remedy_section() -> None:
     where a reader can report. Facts only, no policy positions, each cited.
     Context, so text only."""
     st.space("large")
+    chapter("caught", "What can be done")
     st.header("What can be done", anchor=False)
     st.subheader("Being done", anchor=False)
     # Two cards a row, so a phone, which stacks the columns, keeps their order.
@@ -956,6 +979,7 @@ def hook_section(shares: pd.DataFrame) -> None:
         f"In {low['month']:%B %Y}, farmers got :blue[₱{farm}] for a kilo of {food}."
     )
     help_text = HOOK_HELP.format(start=data.HOOK_START, end=data.HOOK_END)
+    chapter("story", "The onion question")
     guess = st.session_state.get(HOOK_GUESS)
     if guess is None:
         # The reader guesses the store price before seeing it (spec: Engagement).
@@ -1017,6 +1041,7 @@ def chain_section() -> None:
     """2. The chain: who stands between farm and store, what a fair cut pays
     for, and why it matters. Context, so text only, each fact cited."""
     st.space("large")
+    chapter("story", "Who's in between")
     st.header(
         "Between the farmer and you: traders, wholesalers and stores",
         help=CHAIN_HELP,
@@ -1050,6 +1075,7 @@ def peso_section(shares: pd.DataFrame, rows: pd.DataFrame) -> None:
     peso, averaged = data.typical_peso(rows)
     typical = data.whole_centavos(peso)[data.FARMER]
     st.space("large")
+    chapter("story", "Where your peso goes")
     # Traders' part is section 4's number alone: this one (the latest month's
     # average) differs from its (the last 12 months' median) by a centavo or so.
     hero("peso", ("The farmer's part of a peso", f"{typical}¢", "farm"))
@@ -1094,6 +1120,7 @@ def growing_section(verdicts: pd.DataFrame) -> None:
     then, now = round(parts["trader_part_then"]), round(parts["trader_part_now"])
     first = verdicts.iloc[0]
     st.space("large")
+    chapter("story", "The middle's growing part")
     hero(
         "middle",
         ("Traders' part of a peso, 2018", f"{then}¢", "plain"),
@@ -1120,6 +1147,7 @@ def proof_section(rows: pd.DataFrame, growth: pd.DataFrame) -> None:
     and it's not new (each food's farm and store growth since 2018)."""
     low = rows.iloc[0]
     peso, _ = data.typical_peso(rows)
+    chapter("caught", "Every food")
     st.header("It's not one food, and it's not new", anchor=False)
     st.space("small")
     st.subheader(
@@ -1146,6 +1174,7 @@ def proof_section(rows: pd.DataFrame, growth: pd.DataFrame) -> None:
     )
     ahead = int(growth["outran"].sum())
     st.space("small")
+    chapter("caught", "Not new")
     st.subheader(
         f"Since 2018, store prices outran farm prices for :orange[{ahead} of "
         f"{len(growth)} foods]",
@@ -1176,6 +1205,7 @@ def ratchet_section(verdicts: pd.DataFrame) -> None:
     # Section 4 ends on its headline, with no chart or so-what under it, so a
     # large space here reads as a hole.
     st.space("small")
+    chapter("story", "Up fast, down slow")
     hero("ratchet", ("Of a ₱10 farm drop, you see", f"₱{down:.0f}", "plain"))
     st.header(
         f"Drop ₱10 at the farm, and you save only ₱{down:.0f}"

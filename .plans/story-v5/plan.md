@@ -25,7 +25,7 @@ Slider mechanics, the chapter names, the dumbbell's sort order and phone density
 - [x] Short version page, end to end: a new page in `nav.PAGES` and `app_pages/`, the bullets computed in `data.py` with tests, and a page test that renders it offline — done when `pytest` passes, the new page renders in `test_pages.py` with every bullet present, and every sentence opens with a word.
 - [x] Page 1 link to the short version, and the newest-month line moved to the masthead caption and the short version — done when the page test finds the link and no "New for" line under the title.
 - [x] Hook before the guess: no hero, ₱65 once, "Drag to guess" — done when a page test before the click counts one "₱65" on screen.
-- [ ] Chapter labels on pages 1 and 2 — done when the page tests find "N of M" labels in order on both pages.
+- [x] Chapter labels on pages 1 and 2 — done when the page tests find "N of M" labels in order on both pages.
 - [ ] Dumbbell on page 2, replacing `middle_chart` — done when its test checks both percents in the labels, and screenshots at 375 and 1440 px, light and dark, pass the `screenshot-checker`.
 - [ ] Prune `.claude/rules/dashboard.md`: update what this change makes stale ("four pages", the newest-month line, the hook, the "+pts" chart), add the short version's bullet rule in one line, and cut any line in the touched sections that repeats code or another rule — done when a grep for "four pages", "newest_line" and "pts" there returns only live facts, and the file is no longer than now (47 lines).
 - [ ] Full check: `pytest`, `pre_commit run --all-files`, and screenshots of all five pages at 375 and 1440 px, light and dark — done when all pass.
@@ -42,3 +42,4 @@ Slider mechanics, the chapter names, the dumbbell's sort order and phone density
 - Short version: the page keeps the footer's "See how it's built →" after its two closing links, so every page still ends on the next one; the page test now checks each page's last link.
 - Masthead: "PSA prices to {month}" became "Updated with PSA's {month} release" on every page; `newest_line` and its test are gone, since the short version carries the newest move. The short page test's `print` went too (cp1252 can't print ₱).
 - Hook: before the guess there is no big number and the slider runs from ₱0 (label "Drag to guess"), so ₱65 shows once, in the header; the test counts it across header, markdown, captions and metrics.
+- Chapter labels: a caption "Part N of M · Name" (`views.CHAPTERS`, `views.chapter`), not the plan's "2 of 5 · …", because every sentence must open with a word; as a caption, the word-budget test ignores it.
