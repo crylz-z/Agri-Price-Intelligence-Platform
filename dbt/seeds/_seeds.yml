@@ -138,14 +138,26 @@ seeds:
       staple and suspect, the claim worded as its source words it (found,
       charged, alleged, decided), with the source and its date. role is
       suspect or alibi (a reason that clears the middle). Agencies, trades and findings only, never a private person's
-      name. Each row's status was checked on `checked`; recheck before it goes
-      on screen. staple is a staple or a staple category (Rice).
+      name. Each row's status was checked on `checked`. Rows sit rulings
+      first, then charges, findings and allegations; section 6 shows the
+      suspect rows in that order. staple is a staple or a staple category
+      (Rice).
     columns:
       - name: role
         data_tests:
           - accepted_values:
               arguments:
                 values: [suspect, alibi]
+      - name: stage
+        description: >
+          How far the claim got, for the page's badge: ruling, charge,
+          finding, allegation, or research for an alibi.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [ruling, charge, finding, allegation, research]
+      - name: fine_php
+        description: A ruling's total fine in pesos, as its source states it; blank otherwise.
       - name: source_url
         data_tests:
           - not_null
@@ -153,7 +165,7 @@ seeds:
     description: >
       Foods whose farm price is for another product than the store price (a live
       animal against a cut of meat), so a percent change compares but a
-      farmer's share doesn't (ADR 13, ADR 18, ADR 23). farm_measure says what the
+      farmer's share doesn't (ADR 18, ADR 23). farm_measure says what the
       farm price is for; farm_name and store_name name the two products on the
       page ("live hog", "kasim"). Read by int_change_only_prices, never by
       int_farmer_share.

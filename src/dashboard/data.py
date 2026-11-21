@@ -6,6 +6,7 @@ retail mart on 2026-11-02; one cat_file took 2 s.
 """
 
 import io
+from collections.abc import Sequence
 from pathlib import Path
 
 import pandas as pd
@@ -120,15 +121,15 @@ def parts_then_now(verdicts: pd.DataFrame) -> dict[str, float]:
     return {column: float(medians[column]) for column in columns}
 
 
-def ratchet(up: float, down: float, swings: int = 3) -> pd.DataFrame:
-    """An example for the reader, not data: the farm price rises ₱10 and falls ₱10
-    `swings` times while the store price follows by `up` and `down` pesos. Long,
-    one row per step and line; `price` is pesos from where each line started."""
+def ratchet(up: float, down: float, moves: Sequence[int]) -> pd.DataFrame:
+    """An example for the reader, not data: each move (+1 or −1, the reader's
+    presses) takes the farm price ₱10 up or down, and the store price follows by
+    `up` or `down` pesos. Long, one row per step and line; `price` is pesos from
+    where each line started."""
     farm, store, rows = 0.0, 0.0, [(0, 0.0, 0.0)]
-    for _ in range(swings):
-        farm, store = farm + 10, store + round(up)
-        rows.append((len(rows), farm, store))
-        farm, store = farm - 10, store - round(down)
+    for move in moves:
+        farm += 10 * move
+        store += round(up) if move > 0 else -round(down)
         rows.append((len(rows), farm, store))
     steps = pd.DataFrame(rows, columns=["step", FARM, STORE])
     return steps.melt("step", var_name="line", value_name="price")
@@ -211,18 +212,6 @@ def outran(growth: pd.DataFrame) -> pd.DataFrame:
     return rows.sort_values("lead", ascending=False).reset_index(drop=True)
 
 
-def farm_fell(changes: pd.DataFrame) -> pd.DataFrame:
-    """The foods whose farm price fell over the past year, biggest split first:
-    the store's change minus the farm's, so "farm down, store up" leads."""
-    rows = changes[changes["farm_change"] < 0]
-    split = rows["store_change"] - rows["farm_change"]
-    return (
-        rows.assign(split=split)
-        .sort_values("split", ascending=False)
-        .reset_index(drop=True)
-    )
-
-
 # Fewer months than this in either direction and a food's up/down pair is noise.
 MIN_MOVE_MONTHS = 6
 
@@ -248,3 +237,50 @@ def claims_for(suspects: pd.DataFrame, staple: str, category: str) -> pd.DataFra
     newest first."""
     rows = suspects[suspects["staple"].isin([staple, category])]
     return rows.sort_values("source_date", ascending=False).reset_index(drop=True)
+
+
+# The receipt's example basket (ADR 24): our pick, labelled an example on screen.
+# Each food has a farm, wholesale and store price; meat can't be split in pesos.
+# (staple, line on the receipt, how many of the mart's unit)
+BASKET = (
+    ("Regular rice", "Rice, 1 kg", 1),
+    ("Galunggong", "Galunggong, 1 kg", 1),
+    ("Tomato", "Tomato, 1 kg", 1),
+    ("Red onion", "Red onion, ½ kg", 0.5),
+    ("Egg", "Eggs, 12", 12),
+)
+
+
+def receipt(shares: pd.DataFrame) -> pd.DataFrame:
+    """The example basket at each food's latest national month (galunggong: its
+    quarter, `months` 3): what you pay and the farmer's, traders' and stores'
+    parts, in whole pesos that add up to it, then a "Total" row summing each
+    column. A food without a wholesale price that month drops out."""
+    latest = shares[shares["is_latest"] & (shares["geo_code"] == PHILIPPINES)]
+    latest = latest.dropna(subset=["wholesale_price"]).set_index("staple")
+    lines = []
+    for staple, item, quantity in BASKET:
+        if staple not in latest.index:
+            continue
+        row = latest.loc[staple]
+        parts = whole_centavos(
+            {
+                "farmer": float(row["farmgate_equivalent"]) * quantity,
+                "traders": float(row["trader_cut"]) * quantity,
+                "stores": float(row["store_cut"]) * quantity,
+            }
+        )
+        lines.append(
+            {
+                "item": item,
+                "month": row["month"],
+                "months": int(row["months_in_period"]),
+                "pay": sum(parts.values()),
+                **parts,
+            }
+        )
+    rows = pd.DataFrame(lines)
+    total = rows[["pay", "farmer", "traders", "stores"]].sum()
+    return pd.concat(
+        [rows, pd.DataFrame([{"item": "Total", **total}])], ignore_index=True
+    )

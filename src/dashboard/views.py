@@ -3,20 +3,23 @@
 "Who's eating the farmer's peso?" in the order a short video would tell it
 (ADR 18). Read in order, the headlines tell the story:
 
-1. The hook: onions hit ₱X in January 2023; farmers got ₱Y (farmer_share_monthly,
-   the 2023 onion crisis).
-2. This year: farmers got X% less for a food; you paid Y% more
-   (price_changes_yearly; meat as percent changes only, fish by quarter).
-3. Your peso: farmers get X centavos of it, then each food's farmer centavos
-   (farmer_share_monthly).
+1. The hook: in March 2023, farmers got ₱X for a kilo of onions, stores charged
+   ₱Y; where did the gap go? (farmer_share_monthly, the 2023 onion crisis).
+2. The chain: farmer, trader, wholesaler, store; what a fair cut pays for; why
+   it matters. Hand-written, each fact cited (context.py).
+3. Your peso: farmers get X centavos of it; an example receipt split between
+   farmer, traders and stores; each food's farmer centavos (farmer_share_monthly).
 4. The middle: traders now take X centavos of your peso, up from Y; each food's
    farm and store growth since 2018, with inflation (food_verdicts,
-   growth_since_2018). The public record sits here once its sources are checked.
+   growth_since_2018).
 5. The ratchet: drop ₱10 at the farm, and you save only ₱X, drawn as an example
    (food_verdicts).
-6. Check your food: one food's prices and numbers. Meat, whose farm price is for
+6. Who got caught: the public record, rulings first (dbt/seeds/suspects.csv).
+7. What can be done: what is being done and where to report. Hand-written,
+   each fact cited (context.py).
+8. Check your food: one food's prices and numbers. Meat, whose farm price is for
    a live animal, shows both prices as a change since 2018 (change_only_monthly).
-7. A one-line ending.
+9. A one-line ending.
 
 Each story section opens with one or two big numbers (`hero`), sized by the CSS
 in app.py. Shares are centavos of a peso, real price moves pesos, a growth
@@ -27,26 +30,25 @@ view (`reveal`, ADR 18); "Check your food" stays Altair. Under each chart, one
 
 One palette, the same in light and dark (ADR 19, ADR 21): blue is the farmer,
 amber is the middle (traders and the gap between farm and store), and the store
-price is ink, the theme's text colour. Stores' part of the peso is grey. The
+price is ink, the theme's text colour. The
 theme's blue and orange (`.streamlit/config.toml`) equal FARM and AMBER, so a
 coloured word, a big number and a bar always match. Caveats live in the (?)
 tooltips.
 """
 
+import math
 from typing import Any
 
 import altair as alt
 import pandas as pd
 import streamlit as st
 
-from src.dashboard import data, theme
+from src.dashboard import context, data, theme
 
 # One value per role for both themes: each keeps at least 3:1 against the
 # light and the dark background. FARM and AMBER equal the theme's blue and orange
 # (.streamlit/config.toml), which colour :blue[...] and :orange[...] text.
 FARM, AMBER, MUTED = "#4A72E0", "#C77700", "#8A8178"
-# Stores' part of the peso: a light grey, named on the bar.
-STORE_GREY = "#B5ADA4"
 # The store price is ink, the theme's text colour, which the browser picks per
 # mode: ECharts hands the theme's chartCategoricalColors (.streamlit/config.toml)
 # in order to the series without a colour of their own, so the store series is
@@ -55,95 +57,83 @@ STORE_GREY = "#B5ADA4"
 STORE_SLOT = 1
 # The ratchet draws the store line this far above the farm line, in pesos.
 RATCHET_LIFT = 24
-SWINGS = 3
+# The ratchet is a toy (owner, 2026-11-21): the reader's presses, each +1 or −1
+# (₱10 up or down at the farm), live in session state. The chart's x axis holds
+# RATCHET_MAX presses, so the lines grow rightwards without rescaling, and the
+# farm price stops RATCHET_FLOOR pesos below its start.
+RATCHET_MOVES = "ratchet_moves"
+RATCHET_MAX = 8
+RATCHET_FLOOR = -30
 # ECharts entry animation (ADR 17): brief and once, since ECharts can't read the
 # viewer's reduced-motion setting.
 ANIMATION_MS = 800
-# The public record (suspects.csv) stays off the page until the owner has
-# checked its sources by hand (.claude/rules/dashboard.md).
-SHOW_RECORD = False
+# The arrow between two steps of the chain (section 2).
+CHAIN_ARROW = ":gray[:material/arrow_forward:]"
+# The reader's guess of the hook's store price, in session state: unset until
+# they press "Show me", which reveals the store price (spec: Engagement).
+HOOK_GUESS = "hook_guess"
+# Each public-record stage (suspects.csv `stage`) as its card's badge.
+STAGES = {
+    "ruling": ("Ruling", "gavel"),
+    "charge": ("Charged", "description"),
+    "finding": ("Finding", "search"),
+    "allegation": ("Alleged", "record_voice_over"),
+}
 
+# Each tooltip is a few short lines a newcomer reads at a glance: what the
+# number is, then only the caveats that change how to read it.
 HOOK_HELP = (
-    "National average farm, wholesale and store price of red onion per kilo, "
-    "{start:%B} to {end:%B %Y}, from PSA.\n\n"
-    "- Late 2022 to early 2023 was the onion crisis: a short harvest, late "
-    "imports and, the competition regulator later found, a cartel of importers "
-    "and traders.\n"
-    "- The chart starts in January: PSA has no farm price for August to "
-    "November 2022, and December's farm price sits above the store's."
-)
-YEAR_HELP = (
-    "Each food's national average farm and store price in {month}, against a "
-    "year earlier, from PSA. Only foods with both prices in both periods are "
-    "shown.\n\n"
-    "- Meat: the farm price is for a live animal (a hog, a broiler chicken, "
-    "cattle), the store price for a kilo of a cut, so only the percent changes "
-    "compare, not the pesos.\n"
-    "- Fish: PSA counts the farm price by quarter, so fish compare {quarter} "
-    "against the same months a year earlier, the store price averaged over them.\n"
-    "- Rice: palay is converted to milled rice at 0.63.\n"
-    "- One year can hold a good harvest or a bad one. This shows a pattern, not "
-    "why it happens: stores' own costs (rent, wages, power) don't fall with the "
-    "farm price."
+    "Red onion, PSA national averages per kilo, {start:%B} to {end:%B %Y}.\n\n"
+    "- The 2022–23 crisis: a short harvest, late imports and, the regulator "
+    "found, a cartel.\n"
+    "- The chart starts in January: PSA's earlier farm prices are missing or "
+    "above the store's."
 )
 SHARE_HELP = (
-    "A farmer's share is the farm price ÷ the store price for the same food and "
-    "month, national averages from PSA. Each food shows its latest month with "
-    "both prices; fish, its latest quarter.\n\n"
-    "- The bar is the average over the {foods} foods with a farm, wholesale and "
-    "store price, so its parts add up to one peso.\n"
-    "- Traders: wholesale price minus farm price. Stores: store price minus "
-    "wholesale price. Transport, storage and spoilage sit in both.\n"
-    "- Kangkong has no wholesale price, so it has a dot but isn't in the bar.\n"
-    "- Meat isn't here: its farm price is for a live animal, not the cut you "
-    "buy.\n"
-    "- Rice: palay is converted to milled rice at 0.63, so its share is "
-    "approximate.\n"
-    "- A farmer's share can top one peso for a month or two when farm prices "
-    "briefly beat store prices."
+    "Farm price ÷ store price, PSA national averages, latest month.\n\n"
+    "- The average of the {foods} foods with a farm, wholesale and store price.\n"
+    "- Meat is left out: its farm price is for a live animal.\n"
+    "- Rice's farm price is converted from palay, so it's approximate."
 )
 MIDDLE_HELP = (
-    "Traders' part is the wholesale price minus the farm price, as centavos of "
-    "the store price, for the typical food (the median), in 2018 and over the "
-    "last 12 months, national averages from PSA.\n\n"
-    "- The chart compares each food's average farm and store price in 2018 with "
-    "the last 12 months. Inflation is PSA's consumer price index, all items, "
-    "over the same months.\n"
-    "- Meat (hollow dot): the farm price is for a live animal, so only the "
-    "growth compares.\n"
-    "- Over the same months, diesel rose {diesel}, transport {transport} and "
-    "electricity, gas and other fuels {fuel}. Fuel is one of the middle's costs, "
-    "next to wages, rent and spoilage.\n"
-    "- This shows a pattern, not who is to blame: a bigger middle can be higher "
-    "costs as well as weak competition."
+    "Wholesale minus farm price, as centavos of the store price: the typical "
+    "food, 2018 against the last 12 months.\n\n"
+    "- Diesel rose {diesel} and transport {transport} over the same months, so "
+    "part of this is costs.\n"
+    "- A pattern, not proof of who is to blame."
 )
 MOVES_HELP = (
-    "The chart is an example, not a record: the typical food (the median) taken "
-    f"through {SWINGS} farm-price rises and falls of ₱10. The store's moves come "
-    "from the data, counted over months when a food's farm price was over 15% "
-    "higher or lower than a year earlier, national averages from PSA. For each, "
-    "the store's peso change is set against the farm's. Both are in 2018 pesos "
-    "(divided by the consumer price index), so general inflation doesn't tilt "
-    "the result.\n\n"
-    "- A peso-for-peso store would show ₱10 both ways.\n"
-    '- Each food\'s own numbers are in "Check your food". Foods with under 6 '
-    "such months each way are left out, and so is fish: its farm price comes "
-    "only by quarter.\n"
-    "- This shows a pattern, not why it happens: costs that don't fall, contracts "
-    "and spoilage all play a part, as can weak competition."
+    "From months when a food's farm price moved over 15% in a year, in 2018 "
+    "pesos so inflation doesn't tilt it.\n\n"
+    "- A fair store would move ₱10 both ways.\n"
+    "- A pattern, not proof of why: costs that don't fall play a part too."
 )
 
 
 def _once(spec: dict[str, Any]) -> dict[str, Any]:
     """ECharts entry animation (ADR 17): short, played once, no update replay, so
-    the finished frame carries the point for anyone who misses the motion."""
-    return {
+    the finished frame carries the point for anyone who misses the motion.
+
+    Each series gets the chart's easing too: ECharts gives a line series its own
+    linear easing, which overrides the chart's, so a line drew at full speed to a
+    dead stop (ticket 08)."""
+    chart = {
         "animation": True,
         "animationDuration": ANIMATION_MS,
         "animationEasing": "cubicOut",
         "animationDurationUpdate": 0,
         **spec,
     }
+    chart["series"] = [
+        {"animationEasing": chart["animationEasing"], **series}
+        for series in chart["series"]
+    ]
+    return chart
+
+
+def signed_peso(change: float) -> str:
+    """A peso move with its sign and a true minus sign: +₱2, −₱10."""
+    return f"{'+' if change > 0 else '−'}₱{abs(change):,.0f}"
 
 
 def pct(change: float) -> str:
@@ -262,119 +252,6 @@ def hook_chart(rows: pd.DataFrame) -> dict[str, Any]:
                 },
                 line("farm price", data.FARM, FARM, "bottom"),
             ],
-        }
-    )
-
-
-def year_chart(rows: pd.DataFrame) -> dict[str, Any]:
-    """Each food's farm (blue) and store (ink) change over the past year, as bars
-    from a zero line, biggest split on top. The store series is second
-    (STORE_SLOT) and uncoloured, so it takes the theme's ink."""
-
-    def bars(column: str, colour: str | None) -> list[dict[str, Any]]:
-        return [
-            {
-                "value": round(v * 100, 1),
-                **({"itemStyle": {"color": colour}} if colour else {}),
-                "label": {
-                    "position": "right" if v >= 0 else "left",
-                    "formatter": pct(v),
-                },
-            }
-            for v in rows[column]
-        ]
-
-    values = pd.concat([rows["farm_change"], rows["store_change"]]) * 100
-    # Room beyond the longest bars for their labels.
-    low, high = min(0.0, values.min()) - 14, max(0.0, values.max()) + 14
-    label = {"show": True, "fontWeight": 700}
-    return _once(
-        {
-            "grid": {"left": 4, "right": 4, "top": 4, "bottom": 4},
-            "xAxis": {"type": "value", "min": low, "max": high, "show": False},
-            "yAxis": {
-                "type": "category",
-                "inverse": True,
-                "data": list(rows["staple"]),
-                "axisTick": {"show": False},
-                "axisLine": {"show": False},
-            },
-            "tooltip": {"trigger": "item", "formatter": "{b}, {a}: {c}%"},
-            "series": [
-                {
-                    "type": "bar",
-                    "name": "farm price",
-                    "barWidth": 12,
-                    "barGap": "30%",
-                    "data": bars("farm_change", FARM),
-                    "label": label,
-                    "markLine": {
-                        "symbol": ["none", "none"],
-                        "silent": True,
-                        "label": {"show": False},
-                        "lineStyle": {"color": MUTED, "type": "solid", "width": 1},
-                        "data": [{"xAxis": 0}],
-                    },
-                },
-                {
-                    "type": "bar",
-                    "name": "store price",
-                    "barWidth": 12,
-                    "data": bars("store_change", None),
-                    "label": label,
-                },
-            ],
-        }
-    )
-
-
-def peso_chart(cents: dict[str, int], foods: int) -> dict[str, Any]:
-    """The typical peso as one fat bar: farmer (blue), traders (amber, the
-    middle) and stores (grey), each part's centavos big inside it. The bars grow
-    in from the left."""
-    words = {data.FARMER: "#FFFFFF", data.TRADERS: "#FFFFFF", data.STORES: "#24211E"}
-    colour = {data.FARMER: FARM, data.TRADERS: AMBER, data.STORES: STORE_GREY}
-    names = list(cents)
-    series = [
-        {
-            "type": "bar",
-            "name": name,
-            "stack": "peso",
-            "barWidth": 76,
-            "data": [cents[name]],
-            "itemStyle": {
-                "color": colour[name],
-                "borderRadius": [8, 0, 0, 8]
-                if i == 0
-                else [0, 8, 8, 0]
-                if i == len(names) - 1
-                else 0,
-            },
-            "label": {
-                "show": True,
-                "position": "insideLeft",
-                "distance": 10,
-                "formatter": "{n|{c}¢}\n{w|{a}}",
-                "rich": {
-                    "n": {"fontSize": 24, "fontWeight": 800, "color": words[name]},
-                    "w": {"fontSize": 12, "fontWeight": 600, "color": words[name]},
-                },
-            },
-            "emphasis": {"disabled": True},
-        }
-        for i, name in enumerate(names)
-    ]
-    return _once(
-        {
-            "grid": {"left": 0, "right": 0, "top": 0, "bottom": 0},
-            "xAxis": {"type": "value", "min": 0, "max": 100, "show": False},
-            "yAxis": {"type": "category", "data": ["peso"], "show": False},
-            "tooltip": {
-                "trigger": "item",
-                "formatter": "{a}: {c} centavos of every peso<br/>"
-                f"Average of the {foods} foods with a farm, wholesale and store price",
-            },
-            "series": series,
         }
     )
 
@@ -566,43 +443,47 @@ def middle_chart(rows: pd.DataFrame, inflation: float) -> dict[str, Any]:
     )
 
 
-def ratchet_chart(up: float, down: float) -> dict[str, Any]:
-    """The typical food's farm price (blue) rising and falling ₱10, SWINGS times,
-    and its store price (ink) following: up `up`, down only `down`. Both lines
-    draw themselves left to right; a dashed line marks where each started and an
-    amber bracket (the middle) the store's climb at the end."""
-    steps = data.ratchet(up, down, SWINGS)
-    last = int(steps["step"].max())
+def ratchet_chart(up: float, down: float, moves: list[int]) -> dict[str, Any]:
+    """The reader's toy: the typical food's farm price (blue) taken ₱10 up or
+    down for each press in `moves`, and its store price (ink) following: up
+    `up`, down only `down`. A dashed line marks where each started; an amber
+    bracket (the middle) marks how far the store ended above a peso-for-peso
+    follower. Each press tweens in, so the reader sees their move land."""
+    steps = data.ratchet(up, down, moves)
 
     def points(line: str, lift: float) -> list[list[float]]:
         rows = steps[steps["line"] == line]
         return [[int(s), float(p) + lift] for s, p in zip(rows["step"], rows["price"])]
 
     farm, store = points(data.FARM, 0), points(data.STORE, RATCHET_LIFT)
-    creep = store[-1][1] - RATCHET_LIFT
+    farm_net, store_net = farm[-1][1], store[-1][1] - RATCHET_LIFT
+    last = RATCHET_MAX
+
+    def signed(net: float) -> str:
+        return "back to start" if net == 0 else signed_peso(net)
 
     def line(
-        name: str, pts: list[list[float]], colour: str | None, base: float, end: str
+        name: str, pts: list[list[float]], base: float, end: str, bracket: bool
     ) -> dict[str, Any]:
-        """A price line; without a colour it takes the theme's (the store's ink)."""
-        paint = {"color": colour} if colour else {}
+        """A price line, uncoloured: the theme's palette paints it (STORE_SLOT)."""
         marks: list[Any] = [
             [
                 {"coord": [0, base], "lineStyle": {"type": "dashed", "width": 1.2}},
                 {"coord": [last, base]},
             ]
         ]
-        if pts[-1][1] > base:
-            # The store's climb: an amber bracket from where it started to where
-            # it ended, the part the middle kept.
+        follower = base + farm_net
+        if bracket and pts[-1][1] > follower:
+            # What the store kept: an amber bracket from where a peso-for-peso
+            # store would be to where this one ended, the part the middle kept.
             marks.append(
                 [
                     {
-                        "coord": [last, base],
+                        "coord": [pts[-1][0], follower],
                         "lineStyle": {"width": 5, "type": "solid", "color": AMBER},
                         "label": {"show": False},
                     },
-                    {"coord": [last, pts[-1][1]]},
+                    {"coord": [pts[-1][0], pts[-1][1]]},
                 ]
             )
         return {
@@ -612,10 +493,9 @@ def ratchet_chart(up: float, down: float) -> dict[str, Any]:
             "silent": True,
             "symbol": "circle",
             "symbolSize": 8,
-            **paint,
             "lineStyle": {"width": 3},
             "endLabel": {
-                "show": True,
+                "show": bool(moves),
                 "formatter": end,
                 "fontWeight": 700,
                 "fontSize": 13,
@@ -638,28 +518,27 @@ def ratchet_chart(up: float, down: float) -> dict[str, Any]:
             },
         }
 
+    values = [p[1] for p in farm + store]
     return _once(
         {
             "animationEasing": "linear",
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
             "grid": {"left": 4, "right": 112, "top": 16, "bottom": 22},
             "xAxis": {"type": "value", "min": 0, "max": last, "show": False},
             "yAxis": {
                 "type": "value",
-                "min": -6,
-                "max": RATCHET_LIFT + max(creep, 0) + 16,
+                "min": min(values) - 6,
+                "max": max(values) + 16,
                 "show": False,
             },
             "tooltip": {"show": False},
             "series": [
                 # Both uncoloured: the farm takes the palette's blue, the store
                 # its ink (STORE_SLOT).
-                line("Farm price", farm, None, 0, "back to start"),
+                line("Farm price", farm, 0, signed(farm_net), bracket=False),
                 line(
-                    "Store price",
-                    store,
-                    None,
-                    RATCHET_LIFT,
-                    f"+₱{creep:.0f} higher" if creep > 0 else "back to start",
+                    "Store price", store, RATCHET_LIFT, signed(store_net), bracket=True
                 ),
             ],
         }
@@ -744,19 +623,104 @@ def moved(change: float) -> str:
     return f"{'rose' if change > 0 else 'fell'} {abs(change):.0%}"
 
 
+def receipt_table(receipt: pd.DataFrame) -> None:
+    """The example basket as a receipt: one line per food in whole pesos, then
+    the total, captioned with its months (galunggong's is a quarter)."""
+    if receipt.empty:
+        return
+    # Markdown cells: the farmer's and traders' headers take their role colours,
+    # and the total row is bold.
+    columns = {
+        "pay": "You pay",
+        "farmer": paint("Farmer", "farm"),
+        "traders": paint("Traders", "middle"),
+        "stores": "Stores",
+    }
+    table = receipt.set_index("item").rename_axis(None)[list(columns)]
+    table = table.rename(columns=columns).map(lambda pesos: f"₱{pesos:,.0f}")
+    table.iloc[-1] = "**" + table.iloc[-1] + "**"
+    table = table.rename(index={table.index[-1]: f"**{table.index[-1]}**"})
+    st.table(table, border="horizontal")
+    periods = {
+        str(row.item).split(",")[0].lower(): when(row.month, row.months)
+        for row in receipt.iloc[:-1].itertuples()
+    }
+    usual = max(set(periods.values()), key=list(periods.values()).count)
+    others = "; ".join(f"{food} {p}" for food, p in periods.items() if p != usual)
+    st.caption(
+        ":material/receipt_long: An example basket, at national prices for "
+        f"{usual}{f' ({others})' if others else ''}."
+    )
+
+
+def cite(fact: context.Fact) -> str:
+    """A hand-written fact's source and year, linked, to follow its sentence."""
+    return f":gray[([{fact.source}, {fact.date[:4]}]({fact.url}))]"
+
+
 def so_what(text: str) -> None:
     """The line under a chart that says why it matters."""
     st.markdown(f":material/lightbulb: {text}")
 
 
-def record(claims: pd.DataFrame) -> None:
-    """The public record about the middle, worded as each source words it."""
-    st.subheader("On the record")
-    for claim in claims.itertuples():
-        st.markdown(
-            f"{claim.claim} :gray[{claim.status}. "
-            f"[{claim.source_name}, {claim.source_date:%d %b %Y}]({claim.source_url})]"
+def record_section() -> None:
+    """6. Who got caught: the public record about the middle, rulings first (the
+    seed's order), each worded as its source words it, with its status and
+    source. Context, so text only."""
+    claims = data.load_suspects()
+    claims = claims[claims["role"] == "suspect"]
+    st.space("large")
+    fined = claims.dropna(subset=["fine_php"])
+    if not fined.empty:
+        latest = fined["source_date"].max()
+        hero(
+            "record",
+            (
+                f"Fined so far, {latest:%b %Y}",
+                f"₱{fined['fine_php'].sum() / 1e9:.2f} billion",
+                "middle",
+            ),
         )
+    st.header("Who got caught", anchor=False)
+    st.markdown(
+        "Our prices show where the pesos go, not who takes them. Only regulators, "
+        "investigators and lawmakers can name that. This is what they found, "
+        "charged or alleged."
+    )
+    for claim in claims.itertuples():
+        label, icon = STAGES[str(claim.stage)]
+        with st.container(border=True):
+            st.badge(label, icon=f":material/{icon}:", color="gray")
+            st.markdown(
+                f"{claim.claim} :gray[{claim.status}. [{claim.source_name}, "
+                f"{claim.source_date:%d %b %Y}]({claim.source_url})]"
+            )
+
+
+def remedy_section() -> None:
+    """7. What can be done: what regulators and the government are doing, and
+    where a reader can report. Facts only, no policy positions, each cited.
+    Context, so text only."""
+    st.space("large")
+    st.header("What can be done", anchor=False)
+    st.subheader("Being done", anchor=False)
+    # Two cards a row, so a phone, which stacks the columns, keeps their order.
+    cards = context.BEING_DONE
+    for row in range(0, len(cards), 2):
+        for column, (title, icon, fact) in zip(
+            st.columns(2), cards[row : row + 2], strict=False
+        ):
+            with column.container(border=True, height="stretch"):
+                st.markdown(f"**:material/{icon}: {title}**")
+                st.markdown(f"{fact.text} {cite(fact)}")
+    st.subheader("Where to report", anchor=False)
+    st.link_button(
+        "Report a cartel to the PCC",
+        context.PCC_PORTAL,
+        type="primary",
+        icon=":material/campaign:",
+    )
+    st.markdown("\n".join(f"- {fact.text} {cite(fact)}" for fact in context.REPORT))
 
 
 def case_page() -> None:
@@ -776,17 +740,19 @@ def case_page() -> None:
             f"Philippines · {len(growth)} everyday foods · PSA prices to {month:%B %Y}"
         )
         theme.theme_button()
-    st.title("Who's eating the farmer's peso?")
+    st.title("Who's eating the farmer's peso?", anchor=False)
 
     hook_section(shares)
-    year_section(changes)
-    typical = peso_section(rows)
+    chain_section()
+    typical = peso_section(shares, rows)
     middle_section(verdicts, growth)
     moves = ratchet_section(verdicts)
+    record_section()
+    remedy_section()
 
-    # 6. Check your food
+    # 8. Check your food
     st.space("large")
-    st.header("Check your food")
+    st.header("Check your food", anchor=False)
     meat = set(growth.loc[growth["change_only"], "staple"])
     foods = list(growth["staple"])
     staple = str(
@@ -805,11 +771,12 @@ def case_page() -> None:
     else:
         share_food(staple, rows, verdicts, moves, shares, typical)
 
-    # 7. The ending
+    # 9. The ending
     st.space("large")
     st.subheader(
         f"Farmers get {typical} centavos of your peso. Next time a price jumps, ask "
-        "who kept the difference."
+        "who kept the difference.",
+        anchor=False,
     )
 
     st.divider()
@@ -826,132 +793,149 @@ def case_page() -> None:
 
 
 def hook_section(shares: pd.DataFrame) -> None:
-    """1. The hook: the 2023 onion crisis, the dearest month and the crash."""
+    """1. The hook: the 2023 onion crisis asked as a question, at the farm
+    price's lowest month."""
     rows = data.hook(shares)
     if rows.empty:
         return
-    peak = rows.iloc[0]
+    first = rows.iloc[0]
     low = rows.loc[rows[data.FARM].idxmin()]
+    # Whole pesos, so the gap on screen is the difference of the prices shown.
+    farm, store = round(low[data.FARM]), round(low[data.STORE])
     food = data.HOOK_FOOD.split()[-1] + "s"
-    hero(
-        "hook",
-        (
-            f"Onions in the store, {peak['month']:%b %Y}",
-            f"₱{peak[data.STORE]:.0f}",
-            "plain",
-        ),
-        ("The farmer got", f"₱{peak[data.FARM]:.0f}", "farm"),
+    farm_number = (f"Farmers got, {low['month']:%b %Y}", f"₱{farm}", "farm")
+    farmers_got = (
+        f"In {low['month']:%B %Y}, farmers got :blue[₱{farm}] for a kilo of {food}."
     )
+    help_text = HOOK_HELP.format(start=data.HOOK_START, end=data.HOOK_END)
+    guess = st.session_state.get(HOOK_GUESS)
+    if guess is None:
+        # The reader guesses the store price before seeing it (spec: Engagement).
+        hero("hook", farm_number)
+        st.header(
+            f"{farmers_got} What do you think stores charged?",
+            help=help_text,
+            anchor=False,
+        )
+        st.markdown(f"{context.ONION_VS_MEAT.text} {cite(context.ONION_VS_MEAT)}")
+        st.slider(
+            "Your guess, a kilo",
+            min_value=farm,
+            max_value=math.ceil(2 * store / 50) * 50,
+            value=farm,
+            step=5,
+            format="₱%d",
+            key="hook_slider",
+        )
+        st.button(
+            "Show me",
+            key="hook_show",
+            type="primary",
+            on_click=lambda: st.session_state.update(
+                {HOOK_GUESS: st.session_state["hook_slider"]}
+            ),
+        )
+        return
+    hero("hook", farm_number, ("Stores charged", f"₱{store}", "plain"))
     st.header(
-        f"In {peak['month']:%B %Y}, {food} hit ₱{peak[data.STORE]:.0f} a kilo. "
-        f"Farmers got :blue[₱{peak[data.FARM]:.0f}].",
-        help=HOOK_HELP.format(start=data.HOOK_START, end=data.HOOK_END),
+        f"{farmers_got} Stores charged ₱{store}. Where did the "
+        f":orange[₱{store - farm}] go?",
+        help=help_text,
+        anchor=False,
+    )
+    off = store - int(guess)
+    st.markdown(
+        f"Your guess was ₱{guess}. "
+        + (
+            f"Stores charged ₱{store}, ₱{abs(off)} {'more' if off > 0 else 'less'}."
+            if off
+            else "Spot on."
+        )
     )
     st.markdown(
-        f"By {low['month']:%B}, the :blue[**farm price**] had crashed to "
-        f"₱{low[data.FARM]:.0f}. The **store price** was still ₱{low[data.STORE]:.0f}. "
-        "The :orange[**shaded gap**] between them is what traders and stores kept."
+        f"{context.ONION_VS_MEAT.text} {cite(context.ONION_VS_MEAT)} "
+        f"The :blue[**farm price**] of red onion crashed from "
+        f"₱{first[data.FARM]:.0f} in {first['month']:%B} to ₱{farm} by "
+        f"{low['month']:%B}. The **store price** was still ₱{store}. The "
+        ":orange[**shaded gap**] between them is what traders and stores kept."
     )
     with reveal("hook"):
         st.echarts_chart(
             hook_chart(rows),
             height=280,
             key="hook_chart",
-            alt=f"Red onion, {data.HOOK_START:%B} to {data.HOOK_END:%B %Y}: the store "
-            f"price fell from ₱{peak[data.STORE]:.0f} to ₱{low[data.STORE]:.0f} while "
-            f"the farm price fell from ₱{peak[data.FARM]:.0f} to ₱{low[data.FARM]:.0f}",
+            alt=f"Red onion, {data.HOOK_START:%B} to {data.HOOK_END:%B %Y}: by "
+            f"{low['month']:%B} the farm price had fallen to ₱{farm} while the store "
+            f"price was ₱{store}",
         )
     so_what(
-        f"So even at the peak, farmers got only {peak['farmer']:.0f} centavos of "
-        f"every peso. When the price crashed, that fell to {low['farmer']:.0f}."
+        f"So in {low['month']:%B}, farmers got only {low['farmer']:.0f} centavos of "
+        f"every peso. Even at {first['month']:%B}'s peak, they got "
+        f"{first['farmer']:.0f}."
     )
 
 
-def year_section(changes: pd.DataFrame) -> None:
-    """2. This year: the farm price fell, the store price didn't follow."""
-    fallen = data.farm_fell(changes)
+def chain_section() -> None:
+    """2. The chain: who stands between farm and store, what a fair cut pays
+    for, and why it matters. Context, so text only, each fact cited."""
     st.space("large")
-    if fallen.empty:
-        st.header("This year, no food got cheaper at the farm")
-        st.caption("Every farm price rose over the past year.")
-        return
-    top = fallen.iloc[0]
-    food = str(top["staple"]).lower()
-    farm_food = top["farm_name"] if pd.notna(top["farm_name"]) else food
-    store = float(top["store_change"])
-    hero(
-        "year",
-        (f"Farm price, {farm_food}", pct(top["farm_change"]), "farm"),
-        (f"Store price, {food}", pct(store), "plain"),
-    )
-    you = (
-        f"You paid {store:.0%} more."
-        if round(store * 100) > 0
-        else f"You paid only {-store:.0%} less."
-        if round(store * 100) < 0
-        else "You paid the same."
-    )
-    monthly = fallen[fallen["months_in_period"] == 1]
-    sample = monthly.iloc[0] if len(monthly) else top
-    quarterly = changes[changes["months_in_period"] > 1]
-    quarter = (
-        when(quarterly["month"].max(), quarterly["months_in_period"].max())
-        if len(quarterly)
-        else "the latest quarter"
-    )
     st.header(
-        f"Farmers got :blue[{-top['farm_change']:.0%} less] for {food} this year. "
-        f"{you}",
-        help=YEAR_HELP.format(month=when(sample["month"]), quarter=quarter),
+        "Between the farmer and you: traders, wholesalers and stores", anchor=False
     )
     st.markdown(
-        "Each food whose :blue[**farm price**] fell from "
-        f"{pd.Timestamp(sample['month_year_ago']):%B %Y} to "
-        f"{pd.Timestamp(sample['month']):%B %Y}, beside its **store price**."
+        "Traders, wholesalers and stores each take a cut of what you pay. On this "
+        "page, :orange[**traders**] "
+        "means the traders and wholesalers together, everyone between the farm "
+        "and the store."
     )
-    with reveal("year"):
-        st.echarts_chart(
-            year_chart(fallen),
-            height=40 * len(fallen) + 16,
-            key="year_chart",
-            alt=f"Foods whose farm price fell over the past year: {food}'s fell "
-            f"{pct(top['farm_change'])} while its store price moved {pct(store)}",
-        )
-    rose = int((fallen["store_change"] > 0).sum())
+    # Stock columns: side by side on a wide screen, stacked top to bottom on a
+    # phone, so the order reads farm to store either way. A narrow column holds
+    # the arrow between two steps; app.py's CSS turns it down when they stack.
+    columns = st.columns([1, 0.14] * (len(context.CHAIN) - 1) + [1], gap="small")
+    for i, (name, icon, fact) in enumerate(context.CHAIN):
+        if i:
+            with columns[2 * i - 1].container(
+                key=f"chain_arrow_{i}",
+                height="stretch",
+                horizontal_alignment="center",
+                vertical_alignment="center",
+            ):
+                st.markdown(CHAIN_ARROW)
+        with columns[2 * i].container(border=True, height="stretch"):
+            st.markdown(f"**:material/{icon}: {name}**")
+            st.markdown(f"{fact.text} {cite(fact)}")
+    st.markdown(
+        "A fair cut pays for real work:\n\n"
+        + "\n".join(f"- {fact.text} {cite(fact)}" for fact in context.FAIR_CUT)
+    )
     so_what(
-        f"So for {rose} of {len(fallen)} foods, the farmer's drop never reached "
-        "you: the store price went up instead."
-        if rose
-        else "So store prices fell too, but by less than the farmer's."
+        "So who keeps the gap matters: farmers and fisherfolk are among the "
+        f"poorest Filipinos. {context.POVERTY.text} {cite(context.POVERTY)}"
     )
 
 
-def peso_section(rows: pd.DataFrame) -> int:
-    """3. Your peso: the typical peso, then each food's farmer part. Returns the
-    typical farmer's centavos."""
+def peso_section(shares: pd.DataFrame, rows: pd.DataFrame) -> int:
+    """3. Your peso: the typical peso as big numbers, the example receipt, then
+    each food's farmer part. Returns the typical farmer's centavos."""
     low = rows.iloc[0]
     peso, averaged = data.typical_peso(rows)
     cents = data.whole_centavos(peso)
     typical = cents[data.FARMER]
     st.space("large")
+    # Traders' part is section 4's number alone: this one (the latest month's
+    # average) differs from its (the last 12 months' median) by a centavo or so.
     hero("peso", ("The farmer's part of a peso", f"{typical}¢", "farm"))
     st.header(
         f"Farmers get :blue[{typical} centavos] of your peso",
         help=SHARE_HELP.format(foods=averaged),
+        anchor=False,
     )
     st.markdown(
-        "The bar splits a typical peso between the :blue[**farmer**], "
+        "The receipt splits an example basket between the :blue[**farmer**], "
         ":orange[**traders**] and stores. Below it, each food's farmer part, lowest "
         f"first: {low['staple'].lower()} gets {low['farmer']:.0f}."
     )
-    with reveal("peso"):
-        st.echarts_chart(
-            peso_chart(cents, averaged),
-            height=84,
-            key="peso_chart",
-            alt=f"A typical peso: {cents[data.FARMER]} centavos to the farmer, "
-            f"{cents[data.TRADERS]} to traders, {cents[data.STORES]} to stores",
-        )
+    receipt_table(data.receipt(shares))
     with reveal("dots"):
         st.echarts_chart(
             farmer_dots(rows, peso[data.FARMER]),
@@ -960,15 +944,13 @@ def peso_section(rows: pd.DataFrame) -> int:
             alt=f"Each food's farmer centavos of every peso, from "
             f"{low['staple'].lower()} at {low['farmer']:.0f} up",
         )
-    traders, stores = cents[data.TRADERS], cents[data.STORES]
-    after_farm = (
-        "So more than half your peso is spent after the farm: "
-        if typical < 50
-        else "So "
-    )
+    after = 100 - typical
     so_what(
-        f"{after_farm}{traders + stores} centavos, {traders} to traders and "
-        f"{stores} to stores."
+        f"So more than half your peso, {after} centavos, is spent after the farm, "
+        "by traders and stores."
+        if after > 50
+        else f"So {after} centavos of your peso are spent after the farm, by "
+        "traders and stores."
     )
     return typical
 
@@ -995,8 +977,8 @@ def middle_section(verdicts: pd.DataFrame, growth: pd.DataFrame) -> None:
         help=MIDDLE_HELP.format(
             diesel=pct(first["diesel_change"]),
             transport=pct(first["transport_change"]),
-            fuel=pct(first["fuel_change"]),
         ),
+        anchor=False,
     )
     st.markdown(
         "How much each food's :blue[**farm price**] and **store price** grew since "
@@ -1016,14 +998,11 @@ def middle_section(verdicts: pd.DataFrame, growth: pd.DataFrame) -> None:
         f"So for {ahead} of {len(growth)} foods, the store price grew faster than "
         "the farm price. The difference went to the middle, not the farmer."
     )
-    if SHOW_RECORD:
-        claims = data.load_suspects()
-        record(claims[claims["role"] == "suspect"])
 
 
 def ratchet_section(verdicts: pd.DataFrame) -> pd.DataFrame:
-    """5. The ratchet: up fast, down slow, as an example. Returns each food's
-    moves for "Check your food"."""
+    """5. The ratchet: up fast, down slow, as a toy the reader plays. Returns
+    each food's moves for "Check your food"."""
     moves = data.up_and_down(verdicts)
     slower = int((moves["down"] < moves["up"]).sum())
     up, down = float(moves["up"].median()), float(moves["down"].median())
@@ -1034,35 +1013,91 @@ def ratchet_section(verdicts: pd.DataFrame) -> pd.DataFrame:
         if round(down) < 10
         else "Drop ₱10 at the farm, and you save the whole ₱10",
         help=MOVES_HELP,
+        anchor=False,
     )
     most = "Most foods" if slower > len(moves) / 2 else "Some foods"
     st.markdown(
-        f"When it rises ₱10, the store rises about ₱{up:.0f}. {most}, {slower} of "
-        f"{len(moves)}, come down slower than they go up. Here the typical "
-        f":blue[**farm price**] goes up and down {SWINGS} times, and the **store "
-        "price** follows. The :orange[**bracket**] is what you still pay extra."
+        f"When the farm price rises ₱10, stores add about ₱{up:.0f}. {most}, "
+        f"{slower} of {len(moves)}, come down slower than they go up. Push the "
+        "typical food's :blue[**farm price**] up and down, and watch the **store "
+        "price** follow. The :orange[**bracket**] is what you pay extra."
     )
-    st.caption(
-        ":material/science: An example, not a record: the typical food's moves, "
-        f"played out {SWINGS} times."
-    )
+    st.caption(":material/science: An example, not a record: the typical food's moves.")
+    ratchet_toy(up, down)
+    return moves
+
+
+def _press(move: int) -> None:
+    """Add one press (+1 up, −1 down, 0 start over) to the ratchet toy."""
+    pressed = st.session_state.get(RATCHET_MOVES, [])
+    st.session_state[RATCHET_MOVES] = [*pressed, move] if move else []
+
+
+@st.fragment
+def ratchet_toy(up: float, down: float) -> None:
+    """The ratchet's buttons, chart and so-what. A fragment, so a press reruns
+    only this, not the page."""
+    pressed: list[int] = st.session_state.get(RATCHET_MOVES, [])
+    farm_net = 10 * sum(pressed)
+    store_net = sum(round(up) if m > 0 else -round(down) for m in pressed)
+    full = len(pressed) >= RATCHET_MAX
+    with st.container(horizontal=True):
+        st.button(
+            "Farm price +₱10",
+            key="ratchet_up",
+            icon=":material/arrow_upward:",
+            disabled=full,
+            on_click=_press,
+            args=(1,),
+        )
+        st.button(
+            "Farm price −₱10",
+            key="ratchet_down",
+            icon=":material/arrow_downward:",
+            disabled=full or farm_net - 10 < RATCHET_FLOOR,
+            on_click=_press,
+            args=(-1,),
+        )
+        st.button(
+            "Start over",
+            key="ratchet_reset",
+            icon=":material/replay:",
+            type="tertiary",
+            disabled=not pressed,
+            on_click=_press,
+            args=(0,),
+        )
     with reveal("ratchet"):
         st.echarts_chart(
-            ratchet_chart(up, down),
+            ratchet_chart(up, down, pressed),
             height=240,
             key="ratchet_chart",
-            alt=f"Example: the farm price rises and falls ₱10 {SWINGS} times; the "
-            f"store price rises ₱{up:.0f} and falls ₱{down:.0f} each time",
+            alt=f"A toy: each press moves the farm price ₱10; the store price "
+            f"rises ₱{up:.0f} and falls ₱{down:.0f} each time",
         )
-    creep = SWINGS * (round(up) - round(down))
-    so_what(
-        f"So after {SWINGS} ups and downs the farm price is back where it started, "
-        f"but the store price is ₱{creep} higher. Shoppers keep paying for drops "
-        "they never see."
-        if creep > 0
-        else f"So after {SWINGS} ups and downs, both prices end where they started."
-    )
-    return moves
+    if not pressed:
+        return
+
+    def where(net: float) -> str:
+        if net == 0:
+            return "back where it started"
+        return f"₱{abs(net):.0f} {'higher' if net > 0 else 'lower'}"
+
+    extra = store_net - farm_net
+    if extra > 0:
+        so_what(
+            f"So the farm price is {where(farm_net)}, but the store price is "
+            f"{where(store_net)}. You pay ₱{extra:.0f} the farmer never saw."
+        )
+    elif extra == 0:
+        so_what(
+            "So far the store price has kept pace with the farm price. Now push "
+            "the farm price down."
+            if -1 not in pressed
+            else "So the store price kept pace with the farm price both ways."
+        )
+    else:
+        so_what(f"So the store price moved ₱{-extra:.0f} less than the farm price.")
 
 
 def change_only_food(monthly: pd.DataFrame, changes: pd.DataFrame, staple: str) -> None:

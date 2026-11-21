@@ -186,19 +186,19 @@ def test_hook_is_the_2023_onion_crisis_from_the_mart():
 def test_claims_for_match_the_staple_or_its_category_newest_first():
     suspects = data.load_suspects()
     rice = data.claims_for(suspects, "Regular rice", "Rice")
-    assert len(rice) == 2 and set(rice["staple"]) == {"Rice"}
+    assert len(rice) == 1 and set(rice["staple"]) == {"Rice"}
     onion = data.claims_for(suspects, "Red onion", "Spices")
     assert onion["source_date"].is_monotonic_decreasing
     assert data.claims_for(suspects, "Egg", "Poultry").empty
 
 
-def test_suspects_seed_has_a_source_for_every_claim():
+def test_suspects_seed_has_a_dated_source_for_every_claim_and_no_opinion():
     suspects = data.load_suspects()
     assert set(suspects["role"]) <= {"suspect", "alibi"}
-    assert (
-        suspects[["claim", "status", "source_name", "source_url"]].notna().all().all()
-    )
+    sourced = ["claim", "status", "source_name", "source_url", "source_date"]
+    assert suspects[sourced].notna().all().all()
     assert suspects["source_url"].str.startswith("https://").all()
+    assert not suspects["status"].str.contains("opinion", case=False).any()
 
 
 def test_up_and_down_scale_to_10_pesos_and_drop_thin_foods():
@@ -282,13 +282,24 @@ def test_parts_then_now_are_medians_skipping_foods_without_wholesale():
     }
 
 
+def ratchet_lines(steps: pd.DataFrame) -> tuple[list[float], list[float]]:
+    farm = steps[steps["line"] == data.FARM]["price"].tolist()
+    return farm, steps[steps["line"] == data.STORE]["price"].tolist()
+
+
 def test_ratchet_returns_the_farm_to_its_start_and_lifts_the_store():
     # Up ₱9.6 rounds to 10, down ₱7.6 to 8: the store ends 3 x ₱2 = ₱6 higher.
-    steps = data.ratchet(9.6, 7.6, swings=3)
-    farm = steps[steps["line"] == data.FARM]["price"].tolist()
-    store = steps[steps["line"] == data.STORE]["price"].tolist()
+    farm, store = ratchet_lines(data.ratchet(9.6, 7.6, [1, -1] * 3))
     assert farm == [0, 10, 0, 10, 0, 10, 0]
     assert store == [0, 10, 2, 12, 4, 14, 6]
+
+
+def test_ratchet_follows_the_readers_presses_from_the_start():
+    assert ratchet_lines(data.ratchet(9.6, 7.6, [])) == ([0], [0])
+    assert ratchet_lines(data.ratchet(9.6, 7.6, [-1, -1])) == (
+        [0, -10, -20],
+        [0, -8, -16],
+    )
 
 
 def test_food_verdicts_fixture_traders_part_grew_more_than_stores():
@@ -302,28 +313,13 @@ def test_food_verdicts_fixture_traders_part_grew_more_than_stores():
     }
 
 
-def test_farm_fell_keeps_only_falling_farm_prices_biggest_split_first():
-    changes = pd.DataFrame(
-        {
-            "staple": ["Up", "Both down", "Farm down store up", "Store flat"],
-            "farm_change": [0.30, -0.20, -0.10, -0.05],
-            "store_change": [0.10, -0.18, 0.10, 0.0],
-        }
-    )
-    rows = data.farm_fell(changes)
-    assert list(rows["staple"]) == ["Farm down store up", "Store flat", "Both down"]
-
-
 def test_price_changes_fixture_tomato_farm_down_26_store_up_13():
     changes = pd.read_parquet(
         Path(__file__).parent / "fixtures" / "marts" / "price_changes_yearly.parquet"
     )
-    fell = data.farm_fell(changes)
-    top = fell.iloc[0]
-    assert top["staple"] == "Tomato"
-    assert round(top["farm_change"] * 100) == -26
-    assert round(top["store_change"] * 100) == 13
-    assert int((fell["store_change"] > 0).sum()) == 6
+    tomato = changes[changes["staple"] == "Tomato"].iloc[0]
+    assert round(tomato["farm_change"] * 100) == -26
+    assert round(tomato["store_change"] * 100) == 13
     pork = changes[changes["staple"] == "Pork kasim"].iloc[0]
     assert pork["farm_measure"] == "live weight"
     assert pork["farm_name"] == "live hog"
@@ -355,3 +351,27 @@ def test_since_2018_measures_each_line_from_its_own_2018_average():
     last = series[series["month"] == "2026-09-01"].set_index("line")["change"]
     assert last[data.FARM] == pytest.approx(0.2)
     assert last[data.STORE] == pytest.approx(0.5)
+
+
+def test_receipt_splits_the_example_basket_into_whole_pesos_that_add_up():
+    """Hand-worked from the fixture's latest national rows, largest remainder:
+    rice ₱50.10 = 33.08 + 12.41 + 4.61 -> 33 + 12 + 5; galunggong's quarter
+    ₱237.32 = 127.94 + 50.97 + 58.41 -> 128 + 51 + 58; tomato ₱107.82 ->
+    39 + 26 + 43; half a kilo of red onion ₱70.33 = 18.34 + 25.75 + 26.24 ->
+    18 + 26 + 26; 12 eggs ₱109.56 = 82.68 + 5.28 + 21.60 -> 83 + 5 + 22."""
+    receipt = data.receipt(pd.read_parquet(SHARES_FIXTURE))
+    rows = receipt[["item", "pay", "farmer", "traders", "stores"]]
+    assert rows.values.tolist() == [
+        ["Rice, 1 kg", 50, 33, 12, 5],
+        ["Galunggong, 1 kg", 237, 128, 51, 58],
+        ["Tomato, 1 kg", 108, 39, 26, 43],
+        ["Red onion, ½ kg", 70, 18, 26, 26],
+        ["Eggs, 12", 110, 83, 5, 22],
+        ["Total", 575, 301, 120, 154],
+    ]
+    galunggong = receipt.iloc[1]
+    assert (galunggong["month"], galunggong["months"]) == (
+        pd.Timestamp("2026-07-01"),
+        3,
+    )
+    assert receipt.iloc[0]["month"] == pd.Timestamp("2026-09-01")

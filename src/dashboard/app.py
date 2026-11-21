@@ -19,7 +19,9 @@ st.set_page_config(
 #   colour comes from the theme);
 # - each story chart fades and rises in as it scrolls into view
 #   (`views.reveal`), tied to the scroll itself. A browser without scroll-driven
-#   animations, or a reader who asked for reduced motion, sees the chart as is.
+#   animations, or a reader who asked for reduced motion, sees the chart as is;
+# - the chain's arrows (`views.chain_section`) turn to point down on a phone,
+#   where Streamlit stacks the columns (below 640 px).
 st.html(
     """<style>
 .stApp { font-variant-numeric: tabular-nums; }
@@ -38,6 +40,12 @@ st.html(
       animation-timeline: view();
       animation-range: entry 0% entry 80%;
     }
+  }
+}
+[class*="st-key-chain_arrow_"] p { text-align: center; }
+@media (max-width: 640px) {
+  [class*="st-key-chain_arrow_"] [role="img"] {
+    transform: rotate(90deg);
   }
 }
 </style>"""
