@@ -23,6 +23,10 @@ VERDICTS = "mart/food_verdicts.parquet"
 CHANGES = "mart/price_changes_yearly.parquet"
 CHANGE_ONLY = "mart/change_only_monthly.parquet"
 GROWTH = "mart/growth_since_2018.parquet"
+SEASONAL = "mart/seasonal_baseline.parquet"
+# Under this swing (5%: rice 2%, egg 4%, tomato 36%) a food has no season worth
+# judging the month against, so the page says so instead.
+MIN_SEASON_SWING = 0.05
 # The suspects seed is hand-kept and ships with the app, so it is read from the
 # repo: editing the CSV on main is its only upkeep.
 SUSPECTS = Path("dbt/seeds/suspects.csv")
@@ -375,4 +379,69 @@ def newest_move(shares: pd.DataFrame) -> pd.Series | None:
             "now": int(row["now"]),
             "before": int(row["before"]),
         }
+    )
+
+
+def usual_year(baseline: pd.DataFrame, staple: str) -> pd.DataFrame:
+    """One food's 12 months, oldest first, ending at its latest month: the usual
+    store price range (`usual_low`, `usual_high`) and the actual price
+    (`recent_price`), with a short month name (`label`) for the x axis. Empty when
+    the mart has no band for it (no row, or no price level)."""
+    rows = baseline[baseline["staple"] == staple].dropna(subset=["usual_low"])
+    rows = rows.sort_values("recent_month")
+    return rows.assign(label=rows["recent_month"].dt.strftime("%b")).reset_index(
+        drop=True
+    )
+
+
+def against_usual(price: float, low: float, high: float) -> str:
+    """ "higher" or "lower" only outside the usual range, else "usual"."""
+    if price > high:
+        return "higher"
+    if price < low:
+        return "lower"
+    return "usual"
+
+
+def _shown(value: float) -> float:
+    # Whole pesos read faster; a cheap item (an egg) keeps its centavos.
+    return round(value) if value >= 20 else round(value, 2)
+
+
+def _pesos(value: float) -> str:
+    return f"₱{value:,.0f}" if value >= 20 else f"₱{value:,.2f}"
+
+
+def season_sentence(baseline: pd.DataFrame, staple: str) -> str | None:
+    """The food's usual cheapest and dearest months, then its latest month against
+    the usual range for that month. None when the mart has no row for it."""
+    rows = baseline[baseline["staple"] == staple]
+    if rows.empty:
+        return None
+    if float(rows["swing"].iloc[0]) < MIN_SEASON_SWING:
+        return "Its price barely changes with the season."
+    by_month = rows.set_index("calendar_month")["ratio_median"]
+    cheap, dear = (
+        pd.Timestamp(2000, int(m), 1).strftime("%B")
+        for m in (by_month.idxmin(), by_month.idxmax())
+    )
+    months = f"{staple} is usually cheapest in {cheap} and dearest in {dear}."
+    latest = pd.Timestamp(rows["latest_month"].iloc[0])
+    now = rows[rows["recent_month"] == latest]
+    if now.empty or pd.isna(now["usual_low"].iloc[0]):
+        return months
+    # Judged on the shown pesos, so "₱69, higher than usual (₱65–₱69)" can't read.
+    price, low, high = (
+        _shown(float(now[c].iloc[0]))
+        for c in ("recent_price", "usual_low", "usual_high")
+    )
+    name = latest.strftime("%B")
+    reading = {
+        "usual": f"usual for {name}",
+        "higher": f"higher than usual for {name}",
+        "lower": f"lower than usual for {name}",
+    }[against_usual(price, low, high)]
+    return (
+        f"{months} {latest:%B %Y}: {_pesos(price)}, {reading} "
+        f"({_pesos(low)}–{_pesos(high)})."
     )

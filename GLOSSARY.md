@@ -100,6 +100,10 @@ _Avoid_: year-on-year, YoY, annual change
 A food's national farm price and store price averaged over the last 12 months, each as a percent change from its 2018 average (`growth_since_2018`), meat included. A store price that grew faster than the farm price means the middle grew.
 _Avoid_: long-run change, trend
 
+**Usual range**:
+The store prices a food has usually had in one calendar month, from past full years with the highest and lowest left out, in today's pesos (`seasonal_baseline`). A latest month above or below it is "higher" or "lower than usual for" that month; a food whose usual months barely differ gets no range.
+_Avoid_: seasonal verdict, normal range, baseline
+
 **Pass-through**:
 How many pesos a staple's retail price moves per peso its farmgate price moves, in 2018 pesos (deflated by CPI), counted separately over months when the farmgate price rose (up) or fell (down) more than 15% from a year earlier. Below 1 on the way down means shoppers never saw part of the fall.
 _Avoid_: asymmetry, stickiness, rockets and feathers
@@ -134,9 +138,9 @@ One part of a page, numbered top-down within it, e.g. "page 1, section 3". Read 
 | Who got caught | 1 | It's not one food, and it's not new | Each food's farmer centavos, then a dumbbell per food joining its farm and store growth since 2018 | Farmer's share, growth since 2018 |
 | | 2 | Who got caught | The public record, rulings first | Public record, suspect |
 | | 3 | What can be done | What is being done, and where the reader can report | |
-| Check your food | 1 | Check your food | One food's store price, farm price, traders' and stores' parts, its gap's growth and moves, and its farmer's share against the typical food's. Meat: its two prices, then each one's change over the year and since 2018 | Farmer's share, year's change |
+| Check your food | 1 | Check your food | One food's store price, farm price, traders' and stores' parts, its gap's growth and moves, and its farmer's share against the typical food's. Meat: its two prices, then each one's change over the year and since 2018. Every food: its last 12 months against the usual range | Farmer's share, year's change, usual range |
 | The short version | 1 | The short version | The whole finding as plain bullets, no charts, the newest month's biggest move among them | |
-| How it's built | 1 | How it's built | The pipeline as a picture, four facts, the latest PSA release and the repo link | |
+| How it's built | 1 | How it's built | The pipeline as a picture, four facts, how the usual range is worked out, the latest PSA release and the repo link | Usual range |
 
 **Receipt**:
 A week's shopping basket drawn as a receipt, each line's price split into the farmer's, traders' and stores' pesos. It opens on our example basket, labelled an example, and the reader adds or drops foods; then it reads "Your basket" (ADR 26).

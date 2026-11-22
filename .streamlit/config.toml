@@ -2,8 +2,8 @@
 # palette for both modes, the same values as src/dashboard/views.py: farmer blue
 # #4A72E0 (also the accent) and amber #C77700, each at least 3:1 on both
 # backgrounds. Their text colours are set too, since Streamlit would otherwise
-# darken them 15% and the amber would turn brown. Both modes are defined, so the
-# app follows the viewer's system setting and the Settings menu can switch it.
+# darken them 15% and the amber would turn brown. Both modes are defined; the
+# page opens light (src/dashboard/theme.py) and the Settings menu can switch it.
 # Red and green mean dearer and cheaper only (.claude/rules/dashboard.md), so
 # they never appear as a plain series colour; the diverging palette runs green
 # (cheaper) to red (dearer) for maps and the calendar; charts read it through

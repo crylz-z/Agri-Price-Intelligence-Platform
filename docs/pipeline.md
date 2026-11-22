@@ -24,12 +24,12 @@ The detail behind the [README](../README.md). Rules for changing the pipeline ar
 - **Dashboard** (`src/dashboard/`), five pages under a top navigation, each section a headline, at most one line and a so-what line. The story charts are ECharts with a brief entry animation. Blue is the farmer, amber the middle (traders and the gap), and the store price is ink:
   1. **The story** (`/`): the newest month's biggest move in a farmer's share; the 2023 onion crisis, where the reader guesses the store price before the page shows it; who stands between farm and store; a receipt splitting the reader's own basket (an example until they change it) between farmer, traders and stores; traders' centavos of a peso in 2018 and now; an example where the farm price goes up and back down and the store price ratchets up; and the total regulators have fined so far.
   2. **Who got caught** (`/caught`): each food's farmer centavos and farm and store growth since 2018, then the public record (`dbt/seeds/suspects.csv`), rulings first, and what can be done, with a button to report a cartel to the Philippine Competition Commission.
-  3. **Check your food** (`/food?food=…`): one food's prices, its numbers, and its farmer's share against the typical food's. Meat shows its live-animal and cut prices, then how each moved since 2018.
+  3. **Check your food** (`/food?food=…`): one food's prices, its numbers, and its farmer's share against the typical food's. Meat shows its live-animal and cut prices, then how each moved since 2018. Under every food, its last 12 months against the usual range for each month (`seasonal_baseline`).
   4. **The short version** (`/short`): the whole finding as plain bullets, no charts, then links to the proof and to the reader's own food.
   5. **How it's built** (`/how`): this pipeline as a picture, the latest PSA release and the repo link.
 
   Streamlit Community Cloud updates on every push to `main`.
-- **$0 on R2**: a release day has up to 30 snapshot writes and 5 mart writes, plus about 30 HEADs a day, well inside the free tier. See [R2 pricing](https://developers.cloudflare.com/r2/pricing/). The reasons behind each tool are in [adr.md](adr.md); the terms are defined in [GLOSSARY.md](../GLOSSARY.md).
+- **$0 on R2**: a release day has up to 30 snapshot writes and 6 mart writes, plus about 30 HEADs a day, well inside the free tier. See [R2 pricing](https://developers.cloudflare.com/r2/pricing/). The reasons behind each tool are in [adr.md](adr.md); the terms are defined in [GLOSSARY.md](../GLOSSARY.md).
 
 ## Rehearse the deploy, run dbt alone
 ```

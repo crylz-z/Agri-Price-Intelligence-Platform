@@ -157,6 +157,9 @@ def test_how_its_built_shows_the_pipeline_and_its_live_numbers():
     lines = [m.value for m in at.markdown]
     for title, icon, text in how.FACTS:
         assert f"**:material/{icon}: {title}**" in lines and text in lines
+    assert how.USUAL in lines
+    assert "leaving out the highest and lowest year" in how.USUAL
+    assert "at least 5" in how.USUAL
     assert [(m.label, m.value) for m in at.metric] == [
         ("Latest PSA release", "06 Nov 2026"),
         ("Foods", "25"),

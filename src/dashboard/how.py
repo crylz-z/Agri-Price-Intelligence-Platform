@@ -26,7 +26,7 @@ PIPELINE = f"""digraph {{
   psa [label="PSA OpenSTAT\\nfarm, wholesale and store prices"];
   raw [label="Cloudflare R2: raw\\neach release, kept unchanged"];
   dbt [label="dbt build\\nmodels and tests"];
-  marts [label="Cloudflare R2: marts\\nfive Parquet tables"];
+  marts [label="Cloudflare R2: marts\\nsix Parquet tables"];
   page [label="This page\\nStreamlit"];
   cron -> psa [style=dashed, label="{GAP}checks"];
   psa -> raw [label="{GAP}new releases only"];
@@ -55,6 +55,15 @@ FACTS = (
     ("Checked daily", "schedule", "A job asks PSA for new releases every morning."),
 )
 
+USUAL = (
+    "Each month's store price is set against the average of its own year, so "
+    "inflation drops out. The usual range for a month spans every full year since "
+    "2018, leaving out the highest and lowest year, and a food needs at least 5 "
+    "full years to get one. The range is then scaled to the food's average store "
+    "price over the 12 months before its latest, so the month being judged doesn't "
+    "set its own range."
+)
+
 
 def page() -> None:
     shares = data.load(data.SHARES)
@@ -71,6 +80,8 @@ def page() -> None:
             with column.container(border=True, height="stretch"):
                 st.markdown(f"**:material/{icon}: {title}**")
                 st.markdown(text)
+    st.subheader("Usual for the time of year", anchor=False)
+    st.markdown(USUAL)
     released = views.latest_release(shares)
     with st.container(horizontal=True):
         st.metric("Latest PSA release", f"{released:%d %b %Y}", border=True)
