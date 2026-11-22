@@ -24,3 +24,7 @@ models:
       Each food's farm and store price growth since 2018, national, meat
       included, as in int_growth_since_2018, the store's biggest lead first. One
       row per staple. Written to R2 as Parquet.
+  - name: seasonal_baseline
+    description: >
+      int_seasonal_baseline as a mart, for the "usual year" chart in "Check your
+      food". Key (staple, calendar_month). Written to R2 as Parquet.

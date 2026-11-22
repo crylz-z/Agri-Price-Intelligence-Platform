@@ -10,9 +10,9 @@ paths:
 
 ## Layer contract
 - Raw: `s3://$S3_BUCKET_NAME/raw/table=<id>/updated=<YYYYMMDDTHHMMSS>.csv`, one per PSA release, stored as returned (Windows-1252, CRLF, missing values `.`, `..` or `...`), never rewritten. `<id>` drops PSA's `.px`; `updated` is PSA's timestamp without separators. Retail, farmgate, wholesale and CPI tables share this prefix.
-- Marts, rebuilt whole by dbt from the latest snapshot per table: `mart/farmer_share_monthly.parquet` (key `month, geo_code, staple`), `mart/food_verdicts.parquet` (`staple`), `mart/price_changes_yearly.parquet` (`staple`), `mart/growth_since_2018.parquet` (`staple`) and `mart/change_only_monthly.parquet` (`month, staple`).
+- Marts, rebuilt whole by dbt from the latest snapshot per table: `mart/farmer_share_monthly.parquet` (key `month, geo_code, staple`), `mart/food_verdicts.parquet` (`staple`), `mart/price_changes_yearly.parquet` (`staple`), `mart/growth_since_2018.parquet` (`staple`) `mart/change_only_monthly.parquet` (`month, staple`) and `mart/seasonal_baseline.parquet` (`staple, calendar_month`).
 - Order in `pipeline.main`: ingest; `dbt build` if it wrote anything, if `--build`, or if `pipeline.stale` finds a mart missing or older than the newest kept snapshot; a failed build exits 1.
-- `pipeline.stale` compares write times: the snapshots' come from ingest's own HEADs (`storage.modified`), the marts' from one HEAD each (5 Class B). `pipeline.MARTS` must match `models/marts/`; a pytest checks it.
+- `pipeline.stale` compares write times: the snapshots' come from ingest's own HEADs (`storage.modified`), the marts' from one HEAD each (6 Class B). `pipeline.MARTS` must match `models/marts/`; a pytest checks it.
 
 ## Ingest (`src/etl/ingest.py`)
 - Change detection is `storage.modified`: one HEAD, which also gives the write time. Never use s3fs `exists()`/`info()` on R2: a miss adds a ListObjects (Class A). Never list R2 in ingest.

@@ -114,3 +114,16 @@ models:
       - name: store_change
         data_tests:
           - not_null
+  - name: int_seasonal_index
+    description: >
+      Each national store price as a ratio to its own calendar year's average, for
+      full past years only (12 months, before the food's latest year). Key (staple,
+      year, calendar_month).
+  - name: int_seasonal_baseline
+    description: >
+      The usual store price for each food and calendar month, national: past years'
+      ratios with the highest and lowest year dropped (ratio_low, ratio_high), the
+      median, and usual_* in today's pesos (ratio x price_level, the average of the 12
+      months before latest_month; null unless all 12 exist). swing is the food's
+      max - min of ratio_median. Months with under 5 past years are left out.
+      recent_* is that calendar month's price in the 12 months ending latest_month.
