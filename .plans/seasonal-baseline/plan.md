@@ -32,8 +32,8 @@ Under the price chart on "Check your food", a 12-month "usual year" chart. A sha
 - [x] Pure functions in `src/dashboard/data.py` for the chart rows and the sentence — done when the new pytest cases pass offline (`uv run python -m pytest`).
 - [x] The "usual year" chart and sentence on "Check your food", for both share foods and change-only foods (meats) — done when http://localhost:8503 shows the band and sentence for Tomato, Red onion and Pork kasim, the barely-seasonal sentence for Well-milled rice, and the barely-seasonal sentence for Bangus. Screenshots judged by `screenshot-checker` at phone and wide widths.
 - [x] Mention it where the dashboard explains its methods (`how.py`), in one plain paragraph that includes the trimming and the 5-year minimum — done when the page renders and `test_pages.py` passes.
-- [ ] Caption: replace `tmp/linkedin/caption.md:46` with "Next: a 'usual for this month' range on each food, so a normal November spike reads differently from an unusual one." — done when the body recount (`awk '/^---$/{n++; next} n==1' tmp/linkedin/caption.md | wc -m`) stays ≤ 3,000. If the feature ships before posting, move it into the body as current instead.
-- [ ] Backlog: add "Who keeps the harvest drop: rice's farm price swings 10% with the season, its store price 2%, and the gap 20% (rice keeps in storage, so a flat store price alone proves nothing)" under Ideas — done when the line is in `.plans/backlog.md`.
+- [x] Caption: replace `tmp/linkedin/caption.md:46` with "Next: a 'usual for this month' range on each food, so a normal November spike reads differently from an unusual one." — done when the body recount (`awk '/^---$/{n++; next} n==1' tmp/linkedin/caption.md | wc -m`) stays ≤ 3,000. If the feature ships before posting, move it into the body as current instead.
+- [x] Backlog: add "Who keeps the harvest drop: rice's farm price swings 10% with the season, its store price 2%, and the gap 20% (rice keeps in storage, so a flat store price alone proves nothing)" under Ideas — done when the line is in `.plans/backlog.md`.
 - [ ] Full check — done when `uv run python -m pre_commit run --all-files` and `uv run python -m pytest` pass.
 
 ## Review
@@ -56,3 +56,4 @@ Under the price chart on "Check your food", a 12-month "usual year" chart. A sha
 - The fixture's `latest_month` and `recent_month` are cast to `timestamp[ms]`, like `change_only_monthly`: the page tests read with plain `pd.read_parquet`, which keeps `date32` as Python dates.
 - `scripts/screenshot.py` presets `theme.py`'s first-visit marker and theme key: since the light default, `SCHEME=dark` shot light pages and the reload broke captures mid-settle.
 - `how.py` gets a subheader and one paragraph after the fact cards, not a fifth card: an odd card count leaves a half-empty row. The pipeline picture now says "six Parquet tables".
+- The caption keeps the "Next:" line: the feature is not shipped before posting. Its body recount is 2,743 (tmp/ is gitignored, so no commit).
