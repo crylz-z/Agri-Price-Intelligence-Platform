@@ -24,8 +24,8 @@ CHANGES = "mart/price_changes_yearly.parquet"
 CHANGE_ONLY = "mart/change_only_monthly.parquet"
 GROWTH = "mart/growth_since_2018.parquet"
 SEASONAL = "mart/seasonal_baseline.parquet"
-# Under this swing (5%: rice 2%, egg 4%, tomato 36%) a food has no season worth a
-# verdict, so the page says so instead of judging the month.
+# Under this swing (5%: rice 2%, egg 4%, tomato 36%) a food has no season worth
+# judging the month against, so the page says so instead.
 MIN_SEASON_SWING = 0.05
 # The suspects seed is hand-kept and ships with the app, so it is read from the
 # repo: editing the CSV on main is its only upkeep.
@@ -394,7 +394,7 @@ def usual_year(baseline: pd.DataFrame, staple: str) -> pd.DataFrame:
     )
 
 
-def season_verdict(price: float, low: float, high: float) -> str:
+def against_usual(price: float, low: float, high: float) -> str:
     """ "higher" or "lower" only outside the usual range, else "usual"."""
     if price > high:
         return "higher"
@@ -436,12 +436,12 @@ def season_sentence(baseline: pd.DataFrame, staple: str) -> str | None:
         for c in ("recent_price", "usual_low", "usual_high")
     )
     name = latest.strftime("%B")
-    verdict = {
+    reading = {
         "usual": f"usual for {name}",
         "higher": f"higher than usual for {name}",
         "lower": f"lower than usual for {name}",
-    }[season_verdict(price, low, high)]
+    }[against_usual(price, low, high)]
     return (
-        f"{months} {latest:%B %Y}: {_pesos(price)}, {verdict} "
+        f"{months} {latest:%B %Y}: {_pesos(price)}, {reading} "
         f"({_pesos(low)}–{_pesos(high)})."
     )

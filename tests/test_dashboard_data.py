@@ -502,10 +502,10 @@ def test_usual_year_is_empty_without_a_price_level():
 
 
 @pytest.mark.parametrize(
-    ("price", "verdict"), [(100.0, "usual"), (121.0, "higher"), (79.0, "lower")]
+    ("price", "expected"), [(100.0, "usual"), (121.0, "higher"), (79.0, "lower")]
 )
-def test_season_verdict(price, verdict):
-    assert data.season_verdict(price, low=80.0, high=120.0) == verdict
+def test_against_usual(price, expected):
+    assert data.against_usual(price, low=80.0, high=120.0) == expected
 
 
 def test_season_sentence_names_the_months_and_the_latest_verdict():

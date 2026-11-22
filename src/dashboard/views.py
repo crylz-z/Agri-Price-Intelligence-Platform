@@ -1,7 +1,7 @@
 """The dashboard's pages for a reader new to the topic (ADR 14, ADR 25).
 
 "Who's eating the farmer's peso?" in the order a short video would tell it
-(ADR 18), split into four pages (`nav.PAGES`, ADR 25). Each page opens with
+(ADR 18), split into five pages (`nav.PAGES`, ADR 25). Each page opens with
 `masthead` and ends with `footer`. Read in order, the headlines tell the story.
 
 The story (`story_page`), the whole finding in about 90 seconds on a phone:
@@ -25,7 +25,8 @@ Who got caught (`caught_page`):
 
 Check your food (`food_page`): one food's prices and numbers. Meat, whose farm
 price is for a live animal, shows both prices as a change since 2018
-(change_only_monthly). How it's built is `how.py`.
+(change_only_monthly). Every food ends on its usual year (seasonal_baseline,
+ADR 27). The short version is `short_page`; how it's built is `how.py`.
 
 The word budget (spec): each section has its headline, at most one line under
 it and one so-what; detail goes in a tooltip or the Sources expander.

@@ -26,7 +26,7 @@ An embedded SQL engine over files on R2 serves dbt, the tests and ad-hoc queries
 - **Not DuckDB's `httpfs`:** `s3fs` is proven against R2 and shares one config (`src/core/storage.py`) with ingest and the dashboard. It was first chosen when Windows Smart App Control blocked the extension.
 
 ## 6. dbt Core 1.x with dbt-duckdb models and tests the data
-A staging model and one mart, with dbt tests that fail the run before bad data is published. The mart is written to R2 as Parquet. pytest covers the ingest code.
+Staging and intermediate models feed the marts (`src/etl/pipeline.py` `MARTS`), with dbt tests that fail the run before bad data is published. Each mart is written to R2 as Parquet. pytest covers the ingest code.
 - **Not plain SQL files:** an earlier version used them, but it would mean rebuilding dbt's dependency order, tests and docs by hand.
 - **Not dbt v2:** it's a proprietary Rust binary with "CLI only" DuckDB support and no documented fsspec/R2 access. v1 remains supported and Apache-2.0 licensed.
 - **Not Great Expectations or Soda:** a framework to express a handful of checks dbt already runs.
@@ -36,12 +36,12 @@ One job a day (ingest, then dbt only if something changed) is free on a public r
 - **Not Airflow, Dagster or Prefect:** a scheduler server to host and monitor, for a single two-step job.
 
 ## 8. Streamlit on Streamlit Community Cloud for the dashboard
-The dashboard is 3 Python pages over four small marts, hosted free from the GitHub repo with a read-only R2 token in Streamlit's secrets. The cost is a wake-up page after 12 hours without visitors.
+The dashboard is a few Python pages over small marts, hosted free from the GitHub repo with a read-only R2 token in Streamlit's secrets. The cost is a wake-up page after 12 hours without visitors.
 - **Not Vercel:** it can't run Streamlit's long-running server, so it would mean rewriting the dashboard as a static JavaScript site.
-- **Not Evidence or another static DuckDB-WASM site:** no sleep and no keys online, but it replaces tested Python code with a Node build for the same 2 charts.
+- **Not Evidence or another static DuckDB-WASM site:** no sleep and no keys online, but it replaces tested Python code with a Node build for the same charts.
 
 ## 9. Stories are computed in dbt marts, the dashboard only shows them
-Every headline number comes from a tested dbt model published as a small Parquet mart, so it has a test behind it: today the farmer's share and the verdicts, 2 R2 puts per release day.
+Every headline number comes from a tested dbt model published as a small Parquet mart, so it has a test behind it, at one R2 put per mart per release day.
 - **Not pandas in Streamlit:** the logic would be untested and recomputed on every visitor's session.
 
 ## 11. Story numbers are checked against PSA, not only against our own code
@@ -53,6 +53,8 @@ Chosen 2026-11-08, because the earlier page showed snapshots with no tension: a 
 - **Not naming private individuals:** a public page calling a person guilty while cases are open is a libel risk; findings and agencies carry the blame.
 - **Not blame from our data alone:** prices show where the pesos go missing, not who takes them; only the record names suspects.
 - **Not keeping Overview, Compare places and Look up a food:** they answer no question in the story; one "Check your food" section replaces them.
+
+_Since 2026-11-22 seasonality is back, as the usual range on "Check your food" (ADR 27)._
 
 ## 15. Pass-through is measured in pesos, after inflation
 Section 2 compares how far the store price moves per peso of farm price move, in months when the farm price rose against months when it fell more than 15% from a year earlier, with both prices deflated by CPI to 2018 pesos. Chosen 2026-11-08 because a critic's first answer to a large middle's cut is "costs rose", and costs that rise in both directions cannot explain a store price that follows the farm price up further than down. Before deflating, the gap read ₱12 up against ₱7 down per ₱10; after, ₱10 against ₱8.
@@ -66,7 +68,7 @@ Chosen 2026-11-08, because the story's open question is "who takes the gap?" and
 - **Not the wholesale price index (`PI/WPI`):** it summarises prices we already hold item by item.
 
 ## 17. ECharts with a brief entry animation for sections 1 and 3
-Chosen 2026-11-09, replacing Altair for these two charts, because a reader new to the topic should see the typical peso fill up and the store price climb away from the farm price. `st.echarts_chart` ships with Streamlit 1.66, so nothing is installed. The animation runs 0.8 s, plays once and doesn't loop, and the finished frame carries the point alone, since ECharts can't read the viewer's reduced-motion setting. Options are JSON only: no JavaScript formatters, `custom` series or maps. Sections 2 and 4 stay in Altair until the owner has seen the feel.
+Chosen 2026-11-09, replacing Altair for these two charts, because a reader new to the topic should see the typical peso fill up and the store price climb away from the farm price. `st.echarts_chart` ships with Streamlit 1.66, so nothing is installed. The animation runs 0.8 s, plays once and doesn't loop, and the finished frame carries the point alone, since ECharts can't read the viewer's reduced-motion setting. Options are JSON only: no JavaScript formatters, `custom` series or maps.
 - **Not Altair transitions:** Vega-Lite has no entry animation.
 - **Not Plotly:** a second heavy library for the same two charts, and the developing-with-streamlit skill steers away from it.
 
@@ -85,7 +87,7 @@ Chosen 2026-11-09, extending ADR 18's "pork appears only in section 1": pork is 
 - **Not pesos on one axis:** the space between a live-hog line and a kasim line would read as a gap that the products' difference, not the middle, creates.
 
 ## 21. The middle is the story's villain, and amber is its colour
-Chosen 2026-11-11 after a critique found the page had no villain, no stakes and the same template five times. The middle (traders between farm and store) is the villain, shown by our data: the typical food's trader's cut grew from 16 to 21 centavos of a peso since 2018. The public record (the PCC's onion cartel ruling of 1 Oct 2026) sits under it as proof that it happens, worded "found" or "alleged" with no person's name, and stays hidden (`views.SHOW_RECORD`) until the owner checks its sources by hand. The page opens on the 2023 onion crisis (store ₱468 against farm ₱216 in January), the ratchet is labelled an example on screen, and a one-line ending closes it. Amber, ADR 19's "what you pay", now marks the middle: the traders' part of the peso, the gap between farm and store, the ratchet's climb. The store price is ink. An ECharts or Altair store series is left uncoloured as the second uncoloured series, so the theme's palette (`chartCategoricalColors[1]`, the text colour) picks the ink in the browser for each mode.
+Chosen 2026-11-11 after a critique found the page had no villain, no stakes and the same template five times. The middle (traders between farm and store) is the villain, shown by our data: the typical food's trader's cut grew from 16 to 21 centavos of a peso since 2018. The public record (the PCC's onion cartel ruling of 1 Oct 2026) is the proof that it happens, worded "found" or "alleged" with no person's name; it shows on page 2 (ADR 24, ADR 25). The page opens on the 2023 onion crisis (store ₱468 against farm ₱216 in January), the ratchet is labelled an example on screen, and a one-line ending closes it. Amber, ADR 19's "what you pay", now marks the middle: the traders' part of the peso, the gap between farm and store, the ratchet's climb. The store price is ink. An ECharts or Altair store series is left uncoloured as the second uncoloured series, so the theme's palette (`chartCategoricalColors[1]`, the text colour) picks the ink in the browser for each mode.
 - **Not amber as "what you pay":** the villain needs the one warm colour; a store price is what the reader already knows.
 - **Not choosing the ink in Python (`st.context.theme`):** Python learns the theme a rerun late (ADR 19), so the ink would be wrong for a run after a switch.
 
@@ -98,10 +100,10 @@ Chosen 2026-11-11, reversing the earlier choice to leave fish out: bangus, tilap
 Chosen 2026-11-11, replacing ADR 14's "the middle's cut against inflation" on screen: a peso gap needs a farm and store price for the same product, so meat (a live animal against a cut) couldn't appear. Each food's farm and store price growth since 2018 (`growth_since_2018`, the same windows as `food_verdicts`) is a percent for both, so meat sits on the same dumbbell chart as the crops, with inflation as a line. A store price that grew faster than the farm price is the middle growing; diesel, transport and fuel move to the tooltip. `food_verdicts` keeps the verdict for "Check your food".
 - **Not the peso gap with meat left out:** meat is what readers ask about first.
 
-_Since 2026-11-21 (owner, at the v4 read) the chart is one bar per food, the points the store grew more than the farm, amber where it did and grey where it didn't. The dumbbell's 50 labels and inflation line read as clutter; each food's prices and its gap against inflation stay in "Check your food"._
+_Since 2026-11-21 (owner, at the v4 read) there is no inflation line: the first dumbbell's 50 labels and that line read as clutter, and the one-bar-per-food chart that replaced it made the reader subtract two percents ("+67 pts"). Story v5 brought back a dumbbell whose labels give both percents, joined amber where the store grew faster and grey where it didn't. Each food's gap against inflation stays in "Check your food"._
 
 ## 24. The page is a mystery for a reader who doesn't follow the news, solved by the record and ended with what can be done
-_Its one page is replaced by ADR 25's four pages; the mystery order still holds across pages 1 and 2._
+_Its one page is replaced by ADR 25's pages; the mystery order still holds across pages 1 and 2._
 
 Chosen 2026-11-20 after the owner, viewing story v2, found no one to blame, no reason given and no stake for the reader. The reader knows nothing of farm prices and doesn't watch the news, so the page opens on a question they feel and every section moves toward its answer: a newcomer's picture of the chain from farm to store, the middle's share in our data, who regulators caught (the public record, on the page once the owner checks its sources), and a closing section on what is being done and what the reader can do. Amends ADR 14 (the record now answers the story instead of sitting hidden under section 4), ADR 18 (a section may be text only, or carry no chart) and ADR 21 (the villain gets a face from the record). Data numbers stay computed from tested marts. Context text (who traders are, why a middle exists, why farmers are poor, the causes and the fixes) may be written by hand, each fact with a cited source. Blame stays worded "found", "charged" or "alleged", names no private person, and never comes from our prices alone.
 - **Not an explainer that names no one:** story v2 was that page, and it gave a newcomer no reason to care.
@@ -116,7 +118,18 @@ Chosen 2026-11-21 after the owner, reading story v3 top to bottom, found it "ver
 - **Not the ratchet as a toy:** at the owner's read on 2026-11-21 its buttons went; the chart stays as a still example, three moves up and back.
 - **Not new content in the same job:** v4 only cuts and moves, so the owner can judge the split alone.
 
+_Since 2026-11-21 a fifth page, the short version (`/short`), sits between check your food and how it's built: the whole finding as plain bullets, no charts, for a reader short on time who can't get the finding from every chart over four pages (story v5)._
+
 ## 26. The receipt is the reader's own basket, and the story opens on the newest month's move
 Chosen 2026-11-21 at the owner's final read of story v4. Page 1, section 3's receipt starts as the example basket (ADR 24's pick) and the reader adds or drops foods in a multiselect; its so-what is computed from that basket: what of its total is spent after the farm, and that times 52 / 12 as a month of weekly shopping. A line under the title names the newest month's biggest whole-centavo move in a farmer's share (`data.newest_move`), so a reader coming back after a PSA release sees what changed. Both are computed on each release, like every headline.
 - **Not quantities per food:** a food is one line at its unit (the example's ½ kg of onion and 12 eggs aside), which keeps the widget one tap on a phone.
 - **Not share cards or a Filipino version:** both were proposed and dropped by the owner the same day.
+
+_Since 2026-11-21 (story v5) the newest month's move is a bullet on the short version, and the masthead says which PSA release the page is built on: above page 1's onion question it read as confusing._
+
+## 27. "Check your food" shows each food's usual range for the time of year
+Chosen 2026-11-22, reversing ADR 14's drop of seasonality, because a shopper who sees a November tomato spike can't tell whether it happens most years. Under the price chart, a grey band shows each month's usual store price and an ink line the last 12 months, with one sentence naming the usual cheapest and dearest months and whether the latest month is usual, higher or lower than usual for that month (`seasonal_baseline`). The band is each month's store price divided by that food's average over the same calendar year, which removes general inflation; over full past years only (2018 to the last complete year), dropping the highest and lowest year, with at least 5 years; scaled to pesos by the average store price of the 12 months before the latest, so the month being judged doesn't set its own band. A food whose usual months swing less than 5% (rice, eggs, fish) reads "barely changes with the season", with no chart. National only.
+- **Not `farmer_share_monthly`:** it drops months without a farm price (red onion has 6 to 10 a year there); the store price, from `int_staple_prices`, runs every month.
+- **Not the raw min and max of past years:** one freak year (a typhoon, the 2023 onion crisis) would widen the band until nothing reads unusual.
+- **Not amber:** this is the season, not the middle (ADR 21), so a high month never reads as "suspicious".
+- **Not a cheapest-month calendar:** the sentence carries the cheap and dear months, so one chart does both.
