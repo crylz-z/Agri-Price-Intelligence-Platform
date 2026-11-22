@@ -38,10 +38,6 @@ dev = [
 
 [tool.ruff]
 target-version = "py312"
-# Skill scripts (Streamlit's discover.py) are upstream code, kept unchanged;
-# force-exclude also skips them when pre-commit passes file names.
-extend-exclude = [".claude/skills"]
-force-exclude = true
 
 [tool.ruff.lint]
 # DTZ: every "now" and "today" must carry a timezone (Asia/Manila).

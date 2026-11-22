@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -136,7 +137,7 @@ def test_wholesale_tables_match_the_dbt_seed():
 def test_wholesale_snapshots_are_written(lake):
     fs, root = lake
     session = FakeSession([], wholesale=WHOLESALE_LISTING)
-    written = ingest.run(session, fs, root, delay=0)
+    written = ingest.run(session, fs, root, delay=0).written
 
     assert len(written) == len(ingest.WHOLESALE_TABLES)
     assert fs.cat_file(written[0]) == WHOLESALE_CSV
@@ -151,7 +152,7 @@ def test_cpi_tables_match_the_dbt_seed():
 def test_cpi_asks_only_for_the_national_rows_of_a_few_groups(lake):
     fs, root = lake
     session = FakeSession([], cpi=CPI_LISTING)
-    written = ingest.run(session, fs, root, delay=0)
+    written = ingest.run(session, fs, root, delay=0).written
 
     assert written == [f"{root}/raw/table=0012M4ACP22/updated=20261105T083553.csv"]
     assert session.queries == {"0012M4ACP22.px": ingest.CPI_QUERY}
@@ -162,14 +163,14 @@ def test_cpi_refuses_a_retail_layout(lake):
     fs, root = lake
     session = FakeSession([], cpi=CPI_LISTING[:1], cpi_csv=FIXTURE)
     with pytest.raises(ValueError, match="0012M4ACP22: not a PSA price CSV"):
-        ingest.run(session, fs, root, delay=0)
+        ingest.run(session, fs, root, delay=0).written
     assert not fs.exists(f"{root}/raw")
 
 
 def test_farmgate_snapshots_are_written_with_each_tables_header(lake):
     fs, root = lake
     session = FakeSession([], farmgate=FARMGATE_LISTING)
-    written = ingest.run(session, fs, root, delay=0)
+    written = ingest.run(session, fs, root, delay=0).written
 
     assert written == [
         f"{root}/raw/table=0032M4AFN01/updated=20261030T100608.csv",
@@ -185,7 +186,10 @@ def test_farmgate_snapshots_are_written_with_each_tables_header(lake):
     ]
     assert [fs.cat_file(p) for p in written] == list(FARMGATE_CSV.values())
     assert (
-        ingest.run(FakeSession([], farmgate=FARMGATE_LISTING), fs, root, delay=0) == []
+        ingest.run(
+            FakeSession([], farmgate=FARMGATE_LISTING), fs, root, delay=0
+        ).written
+        == []
     )
 
 
@@ -197,14 +201,14 @@ def test_farmgate_table_refuses_another_tables_layout(lake, table_id):
     wrong = next(v for k, v in FARMGATE_CSV.items() if k != table_id)
     session = FakeSession([], farmgate=listing, farmgate_csv={table_id: wrong})
     with pytest.raises(ValueError, match=f"{table_id}: not a PSA price CSV"):
-        ingest.run(session, fs, root, delay=0)
+        ingest.run(session, fs, root, delay=0).written
     assert not fs.exists(f"{root}/raw")
 
 
 def test_first_run_writes_one_snapshot_per_table_as_returned(lake):
     fs, root = lake
     session = FakeSession(LISTING)
-    written = ingest.run(session, fs, root, delay=0)
+    written = ingest.run(session, fs, root, delay=0).written
 
     assert written == [
         f"{root}/raw/table=0042M4ARN01/updated=20261002T081513.csv",
@@ -218,7 +222,7 @@ def test_unchanged_release_downloads_nothing(lake):
     fs, root = lake
     ingest.run(FakeSession(LISTING), fs, root, delay=0)
     session = FakeSession(LISTING)
-    assert ingest.run(session, fs, root, delay=0) == []
+    assert ingest.run(session, fs, root, delay=0).written == []
     assert session.posts == []
 
 
@@ -228,7 +232,7 @@ def test_new_release_adds_a_snapshot_and_keeps_the_old_one(lake):
     revised = [{**LISTING[1], "updated": "2026-11-04T09:00:00"}]
     session = FakeSession(revised)
 
-    written = ingest.run(session, fs, root, delay=0)
+    written = ingest.run(session, fs, root, delay=0).written
     assert written == [f"{root}/raw/table=0042M4ARN04/updated=20261104T090000.csv"]
     assert len(fs.ls(f"{root}/raw/table=0042M4ARN04")) == 2
 
@@ -241,19 +245,21 @@ def test_non_csv_response_is_never_stored(lake):
     assert not fs.exists(f"{root}/raw")
 
 
-def test_s3_exists_is_one_head_and_never_lists(monkeypatch):
+def test_s3_modified_is_one_head_and_never_lists(monkeypatch):
     fs = s3fs.S3FileSystem(anon=True, skip_instance_cache=True)
     calls: list[tuple[str, dict[str, str]]] = []
 
-    def call_s3(method: str, **kwargs: str) -> dict[str, str]:
+    written = datetime(2026, 11, 2, tzinfo=UTC)
+
+    def call_s3(method: str, **kwargs: str) -> dict[str, datetime]:
         calls.append((method, kwargs))
         if kwargs["Key"].endswith("missing.csv"):
             raise FileNotFoundError(kwargs["Key"])
-        return {}
+        return {"LastModified": written}
 
     monkeypatch.setattr(fs, "call_s3", call_s3)
-    assert storage.exists(fs, "s3://bucket/raw/table=A/updated=1.csv")
-    assert not storage.exists(fs, "s3://bucket/raw/table=A/missing.csv")
+    assert storage.modified(fs, "s3://bucket/raw/table=A/updated=1.csv") == written
+    assert storage.modified(fs, "s3://bucket/raw/table=A/missing.csv") is None
     assert calls == [
         ("head_object", {"Bucket": "bucket", "Key": "raw/table=A/updated=1.csv"}),
         ("head_object", {"Bucket": "bucket", "Key": "raw/table=A/missing.csv"}),

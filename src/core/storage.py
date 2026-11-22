@@ -5,6 +5,8 @@ e.g. https://<account_id>.r2.cloudflarestorage.com
 """
 
 import os
+from datetime import datetime
+from typing import cast
 from urllib.parse import urlparse
 
 import duckdb
@@ -47,16 +49,20 @@ def filesystem() -> s3fs.S3FileSystem:
     )
 
 
-def exists(fs: AbstractFileSystem, path: str) -> bool:
-    """One HEAD (Class B). s3fs's own exists() adds a ListObjects (Class A) on a miss."""
+def modified(fs: AbstractFileSystem, path: str) -> datetime | None:
+    """Last write time (UTC) from one HEAD (Class B); None when missing.
+
+    s3fs's own exists()/info() add a ListObjects (Class A) on a miss.
+    """
     if not isinstance(fs, s3fs.S3FileSystem):
-        return bool(fs.exists(path))
+        when = fs.modified(path) if fs.exists(path) else None
+        return cast(datetime | None, when)
     bucket, key, _ = fs.split_path(path)
     try:
-        fs.call_s3("head_object", Bucket=bucket, Key=key)
+        head = fs.call_s3("head_object", Bucket=bucket, Key=key)
     except FileNotFoundError:
-        return False
-    return True
+        return None
+    return cast(datetime, head["LastModified"])
 
 
 def configure_duckdb(con: duckdb.DuckDBPyConnection) -> None:

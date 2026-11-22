@@ -27,8 +27,9 @@ Thumbs.db
 *.log
 tmp/
 
-# Agents: AGENTS.md, CLAUDE.md, .claude/rules/, .claude/skills/ and .plans/ are
-# shared with the repo. Per-person, per-machine and per-session state stays local.
+# Agents: AGENTS.md, CLAUDE.md, .claude/rules/ and .plans/ are shared with the
+# repo. Skills, and per-person, per-machine and per-session state, stay local.
+.claude/skills/
 .claude/settings.local.json
 CLAUDE.local.md
 HANDOFF.md
