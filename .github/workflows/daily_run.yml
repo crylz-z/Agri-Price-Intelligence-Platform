@@ -31,6 +31,11 @@ jobs:
       with:
         enable-cache: true
     - run: uv sync --locked
+    # The betterleaks hook builds a Go binary; caching it saves that build on every run.
+    - uses: actions/cache@v4
+      with:
+        path: ~/.cache/pre-commit
+        key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
     # The same hooks as `git commit`: one list of checks in .pre-commit-config.yaml.
     - run: uv run python -m pre_commit run --all-files --show-diff-on-failure
     - run: uv run python -m pytest -q
@@ -38,7 +43,7 @@ jobs:
     - run: uv run python -m dbt.cli.main parse --project-dir dbt --profiles-dir dbt
 
   # Schedule and manual runs: ingest, then dbt only when PSA released something.
-  # A run with no release costs 1 PSA GET and 11 R2 HEADs (Class B).
+  # A run with no release costs 4 PSA GETs and 30 R2 HEADs (Class B).
   pipeline:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest

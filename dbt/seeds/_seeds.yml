@@ -1,0 +1,187 @@
+version: 2
+
+seeds:
+  - name: geolocations
+    description: >
+      PSGC code, label and geo level of PSA's 119 retail geolocations, from the
+      table metadata (GET on a table) on 2026-11-02. Identical in all 11 tables.
+  - name: psa_tables
+    description: PSA retail price table ids and the commodity group each publishes.
+  - name: psa_farmgate_tables
+    description: >
+      The PSA farmgate price tables (folder NFG) the farmer's share uses, and the
+      commodity group each publishes. Must match `FARMGATE_TABLES` in
+      src/etl/ingest.py. Retail staging reads every raw table not listed here.
+  - name: psa_wholesale_tables
+    description: >
+      The PSA wholesale price tables (folder NWSNEW) that split the gap, and the
+      commodity group each publishes. Must match `WHOLESALE_TABLES` in
+      src/etl/ingest.py.
+  - name: psa_cpi_tables
+    description: >
+      The PSA consumer price index table (folder PI/CPI/2018NEW) ingest keeps,
+      national rows of `CPI_GROUPS` only. Must match `CPI_TABLES` in
+      src/etl/ingest.py.
+  - name: staples
+    description: >
+      The basket: everyday staples by their plain name, each mapped to exactly one
+      PSA commodity. Chosen for wide province coverage (most over 80 provinces).
+    columns:
+      - name: staple
+        data_tests:
+          - unique
+      - name: unit
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [kg, pc]
+      - name: commodity
+        data_tests:
+          - unique
+          # A renamed PSA commodity would otherwise drop out of the basket silently.
+          - relationships:
+              arguments:
+                to: ref('int_retail_prices')
+                field: commodity
+  - name: psa_spot_checks
+    description: >
+      A few prices fetched from OpenSTAT's JSON API on 2026-11-02, outside the
+      pipeline, so a test can check the model against PSA's own numbers (ADR 11).
+      Query with `"format": "json"`: OpenSTAT's json-stat2 answers 1.0 for every cell.
+  - name: farmgate_commodities
+    description: >
+      Each staple with a farmgate price: its PSA farmgate table and commodity, and
+      retail_yield, kg of the retail product per kg of the farmgate product. Palay
+      is 0.63, PSA's milling recovery rate since 2025, as reported by the press and
+      USDA (the PSA resolution itself wasn't reachable). Ginger is Native and
+      monggo green, shiny (retail names no variety; confirmed with the owner
+      2026-11-07). Egg farmgate and retail are both per piece; the rest per kg.
+      Fish (bangus, tilapia, galunggong) comes from the quarterly fisheries
+      table, the same species as retail (ADR 22).
+    columns:
+      - name: staple
+        data_tests:
+          - unique
+          - relationships:
+              arguments:
+                to: ref('staples')
+                field: staple
+      - name: table_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('psa_farmgate_tables')
+                field: table_id
+  - name: wholesale_commodities
+    description: >
+      Each staple with a wholesale price: its PSA wholesale table and commodity,
+      hand-checked against the farmgate pick (Ginger Native, Mongo green, Onion
+      Red Creole, Tomato ripe, Eggplant long purple, Pechay native). Rice is
+      milled rice and egg per piece, like retail, so no yield conversion.
+      Kangkong has no wholesale price.
+    columns:
+      - name: staple
+        data_tests:
+          - unique
+          - relationships:
+              arguments:
+                to: ref('farmgate_commodities')
+                field: staple
+      - name: table_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('psa_wholesale_tables')
+                field: table_id
+  - name: farmgate_geolocations
+    description: >
+      PSA's national and region labels in the farmgate tables, lower case and
+      without footnote marks, mapped to the PSGC code in geolocations. Farmgate
+      labels differ from retail ones ("region i (ilocos region)"), so a label join
+      to geolocations doesn't work.
+    columns:
+      - name: label
+        data_tests:
+          - unique
+      - name: geo_code
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('geolocations')
+                field: geo_code
+  - name: farmer_share_exclusions
+    description: >
+      Staple and region pairs left out of the farmer's share because their
+      farmgate price sits at or above retail most months, which points to
+      different units (bundle vs kg) rather than a real share. Decided with the
+      owner 2026-11-07; the dashboard shows a caveat for them. A row with a
+      month drops that month only: a national price that no region's price
+      supports (pechay, Jan-Mar 2026, decided with the owner 2026-11-21).
+    columns:
+      - name: geo_code
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('farmgate_geolocations')
+                field: geo_code
+      - name: staple
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('farmgate_commodities')
+                field: staple
+  - name: psa_farmgate_spot_checks
+    description: >
+      A few farmgate prices fetched from OpenSTAT's JSON API on 2026-11-07,
+      outside the pipeline (ADR 11). Query with `"format": "json"`.
+  - name: suspects
+    description: >
+      Who the public record blames for a staple's middle's cut: one row per
+      staple and suspect, the claim worded as its source words it (found,
+      charged, alleged, decided), with the source and its date. role is
+      suspect or alibi (a reason that clears the middle). Agencies, trades and findings only, never a private person's
+      name. Each row's status was checked on `checked`. Rows sit rulings
+      first, then charges, findings and allegations; section 6 shows the
+      suspect rows in that order. staple is a staple or a staple category
+      (Rice).
+    columns:
+      - name: role
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [suspect, alibi]
+      - name: stage
+        description: >
+          How far the claim got, for the page's badge: ruling, charge,
+          finding, allegation, or research for an alibi.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [ruling, charge, finding, allegation, research]
+      - name: fine_php
+        description: A ruling's total fine in pesos, as its source states it; blank otherwise.
+      - name: source_url
+        data_tests:
+          - not_null
+  - name: change_only_commodities
+    description: >
+      Foods whose farm price is for another product than the store price (a live
+      animal against a cut of meat), so a percent change compares but a
+      farmer's share doesn't (ADR 18, ADR 23). farm_measure says what the
+      farm price is for; farm_name and store_name name the two products on the
+      page ("live hog", "kasim"). Read by int_change_only_prices, never by
+      int_farmer_share.
+    columns:
+      - name: staple
+        data_tests:
+          - unique
+          - relationships:
+              arguments:
+                to: ref('staples')
+                field: staple
+      - name: table_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('psa_farmgate_tables')
+                field: table_id

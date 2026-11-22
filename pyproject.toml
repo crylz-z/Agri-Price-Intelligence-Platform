@@ -1,7 +1,7 @@
 [project]
-name = "agri-price-intelligence-platform"
+name = "ph-food-prices"
 version = "0.2.0"
-description = "Agri-Price Intelligence Platform: monthly Philippine retail food prices from PSA OpenSTAT, kept at $0."
+description = "Monthly Philippine retail food prices from PSA OpenSTAT, kept at $0."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
@@ -38,6 +38,10 @@ dev = [
 
 [tool.ruff]
 target-version = "py312"
+# Skill scripts (Streamlit's discover.py) are upstream code, kept unchanged;
+# force-exclude also skips them when pre-commit passes file names.
+extend-exclude = [".claude/skills"]
+force-exclude = true
 
 [tool.ruff.lint]
 # DTZ: every "now" and "today" must carry a timezone (Asia/Manila).

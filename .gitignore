@@ -15,6 +15,7 @@ htmlcov/
 
 # Secrets (copy .env.example)
 .env
+.streamlit/secrets.toml
 
 # Editors and OS
 .vscode/
@@ -26,12 +27,11 @@ Thumbs.db
 *.log
 tmp/
 
-# Claude Code: CLAUDE.md and .claude/rules/ are shared with the repo.
-# Personal settings, skills and session notes stay local.
+# Claude Code: CLAUDE.md, .claude/rules/, .claude/skills/, .plans/ and HANDOFF.md
+# are shared with the repo; the workflow skills (grilling, to-plan, build) come
+# from the owner's harness plugin. Only per-machine state stays local.
 .claude/settings.local.json
-.claude/skills/
-.plans/
-handoff.md
+.claude/worktrees/
 dbt/target/
 dbt/logs/
 dbt/dbt_packages/

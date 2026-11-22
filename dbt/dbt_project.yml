@@ -6,6 +6,14 @@ profile: apip
 # Tests sit on the table models, never on the external mart: dbt-duckdb writes an
 # external file before its own tests run, so a failing upstream test is what keeps
 # bad data off R2 (dbt build skips everything downstream of it).
+vars:
+  # A staple is suspicious when its middle's cut grew more than this many points
+  # (0.10 = 10 points) faster than inflation from 2018 to the last 12 months.
+  verdict_margin: 0.05
+  # Up fast, down slow counts a month when its farm price moved more than this
+  # (0.15 = 15%) from a year earlier, in 2018 pesos.
+  move_threshold: 0.15
+
 models:
   apip:
     staging:
@@ -22,7 +30,79 @@ seeds:
         geo_code: varchar
         geolocation: varchar
         geo_level: varchar
+        region_code: varchar
     psa_tables:
       +column_types:
         table_id: varchar
         commodity_group: varchar
+    psa_farmgate_tables:
+      +column_types:
+        table_id: varchar
+        commodity_group: varchar
+    farmgate_commodities:
+      +column_types:
+        staple: varchar
+        table_id: varchar
+        farmgate_commodity: varchar
+        retail_yield: double
+    farmgate_geolocations:
+      +column_types:
+        label: varchar
+        geo_code: varchar
+    farmer_share_exclusions:
+      +column_types:
+        geo_code: varchar
+        staple: varchar
+        month: date
+        reason: varchar
+    psa_farmgate_spot_checks:
+      +column_types:
+        table_id: varchar
+        geo_code: varchar
+        commodity: varchar
+        month: date
+        price: double
+    psa_wholesale_tables:
+      +column_types:
+        table_id: varchar
+        commodity_group: varchar
+    wholesale_commodities:
+      +column_types:
+        staple: varchar
+        table_id: varchar
+        wholesale_commodity: varchar
+    change_only_commodities:
+      +column_types:
+        staple: varchar
+        table_id: varchar
+        farmgate_commodity: varchar
+        farm_measure: varchar
+        farm_name: varchar
+        store_name: varchar
+    psa_cpi_tables:
+      +column_types:
+        table_id: varchar
+        description: varchar
+    suspects:
+      +column_types:
+        staple: varchar
+        role: varchar
+        suspect: varchar
+        claim: varchar
+        status: varchar
+        source_name: varchar
+        source_url: varchar
+        source_date: date
+        checked: date
+    staples:
+      +column_types:
+        staple: varchar
+        category: varchar
+        unit: varchar
+        commodity: varchar
+    psa_spot_checks:
+      +column_types:
+        geo_code: varchar
+        commodity: varchar
+        month: date
+        price: double

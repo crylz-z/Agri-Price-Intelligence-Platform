@@ -3,7 +3,8 @@
 select
     prices.month,
     geolocations.geo_code,
-    prices.geolocation,
+    -- The seed label, so one area has one spelling (PSA mixes case across tables).
+    geolocations.geolocation,
     prices.geo_level,
     psa_tables.commodity_group,
     prices.commodity,

@@ -1,7 +1,76 @@
+# Palengke report: warm paper (light) or warm charcoal (dark), ink type. One
+# palette for both modes, the same values as src/dashboard/views.py: farmer blue
+# #4A72E0 (also the accent) and amber #C77700, each at least 3:1 on both
+# backgrounds. Their text colours are set too, since Streamlit would otherwise
+# darken them 15% and the amber would turn brown. Both modes are defined, so the
+# app follows the viewer's system setting and the Settings menu can switch it.
+# Red and green mean dearer and cheaper only (.claude/rules/dashboard.md), so
+# they never appear as a plain series colour; the diverging palette runs green
+# (cheaper) to red (dearer) for maps and the calendar; charts read it through
+# range="diverging". Colours fixed in code (src/dashboard/views.py) are mid-tones
+# that read on both backgrounds.
 [theme]
-base = "light"
-primaryColor = "#008000" # Agricultural Green
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F0F2F6"
-textColor = "#31333F"
-font = "sans serif"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+headingFont = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+headingFontWeights = [800, 700, 700, 600, 600, 600]
+headingFontSizes = ["2.4rem", "1.6rem", "1.25rem", "1rem", "0.9rem", "0.8rem"]
+baseFontSize = 16
+metricValueFontSize = "1.9rem"
+metricValueFontWeight = 700
+baseRadius = "0.75rem"
+showWidgetBorder = true
+
+[theme.light]
+primaryColor = "#4A72E0"
+backgroundColor = "#FAF7F2"
+secondaryBackgroundColor = "#F1ECE4"
+textColor = "#24211E"
+borderColor = "#E3DBCF"
+linkColor = "#4A72E0"
+redColor = "#B83227"
+greenColor = "#2E7D4F"
+blueColor = "#4A72E0"
+blueTextColor = "#4A72E0"
+orangeColor = "#C77700"
+orangeTextColor = "#C77700"
+dataframeHeaderBackgroundColor = "#F1ECE4"
+# Farmer blue, ink, amber first. Red/green are left out on purpose.
+chartCategoricalColors = ["#4A72E0", "#24211E", "#C77700", "#9C9389", "#6B7F99", "#B9AFA3"]
+chartSequentialColors = ["#F4F1EC", "#E3DED6", "#CFC8BE", "#B9B1A6", "#A19A90", "#8A837A", "#736D65", "#5C5751", "#45413D", "#24211E"]
+chartDivergingColors = ["#1B5E3A", "#2E7D4F", "#5FA77A", "#9CCBA8", "#DCEBDF", "#F6DAD3", "#EBA08D", "#D9664F", "#B83227", "#7E1C14"]
+
+[theme.light.sidebar]
+backgroundColor = "#F1ECE4"
+secondaryBackgroundColor = "#E8E1D6"
+textColor = "#24211E"
+borderColor = "#E3DBCF"
+primaryColor = "#4A72E0"
+linkColor = "#4A72E0"
+
+# Dark: lifted red and green so they keep about 5:1 against the background.
+[theme.dark]
+primaryColor = "#4A72E0"
+backgroundColor = "#171513"
+secondaryBackgroundColor = "#221F1C"
+textColor = "#EDE7DF"
+borderColor = "#3A352F"
+linkColor = "#8FAAE0"
+redColor = "#E0624F"
+greenColor = "#4FAE76"
+blueColor = "#4A72E0"
+blueTextColor = "#4A72E0"
+orangeColor = "#C77700"
+orangeTextColor = "#C77700"
+dataframeHeaderBackgroundColor = "#221F1C"
+chartCategoricalColors = ["#4A72E0", "#EDE7DF", "#C77700", "#8A8178", "#8C9DB5", "#5E5750"]
+chartSequentialColors = ["#2A2724", "#3A3632", "#4C4741", "#5F5952", "#736C64", "#888077", "#9E968C", "#B5ADA3", "#CFC8BF", "#EDE7DF"]
+# Strongest change = brightest; near zero sinks toward the background.
+chartDivergingColors = ["#9BD9B0", "#66C28B", "#3FA36A", "#2B7D50", "#34413A", "#433737", "#9A3A2D", "#C9503E", "#E4735F", "#F4A99A"]
+
+[theme.dark.sidebar]
+backgroundColor = "#1E1B18"
+secondaryBackgroundColor = "#2A2622"
+textColor = "#EDE7DF"
+borderColor = "#3A352F"
+primaryColor = "#4A72E0"
+linkColor = "#8FAAE0"

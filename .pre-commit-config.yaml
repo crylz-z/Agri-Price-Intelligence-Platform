@@ -36,4 +36,16 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
-# Secrets: GitHub secret scanning with push protection, not a local hook.
+      - id: dashboard-no-css
+        name: dashboard CSS stays in app.py
+        entry: <style|unsafe_allow_html|use_container_width
+        language: pygrep
+        files: ^src/dashboard/.*\.py$
+        exclude: ^src/dashboard/app\.py$
+  # Secrets in the staged diff. GitHub push protection is the second layer, but it
+  # has no pattern for R2's hex S3 keys. pre-commit builds the Go binary into its
+  # own cache, so nothing is installed globally.
+  - repo: https://github.com/betterleaks/betterleaks
+    rev: v1.9.0
+    hooks:
+      - id: betterleaks

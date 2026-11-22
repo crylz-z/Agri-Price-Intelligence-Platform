@@ -1,0 +1,59 @@
+version: 2
+
+models:
+  - name: stg_psa__retail_prices
+    description: >
+      The latest (snapshot_rank 1) and previous (2) snapshot of every PSA retail
+      price table, one row per geolocation, commodity and month, empty cells kept.
+    columns:
+      - name: table_id
+        data_tests:
+          # A table PSA adds is a dimension change: add it to seeds/psa_tables.csv.
+          - relationships:
+              arguments:
+                to: ref('psa_tables')
+                field: table_id
+      - name: geo_level
+        description: national, region or province, from the label's indent.
+        data_tests:
+          - not_null
+  - name: stg_psa__farmgate_prices
+    description: >
+      The latest (snapshot_rank 1) and previous (2) snapshot of every farmgate
+      table in seeds/psa_farmgate_tables.csv, national and region rows, one row
+      per geolocation, commodity and period, empty cells kept. PSA fills cells with
+      no sales with 0. Fish is quarterly: its row's month is the quarter's first
+      and months_in_period is 3 (1 for every other table).
+    columns:
+      - name: table_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('psa_farmgate_tables')
+                field: table_id
+  - name: stg_psa__wholesale_prices
+    description: >
+      The latest (snapshot_rank 1) and previous (2) snapshot of every wholesale
+      table in seeds/psa_wholesale_tables.csv, national and region rows, one row
+      per geolocation, commodity and month, empty cells kept. PSA's wholesale
+      selling price: what traders sell to stores for.
+    columns:
+      - name: table_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('psa_wholesale_tables')
+                field: table_id
+  - name: stg_psa__cpi
+    description: >
+      PSA's consumer price index for all income households (2018=100), national,
+      one row per group (commodity) and month with a value, from the latest
+      snapshot of 0012M4ACP22. All items is the yardstick for "grew faster than
+      inflation"; transport, diesel and fuels answer "is it just fuel costs?".
+    columns:
+      - name: month
+        data_tests:
+          - not_null
+      - name: cpi
+        data_tests:
+          - not_null

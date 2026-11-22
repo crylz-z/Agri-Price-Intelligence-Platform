@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: farmer_share_monthly
+    description: >
+      Farmer's share per staple, national and region, from the latest farmgate and
+      retail releases. Key (month, geo_code, staple). Written to R2 as Parquet.
+  - name: food_verdicts
+    description: >
+      Each staple's verdict: did the middle's cut grow faster than inflation from
+      2018 to the last 12 months? One row per staple, national. Columns as in
+      int_food_verdicts. Written to R2 as Parquet.
+  - name: change_only_monthly
+    description: >
+      int_change_only_prices as a mart, for the meat chart in "Check your food".
+      Key (month, staple). Written to R2 as Parquet.
+  - name: price_changes_yearly
+    description: >
+      Each food's farm and store price change over the past year, national, as in
+      int_price_changes, biggest split first (farm down, store up). One row per
+      staple. Written to R2 as Parquet.
+  - name: growth_since_2018
+    description: >
+      Each food's farm and store price growth since 2018, national, meat
+      included, as in int_growth_since_2018, the store's biggest lead first. One
+      row per staple. Written to R2 as Parquet.
