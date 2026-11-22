@@ -30,7 +30,7 @@ Needs [uv](https://docs.astral.sh/uv/). Copy `.env.example` to `.env` and fill i
 ```bash
 uv sync
 uv run python -m pytest                              # offline
-uv run python -m src.etl.pipeline                    # ingest; dbt runs only if PSA released something
+uv run python -m src.etl.pipeline                    # ingest; dbt runs if PSA released or a mart is stale
 uv run python -m src.etl.pipeline --build            # always run dbt
 uv run python -m streamlit run src/dashboard/app.py
 ```

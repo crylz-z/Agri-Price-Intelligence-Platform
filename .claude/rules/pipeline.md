@@ -10,11 +10,12 @@ paths:
 
 ## Layer contract
 - Raw: `s3://$S3_BUCKET_NAME/raw/table=<id>/updated=<YYYYMMDDTHHMMSS>.csv`, one per PSA release, stored as returned (Windows-1252, CRLF, missing values `.`, `..` or `...`), never rewritten. `<id>` drops PSA's `.px`; `updated` is PSA's timestamp without separators. Retail, farmgate, wholesale and CPI tables share this prefix.
-- Marts, rebuilt whole by dbt from the latest snapshot per table: `mart/farmer_share_monthly.parquet` (key `month, geo_code, staple`), `mart/food_verdicts.parquet` (`staple`), `mart/price_changes_yearly.parquet` (`staple`), `mart/growth_since_2018.parquet` (`staple`) and `mart/change_only_monthly.parquet` (`month, staple`). Older marts on R2 (`retail_prices_monthly`, `staple_prices_monthly`, `dish_costs_monthly`, `staple_seasonality`) are no longer written.
-- Order in `pipeline.main`: ingest; if it wrote anything (or `--build`), `dbt build`; a failed build exits 1.
+- Marts, rebuilt whole by dbt from the latest snapshot per table: `mart/farmer_share_monthly.parquet` (key `month, geo_code, staple`), `mart/food_verdicts.parquet` (`staple`), `mart/price_changes_yearly.parquet` (`staple`), `mart/growth_since_2018.parquet` (`staple`) and `mart/change_only_monthly.parquet` (`month, staple`).
+- Order in `pipeline.main`: ingest; `dbt build` if it wrote anything, if `--build`, or if `pipeline.stale` finds a mart missing or older than the newest kept snapshot; a failed build exits 1.
+- `pipeline.stale` compares write times: the snapshots' come from ingest's own HEADs (`storage.modified`), the marts' from one HEAD each (5 Class B). `pipeline.MARTS` must match `models/marts/`; a pytest checks it.
 
 ## Ingest (`src/etl/ingest.py`)
-- Change detection is `storage.exists`: one HEAD. Never use s3fs `exists()`/`info()` on R2: a miss adds a ListObjects (Class A). Never list R2 in ingest.
+- Change detection is `storage.modified`: one HEAD, which also gives the write time. Never use s3fs `exists()`/`info()` on R2: a miss adds a ListObjects (Class A). Never list R2 in ingest.
 - Four PSA folders: every retail table in `2018NEW`, only `FARMGATE_TABLES` in `NFG`, only `WHOLESALE_TABLES` in `NWSNEW`, and only `CPI_TABLES` in `PI/CPI/2018NEW`. Each dict must match its seed (`seeds/psa_<kind>_tables.csv`); a pytest checks it.
 - The CPI table is 120 places x 354 groups, so `CPI_QUERY` asks for PHILIPPINES (code `0`) and the 4 `CPI_GROUPS` codes: all items, electricity and fuels, transport, diesel. `assert_cpi_groups_expected` fails if PSA renumbers the codes. Changing `CPI_GROUPS` needs a new snapshot, but the path depends only on PSA's `updated`, so ingest skips the table until PSA's next CPI release.
 - `download` accepts only a body that starts with its table's own CSV header (`Table.header`: PSA lays farmgate tables out differently), so an error page can't become an immutable snapshot.
@@ -41,7 +42,7 @@ paths:
 - `lake_root` var overrides `s3://$S3_BUCKET_NAME` for a local build; DuckDB won't create the local `mart/` folder.
 
 ## Known limits
-- A failed `dbt build` isn't retried: the next day's ingest finds nothing new, so it skips dbt. Rerun the "Daily PSA Prices" workflow by hand with **build** ticked.
+- A failed `dbt build` is retried on every later run until each mart is newer than the newest snapshot, so a lasting test failure fails the workflow daily until it's fixed.
 - GitHub turns off a scheduled workflow after 60 days with no commits to the repo.
 - GitHub starts scheduled runs late, by up to 8 hours in November 2026 (a 10:00 PHT cron ran at 17:00–18:30 PHT), and it can drop them at peak load. The cron (01:37 PHT) sits off the hour to dodge the busiest slot.
 - Staging reads 2 snapshots × 29 tables (11 retail, about 12 MB a snapshot set; 9 farmgate, about 16 MB with fish; 9 wholesale, about 7.5 MB with fish) from R2 on each build, about 71 MB. Wholesale adds about 66 MB of raw storage a year. Retail alone took about 20 s; the farmgate share is not yet timed on R2.

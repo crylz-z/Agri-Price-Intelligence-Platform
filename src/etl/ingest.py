@@ -116,6 +116,13 @@ class Table:
         return CPI_QUERY if self.folder == CPI else CSV_QUERY
 
 
+@dataclass(frozen=True)
+class Ingested:
+    written: list[str]  # snapshot paths written this run
+    # Write time of the newest snapshot already stored, from the same HEADs.
+    newest_kept: datetime | None
+
+
 def make_session() -> requests.Session:
     # Honest bot: Cloudflare 403s a bare client but serves the named UA.
     retry = Retry(
@@ -170,9 +177,10 @@ def run(
     fs: AbstractFileSystem,
     root: str,
     delay: float = REQUEST_DELAY_SECONDS,
-) -> list[str]:
-    """Write a snapshot for each table PSA has re-released. Returns the paths written."""
+) -> Ingested:
+    """Write a snapshot for each table PSA has re-released."""
     written = []
+    kept: list[datetime] = []
     tables = [
         t
         for folder in (RETAIL, FARMGATE, WHOLESALE, CPI)
@@ -180,10 +188,11 @@ def run(
     ]
     for table in tables:
         path = snapshot_path(root, table)
-        if storage.exists(fs, path):
+        if (modified := storage.modified(fs, path)) is not None:
+            kept.append(modified)
             continue
         time.sleep(delay)
         fs.pipe_file(path, download(session, table))
         logger.info("Wrote snapshot.", path=path)
         written.append(path)
-    return written
+    return Ingested(written, max(kept, default=None))

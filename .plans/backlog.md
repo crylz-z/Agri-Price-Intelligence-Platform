@@ -2,11 +2,6 @@
 
 Work not yet planned. When an item is picked up, plan it in `.plans/<slug>/` and delete its line here.
 
-## Before going public
-- Ask the owner about deleting the old R2 marts (listed in `.claude/rules/pipeline.md`).
-- R2 lacks the fish snapshots and the `growth_since_2018` mart until the pipeline runs with **build**; until then the page runs only from the local lake.
-- Retry a failed `dbt build`: run dbt when the newest raw snapshot is newer than the oldest mart (one HEAD per mart, Class B), not only when ingest wrote something today.
-
 ## After story v3
 - The video, then push and PR, when the owner asks.
 
