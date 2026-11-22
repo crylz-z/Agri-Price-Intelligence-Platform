@@ -26,13 +26,13 @@ jobs:
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@v4
-    - uses: astral-sh/setup-uv@v6
+    - uses: actions/checkout@v7
+    - uses: astral-sh/setup-uv@v10.4.0
       with:
         enable-cache: true
     - run: uv sync --locked
     # The betterleaks hook builds a Go binary; caching it saves that build on every run.
-    - uses: actions/cache@v4
+    - uses: actions/cache@v6
       with:
         path: ~/.cache/pre-commit
         key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
@@ -52,8 +52,8 @@ jobs:
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@v4
-    - uses: astral-sh/setup-uv@v6
+    - uses: actions/checkout@v7
+    - uses: astral-sh/setup-uv@v10.4.0
       with:
         enable-cache: true
     - run: uv sync --locked --no-dev
@@ -67,7 +67,7 @@ jobs:
       run: uv run --no-dev python -m src.etl.pipeline ${{ inputs.build && '--build' || '' }}
     # The run log keeps only dbt's summary; its full log and results go with the runner.
     - if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: dbt-logs-${{ github.run_id }}
         path: |
