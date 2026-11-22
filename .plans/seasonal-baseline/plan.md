@@ -1,5 +1,5 @@
 # Seasonal baseline: "is this price usual for this month?"
-Status: building · created 2026-11-22
+Status: review · created 2026-11-22
 
 ## Why
 A shopper on "Check your food" sees a price but can't tell whether it is normal for the time of year: a November tomato spike happens most years, but nothing on the page says so. The dashboard never flags single months today. The "suspicious" verdict compares full-year averages (`int_food_verdicts.sql`) and the price changes compare the same month a year earlier (`int_price_changes.sql`), so this is a new answer for the shopper, not a fix for an existing flag.
@@ -34,7 +34,7 @@ Under the price chart on "Check your food", a 12-month "usual year" chart. A sha
 - [x] Mention it where the dashboard explains its methods (`how.py`), in one plain paragraph that includes the trimming and the 5-year minimum — done when the page renders and `test_pages.py` passes.
 - [x] Caption: replace `tmp/linkedin/caption.md:46` with "Next: a 'usual for this month' range on each food, so a normal November spike reads differently from an unusual one." — done when the body recount (`awk '/^---$/{n++; next} n==1' tmp/linkedin/caption.md | wc -m`) stays ≤ 3,000. If the feature ships before posting, move it into the body as current instead.
 - [x] Backlog: add "Who keeps the harvest drop: rice's farm price swings 10% with the season, its store price 2%, and the gap 20% (rice keeps in storage, so a flat store price alone proves nothing)" under Ideas — done when the line is in `.plans/backlog.md`.
-- [ ] Full check — done when `uv run python -m pre_commit run --all-files` and `uv run python -m pytest` pass.
+- [x] Full check — done when `uv run python -m pre_commit run --all-files` and `uv run python -m pytest` pass.
 
 ## Review
 - Does the band and sentence read correctly for tomato, onion, rice and pork on a phone?
