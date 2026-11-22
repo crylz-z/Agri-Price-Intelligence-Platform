@@ -1,0 +1,11 @@
+# Keeps the action pins in daily_run.yml current, so a runtime deprecation (e.g. Node 20)
+# arrives as a PR instead of a warning on the pipeline.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
