@@ -31,7 +31,6 @@ tmp/
 # are shared with the repo; the workflow skills (grilling, to-plan, build) come
 # from the owner's harness plugin. Only per-machine state stays local.
 .claude/settings.local.json
-.claude/stop-gate.stamp
 .claude/worktrees/
 dbt/target/
 dbt/logs/
