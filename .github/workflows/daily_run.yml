@@ -42,8 +42,9 @@ jobs:
     # Compiles every model and test without touching R2.
     - run: uv run python -m dbt.cli.main parse --project-dir dbt --profiles-dir dbt
 
-  # Schedule and manual runs: ingest, then dbt only when PSA released something.
-  # A run with no release costs 4 PSA GETs and 30 R2 HEADs (Class B).
+  # Schedule and manual runs: ingest, then dbt when PSA released something or a mart
+  # is older than the newest snapshot. A quiet run costs 4 PSA GETs and one R2 HEAD
+  # (Class B) per table plus 5 for the marts.
   pipeline:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -64,3 +65,13 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: auto
       run: uv run --no-dev python -m src.etl.pipeline ${{ inputs.build && '--build' || '' }}
+    # The run log keeps only dbt's summary; its full log and results go with the runner.
+    - if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: dbt-logs-${{ github.run_id }}
+        path: |
+          dbt/logs/
+          dbt/target/run_results.json
+        if-no-files-found: ignore
+        retention-days: 30
