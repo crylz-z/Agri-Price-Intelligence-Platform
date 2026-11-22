@@ -567,6 +567,11 @@ def ratchet_chart(up: float, down: float, moves: list[int]) -> dict[str, Any]:
     )
 
 
+# Vega sizes the y-axis before the web font loads and measures "₱" narrower than
+# it draws, so 3-digit ₱ labels lost their ₱ off the left edge.
+PESO_AXIS_PAD = {"left": 16, "top": 5, "right": 5, "bottom": 5}
+
+
 def food_chart(series: pd.DataFrame, unit: str) -> Any:
     """Farm, wholesale and store price by month, in the theme's first three
     chart colours: farm blue, store ink, wholesale amber (what traders sell
@@ -583,7 +588,9 @@ def food_chart(series: pd.DataFrame, unit: str) -> Any:
             y=alt.Y(
                 "price:Q",
                 title=None,
-                axis=alt.Axis(format=",.0f", labelExpr="'₱' + datum.label"),
+                axis=alt.Axis(
+                    format=",.0f", labelExpr="'₱' + datum.label", labelFlush=False
+                ),
             ),
             color=alt.Color(
                 "line:N",
@@ -600,7 +607,7 @@ def food_chart(series: pd.DataFrame, unit: str) -> Any:
                 alt.Tooltip("price:Q", format=",.2f", title=f"₱ per {unit}"),
             ],
         )
-        .properties(height=280)
+        .properties(height=280, padding=PESO_AXIS_PAD)
     )
 
 
@@ -616,7 +623,9 @@ def change_chart(series: pd.DataFrame) -> Any:
                 title=None,
                 axis=alt.Axis(grid=False, format="%Y", tickCount="year"),
             ),
-            y=alt.Y("change:Q", title=None, axis=alt.Axis(format="+.0%")),
+            y=alt.Y(
+                "change:Q", title=None, axis=alt.Axis(format="+.0%", labelFlush=False)
+            ),
             color=alt.Color(
                 "line:N",
                 # Blue and ink: the theme's first two chart colours.
@@ -677,7 +686,7 @@ def usual_year_chart(rows: pd.DataFrame, unit: str) -> Any:
             ],
         )
     )
-    return (band + line).properties(height=240)
+    return (band + line).properties(height=240, padding=PESO_AXIS_PAD)
 
 
 def season_section(baseline: pd.DataFrame, staple: str) -> None:
