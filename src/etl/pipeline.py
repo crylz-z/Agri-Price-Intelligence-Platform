@@ -29,6 +29,7 @@ MARTS = (
     "food_verdicts",
     "growth_since_2018",
     "price_changes_yearly",
+    "seasonal_baseline",
 )
 
 
