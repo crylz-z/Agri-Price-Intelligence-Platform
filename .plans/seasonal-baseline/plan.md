@@ -30,7 +30,7 @@ Under the price chart on "Check your food", a 12-month "usual year" chart. A sha
 ## Checklist
 - [x] `int_seasonal_index` and mart `seasonal_baseline` (one row per food × calendar month: usual low/median/high in today's pesos, years used, swing) — done when `dbt build --select +seasonal_baseline` passes against the local lake (`--vars "{lake_root: 'E:/Workspace/apip/tmp/lake'}"`) with the five dbt tests above, and a query shows Tomato's November median above its April median and Well-milled rice's swing under 0.05.
 - [x] Pure functions in `src/dashboard/data.py` for the chart rows and the sentence — done when the new pytest cases pass offline (`uv run python -m pytest`).
-- [ ] The "usual year" chart and sentence on "Check your food", for both share foods and change-only foods (meats) — done when http://localhost:8503 shows the band and sentence for Tomato, Red onion and Pork kasim, the barely-seasonal sentence for Well-milled rice, and the barely-seasonal sentence for Bangus. Screenshots judged by `screenshot-checker` at phone and wide widths.
+- [x] The "usual year" chart and sentence on "Check your food", for both share foods and change-only foods (meats) — done when http://localhost:8503 shows the band and sentence for Tomato, Red onion and Pork kasim, the barely-seasonal sentence for Well-milled rice, and the barely-seasonal sentence for Bangus. Screenshots judged by `screenshot-checker` at phone and wide widths.
 - [ ] Mention it where the dashboard explains its methods (`how.py`), in one plain paragraph that includes the trimming and the 5-year minimum — done when the page renders and `test_pages.py` passes.
 - [ ] Caption: replace `tmp/linkedin/caption.md:46` with "Next: a 'usual for this month' range on each food, so a normal November spike reads differently from an unusual one." — done when the body recount (`awk '/^---$/{n++; next} n==1' tmp/linkedin/caption.md | wc -m`) stays ≤ 3,000. If the feature ships before posting, move it into the body as current instead.
 - [ ] Backlog: add "Who keeps the harvest drop: rice's farm price swings 10% with the season, its store price 2%, and the gap 20% (rice keeps in storage, so a flat store price alone proves nothing)" under Ideas — done when the line is in `.plans/backlog.md`.
@@ -48,3 +48,10 @@ Under the price chart on "Check your food", a 12-month "usual year" chart. A sha
 - Tests sit on a new table `int_seasonal_baseline`, with the mart a `select *`: the pipeline rule says external marts are written before their own tests run.
 - Column `price_level`, not `level`: `level` is a DuckDB keyword.
 - The peso level is null unless all 12 months before the latest have a price, so a food with a gap shows no band rather than a skewed one.
+- One `season_section` under both share and meat foods, placed in `food_page`, not in each branch.
+- The band is grey (`MUTED`) and the line is ink; no orange anywhere in the section.
+- The chart is skipped (sentence only) when the swing is under 5% or there is no price level.
+- Prices show in whole pesos, with centavos kept under ₱20 (eggs). The verdict is judged on the shown pesos: Kangkong read "₱69, higher than usual for October (₱65–₱69)" on the raw values.
+- Both chart layers share one y axis, with `labelFlush` off: the end labels sat off their gridlines.
+- The fixture's `latest_month` and `recent_month` are cast to `timestamp[ms]`, like `change_only_monthly`: the page tests read with plain `pd.read_parquet`, which keeps `date32` as Python dates.
+- `scripts/screenshot.py` presets `theme.py`'s first-visit marker and theme key: since the light default, `SCHEME=dark` shot light pages and the reload broke captures mid-settle.

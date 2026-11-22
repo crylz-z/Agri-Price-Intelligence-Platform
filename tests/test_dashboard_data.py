@@ -518,6 +518,11 @@ def test_season_sentence_names_the_months_and_the_latest_verdict():
     assert data.season_sentence(rows, "Tomato").endswith(
         "₱140, higher than usual for October (₱105–₱125)."
     )
+    # A price above the range by less than a shown peso reads as usual.
+    rows.loc[rows["calendar_month"] == 10, "recent_price"] = 125.3
+    assert data.season_sentence(rows, "Tomato").endswith(
+        "₱125, usual for October (₱105–₱125)."
+    )
 
 
 def test_season_sentence_barely_seasonal_and_missing():

@@ -403,8 +403,12 @@ def season_verdict(price: float, low: float, high: float) -> str:
     return "usual"
 
 
-def _pesos(value: float) -> str:
+def _shown(value: float) -> float:
     # Whole pesos read faster; a cheap item (an egg) keeps its centavos.
+    return round(value) if value >= 20 else round(value, 2)
+
+
+def _pesos(value: float) -> str:
     return f"₱{value:,.0f}" if value >= 20 else f"₱{value:,.2f}"
 
 
@@ -426,8 +430,10 @@ def season_sentence(baseline: pd.DataFrame, staple: str) -> str | None:
     now = rows[rows["recent_month"] == latest]
     if now.empty or pd.isna(now["usual_low"].iloc[0]):
         return months
+    # Judged on the shown pesos, so "₱69, higher than usual (₱65–₱69)" can't read.
     price, low, high = (
-        float(now[c].iloc[0]) for c in ("recent_price", "usual_low", "usual_high")
+        _shown(float(now[c].iloc[0]))
+        for c in ("recent_price", "usual_low", "usual_high")
     )
     name = latest.strftime("%B")
     verdict = {

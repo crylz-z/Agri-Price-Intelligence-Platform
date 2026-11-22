@@ -69,6 +69,15 @@ def shoot(base: str, target: str, out: Path, exe: str | None) -> None:
                 viewport={"width": width, "height": 900},
                 color_scheme=os.getenv("SCHEME", "light"),  # type: ignore[arg-type]
             )
+            # theme.py opens a first visit light and reloads a dark one: preset its
+            # marker and Streamlit's theme key, or dark never shows and the
+            # reload lands mid-settle.
+            theme = "Dark" if os.getenv("SCHEME") == "dark" else "Light"
+            page.add_init_script(
+                "const p = window.location.pathname;"
+                "localStorage.setItem(`themeDefaultSet-${p}`, '1');"
+                f"localStorage.setItem(`stActiveTheme-${{p}}-v2`, '\"{theme}\"');"
+            )
             page.on(
                 "console",
                 lambda m: m.type == "error" and print("  console:", m.text[:300]),

@@ -637,6 +637,78 @@ def change_chart(series: pd.DataFrame) -> Any:
     return (zero + lines).properties(height=280)
 
 
+def usual_year_chart(rows: pd.DataFrame, unit: str) -> Any:
+    """The past 12 months of store price (ink) over a grey band: the usual price
+    for each month in past years, in today's pesos."""
+    order = list(rows["label"])
+    x = alt.X("label:O", title=None, sort=order, axis=alt.Axis(labelAngle=0))
+    # One y for both layers: an unset one on the band drew a second, unformatted
+    # axis under the ₱ one.
+    scale = alt.Scale(zero=False)
+    # Unflushed: the theme nudges the end labels inward, off their gridlines.
+    axis = alt.Axis(format=",.0f", labelExpr="'₱' + datum.label", labelFlush=False)
+    band = (
+        alt.Chart(rows)
+        .mark_area(color=MUTED, opacity=0.3)
+        .encode(
+            x=x,
+            y=alt.Y("usual_low:Q", title=None, scale=scale, axis=axis),
+            y2="usual_high:Q",
+        )
+    )
+    line = (
+        alt.Chart(rows.assign(line=data.STORE))
+        .mark_line(strokeWidth=2.5, point=True)
+        .encode(
+            x=x,
+            y=alt.Y("recent_price:Q", title=None, scale=scale, axis=axis),
+            # The store's ink: the theme's second chart colour.
+            color=alt.Color(
+                "line:N",
+                scale=alt.Scale(domain=[data.FARM, data.STORE]),
+                legend=None,
+            ),
+            tooltip=[
+                alt.Tooltip("recent_month:T", format="%B %Y", title="Month"),
+                alt.Tooltip("recent_price:Q", format=",.2f", title=f"₱ per {unit}"),
+                alt.Tooltip("usual_low:Q", format=",.2f", title="Usual from"),
+                alt.Tooltip("usual_high:Q", format=",.2f", title="Usual to"),
+            ],
+        )
+    )
+    return (band + line).properties(height=240)
+
+
+def season_section(baseline: pd.DataFrame, staple: str) -> None:
+    """Is this month's store price usual for the time of year? Nothing for a food
+    the mart has no band for."""
+    sentence = data.season_sentence(baseline, staple)
+    if sentence is None:
+        return
+    st.subheader(
+        "Usual for the time of year?",
+        anchor=False,
+        help="The usual range is past years' store price for that month, leaving "
+        "out the highest and lowest year, scaled to the past 12 months' prices.\n"
+        "- Needs at least 5 full past years.\n"
+        "- National average.",
+    )
+    st.markdown(sentence)
+    rows = data.usual_year(baseline, staple)
+    if rows.empty or float(rows["swing"].iloc[0]) < data.MIN_SEASON_SWING:
+        return
+    st.caption(
+        "The shaded band is the usual price for each month; the line is the store "
+        "price over the past 12 months."
+    )
+    st.altair_chart(
+        usual_year_chart(rows, str(rows["unit"].iloc[0])),
+        width="stretch",
+        alt=f"{staple}: store price over the past 12 months against the usual "
+        "range for each month",
+    )
+
+
 def moved(change: float) -> str:
     """A change in words: "rose 24%", "fell 19%", "stayed flat"."""
     if round(change * 100) == 0:
@@ -874,6 +946,7 @@ def food_page() -> None:
         change_only_food(change_only, changes, staple)
     else:
         share_food(staple, rows, verdicts, moves, shares, typical)
+    season_section(data.load(data.SEASONAL), staple)
     footer("food", shares)
 
 
