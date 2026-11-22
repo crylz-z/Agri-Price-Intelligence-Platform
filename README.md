@@ -1,87 +1,60 @@
 # PH Food Prices
 
-A daily pipeline that stores every Philippine Statistics Authority (PSA) food price release unchanged on Cloudflare R2, models and tests it with dbt, and publishes it to a four-page Streamlit dashboard, for $0 a month. It covers monthly retail, wholesale and farmgate prices (retail: national, 18 regions and 100 provinces and cities, 197 commodities, from January 2018) and the consumer price index (all items, diesel, transport, electricity and fuels).
-
-The dashboard asks who's eating the farmer's peso: for 25 everyday foods (vegetables, rice, eggs, fish and meat), how many centavos of every peso at the store reach the farmer, how much traders' part grew since 2018, and whether store prices come down when farm prices fall.
+How many centavos of every peso you pay at a Philippine store reach the farmer? This project answers that question from official data, and it runs for $0 a month.
 
 **Live dashboard:** [ph-food-prices.streamlit.app](https://ph-food-prices.streamlit.app/)
 
-```mermaid
-graph LR
-    PSA[("PSA OpenSTAT API")] -->|ingest.py, only new releases| RAW[("R2 raw/<br/>1 CSV snapshot per release")]
-    RAW -->|dbt build: staging, intermediate, tests| MART[("R2 mart/<br/>5 Parquet marts")]
-    MART --> UI["Streamlit dashboard<br/>4 pages"]
-    CRON["GitHub Actions<br/>daily cron"] -.-> PSA
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/stack-dark.png">
+  <img src="docs/stack.png" alt="Architecture diagram: GitHub Actions runs the Python ingest daily; ingest saves only new PSA OpenSTAT releases to Cloudflare R2 as raw CSV snapshots; dbt with DuckDB builds and tests them into Parquet marts on R2; the Streamlit dashboard on Streamlit Community Cloud reads the marts" width="100%">
+</picture>
 
-## How it works
-- **Ingest** (`src/etl/ingest.py`): one GET per PSA folder lists the 11 retail price tables, the 9 farmgate tables (fish is quarterly), the 9 wholesale tables and the 1 CPI table used, with their `updated` time. A table is downloaded only when R2 doesn't have that release yet, checked with a single HEAD. A day with no new release makes 4 PSA calls and 30 HEADs.
-- **Raw** (`raw/table=<id>/updated=<YYYYMMDDTHHMMSS>.csv`): each table exactly as PSA returned it, never rewritten. PSA revises past months, so keeping every release makes each number traceable to its source.
-- **Model** (`dbt/`, dbt Core + dbt-duckdb):
-  - Staging unpivots the month columns of the latest snapshots: `stg_psa__retail_prices`, `stg_psa__farmgate_prices` (months, or quarters for fish), `stg_psa__wholesale_prices`, `stg_psa__cpi` (national, 4 groups).
-  - `int_retail_prices` adds PSGC geo codes from a seed; `int_staple_prices` keeps the 28 everyday foods in `staples.csv`.
-  - `farmer_share_monthly`: for 21 staples, the farmgate price over the retail price, national and by region, by month (`int_farmer_share`). Fish (bangus, tilapia, galunggong) has a farm price by quarter, set against the quarter's average store price. Where PSA has a wholesale price (20 staples), it splits the gap into the trader's cut (wholesale − farm) and the store's cut (store − wholesale).
-  - `food_verdicts`: one row per staple. It holds the middle's cut in 2018 and over the last 12 months, against CPI over the same span (plus diesel, transport and fuel CPI for context), and the verdict (suspicious when the cut grew more than 5 points faster). It also holds the pass-through, in 2018 pesos: how far the store price moves per peso the farm price moves, in months when the farm price rose or fell by over 15%.
-  - `price_changes_yearly`: one row per food, national: the farm and store price in the latest month (fish: quarter) against a year earlier, as percent changes. It adds meat (pork kasim and liempo, whole chicken, beef) against PSA's live-animal price (`seeds/change_only_commodities.csv`), which compares only as a percent change.
-  - `growth_since_2018`: one row per food, national: the farm and store price's growth from 2018 to the last 12 months, meat included, with inflation over the same months.
-  - `change_only_monthly`: those change-only foods (meat) by month, national, for the meat chart in "Check your food".
-  - dbt tests recompute the farmer's share, the wholesale split, the verdicts, the pass-through and the growth since 2018 by a separate path, and check prices against values fetched from PSA by hand (`psa_spot_checks.csv`, `psa_farmgate_spot_checks.csv`, and wholesale and CPI values inside their tests).
-- **Tests that block publishing**:
-  - a table or geolocation is missing, or PSA adds an unknown one
-  - duplicate keys
-  - `price <= 0`
-  - a release with far fewer filled cells than the one before
+## What it does
+- Saves every Philippine Statistics Authority (PSA) release of retail, wholesale and farmgate food prices and the consumer price index (CPI), unchanged, so every number traces back to its source.
+- Models and tests them with dbt. A failed test blocks publishing, so the dashboard keeps the last good data.
+- Shows 25 everyday foods: the farmer's share of the store price, how much traders' cut grew since 2018 against inflation, and whether store prices come down when farm prices fall.
+- Five dashboard pages: the story, who got caught, check your food, the short version, and how it's built.
 
-  All tests run upstream of the marts, so a failure skips the write and R2 keeps the last good mart. Three checks only warn: a latest month more than 3 months old, a national price that doubles or halves in a month, and a farmer's share above 100%.
-- **pytest** covers ingest (change detection, HEAD-only R2 checks, rejecting non-CSV responses), the pipeline's dbt trigger, the dashboard's data layer and an offline render of each page, all without network.
-- **Dashboard** (`src/dashboard/`), four pages under a top navigation, each section a headline, at most one line and a so-what line. The story charts are ECharts with a brief entry animation. Blue is the farmer, amber the middle (traders and the gap), and the store price is ink:
-  1. **The story** (`/`): the newest month's biggest move in a farmer's share; the 2023 onion crisis, where the reader guesses the store price before the page shows it; who stands between farm and store; a receipt splitting the reader's own basket (an example until they change it) between farmer, traders and stores; traders' centavos of a peso in 2018 and now; an example where the farm price goes up and back down and the store price ratchets up; and the total regulators have fined so far.
-  2. **Who got caught** (`/caught`): each food's farmer centavos and farm and store growth since 2018, then the public record (`dbt/seeds/suspects.csv`), rulings first, and what can be done, with a button to report a cartel to the Philippine Competition Commission.
-  3. **Check your food** (`/food?food=…`): one food's prices, its numbers, and its farmer's share against the typical food's. Meat shows its live-animal and cut prices, then how each moved since 2018.
-  4. **How it's built** (`/how`): this pipeline as a picture, the latest PSA release and the repo link.
+## Stack
+The reasons behind each choice are in [docs/adr.md](docs/adr.md).
+- **Python + requests**: ingest from the PSA OpenSTAT API
+- **Cloudflare R2**: raw CSV snapshots and Parquet marts
+- **dbt + DuckDB**: staging, models and tests
+- **Streamlit** on Streamlit Community Cloud: the dashboard
+- **GitHub Actions**: the daily run and CI (pytest, dbt parse)
+- **uv, pre-commit** (ruff, mypy, betterleaks): tooling
 
-  Streamlit Community Cloud updates on every push to `main`.
-- **$0 on R2**: a release day has up to 30 snapshot writes and 5 mart writes, plus about 30 HEADs a day, well inside the free tier. See `docs/cloudfare-agent-notes/free-tier-r2.md`. The reasons behind each tool are in `docs/adr.md`; the terms are defined in `GLOSSARY.md`.
-
-## Run it
+## Quick start
 Needs [uv](https://docs.astral.sh/uv/). Copy `.env.example` to `.env` and fill in an R2 bucket and API token.
 
 ```bash
 uv sync
-uv run python -m pre_commit install   # ruff + mypy on every commit
-uv run python -m pytest               # no network
-uv run python -m src.etl.pipeline     # ingest; dbt build only if PSA released something
-uv run python -m src.etl.pipeline --build   # always run dbt
+uv run python -m pytest                              # offline
+uv run python -m src.etl.pipeline                    # ingest; dbt runs only if PSA released something
+uv run python -m src.etl.pipeline --build            # always run dbt
 uv run python -m streamlit run src/dashboard/app.py
 ```
 
-To rehearse the Streamlit Community Cloud deploy, paste the app's Secrets TOML into `.streamlit/secrets.toml` (gitignored) and run the dashboard. Its root-level keys become environment variables and take precedence over `.env`, as on the cloud.
-
-dbt on its own, from the repo root:
-
-```bash
-uv run python -m dbt.cli.main build --project-dir dbt --profiles-dir dbt
-# against a local copy of raw/ (needs <dir>/mart/ to exist):
-uv run python -m dbt.cli.main build --project-dir dbt --profiles-dir dbt --vars "{lake_root: '<dir>'}"
+## Project layout
+```
+src/etl/         ingest, pipeline, read-only query CLI
+src/core/        storage settings (R2)
+src/dashboard/   Streamlit app
+dbt/             models, seeds, tests
+tests/           pytest, no network
+docs/            ADRs, pipeline detail, R2 free-tier notes
 ```
 
-## Sample queries
-`src/etl/query.py` runs read-only SQL over the `raw`, `shares`, `verdicts`, `changes`, `change_only` and `growth` views:
+## Cost
+$0 a month: a release day writes at most about 35 objects to R2, and ordinary days make about 30 HEAD requests, far inside the [free tier](https://developers.cloudflare.com/r2/pricing/).
 
-```bash
-# National farmer's share of red onion, last 12 months
-uv run python -m src.etl.query "SELECT month, farmer_share FROM shares WHERE geo_code = '000000000' AND staple = 'Red onion' ORDER BY month DESC LIMIT 12"
+## Docs
+- [How the pipeline works](docs/pipeline.md): models, tests, dashboard pages, sample queries
+- [Decisions](docs/adr.md)
+- [Glossary](GLOSSARY.md)
+- [dbt models](dbt/models/)
 
-# Foods whose store price falls least when the farm price falls
-uv run python -m src.etl.query "SELECT staple, up_pass_through, down_pass_through FROM verdicts ORDER BY down_pass_through"
+## Data and license
+Data: [PSA OpenSTAT](https://openstat.psa.gov.ph/): retail prices of agricultural commodities (2018 onward), farmgate prices (`NFG`), wholesale selling prices (`NWSNEW`) and the CPI for all income households (2018=100).
 
-# Which release each table's latest snapshot comes from
-uv run python -m src.etl.query "SELECT \"table\", max(updated) FROM raw GROUP BY ALL ORDER BY 1"
-```
-
-## What I'd build next
-- **Who feels it most:** PSA's CPI for the bottom 30% of households (`PI/BIH`).
-- **Revision tracker:** diff consecutive snapshots to show which past months PSA revised.
-
----
-Data: [PSA OpenSTAT](https://openstat.psa.gov.ph/): Retail Prices of Agricultural Commodities by Geolocation, Commodity, Year and Period (2018 onward), the Farmgate Prices tables (folder `NFG`), the Wholesale Selling Prices tables (folder `NWSNEW`) and the Consumer Price Index for All Income Households (2018=100).
+Code: [MIT](LICENSE).

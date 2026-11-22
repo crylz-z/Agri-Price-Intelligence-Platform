@@ -34,14 +34,8 @@ One palette, the same value in light and dark (ADR 19, ADR 21). Blue (`FARM`) is
 - All data access goes through `src/dashboard/data.py`. The page reads `farmer_share_monthly`, `food_verdicts`, `price_changes_yearly`, `growth_since_2018` and `change_only_monthly`. `dbt/seeds/suspects.csv` is read from the repo, so editing that CSV on `main` is its only upkeep.
 - A new mart column the page reads must also be in `tests/fixtures/marts/`, or the page tests fail. `food_verdicts.parquet`, `price_changes_yearly.parquet`, `growth_since_2018.parquet` and `change_only_monthly.parquet` (with `month` cast to `timestamp[ms]`) there are whole marts, copied from a local build; `farmer_share_monthly.parquet` keeps the months from Sep 2025 plus national red onion in 2023 for the hook. The page tests pin their numbers.
 
-## Local run
-- `tmp/local_app.py` serves the page from the local lake `tmp/lake/` (gitignored): `uv run python -m streamlit run tmp/local_app.py --server.port 8503 --server.headless true --server.runOnSave true --server.folderWatchList E:/Workspace/apip/src`, in the background. Without the last two flags Streamlit watches only `tmp/`, so edits to `src/dashboard/` never show. The owner has said you may restart the server on 8503 yourself.
-- Refill the lake with `uv run python -m tmp.fetch_lake`, then build dbt with `--vars "{lake_root: 'E:/Workspace/apip/tmp/lake'}"`. The local lake's numbers differ slightly from the test fixtures'.
-- Before any review stop, restart the server on 8503 with the command above (it also clears `load`'s 6 h cache) and give the owner http://localhost:8503, so they can review the whole build at once. A sub-path page logs two harmless 404s for `/<page>/_stcore/...`.
-- Screenshots of the local page: `scripts/screenshot.py` with `APP=tmp/local_app.py SHOT_DIR=tmp/shots`, plus the `CHROME` and font settings under Done means.
-
 ## Done means
-- You have looked at the screenshots from `scripts/screenshot.py` at 1440 and 375 px, light and dark: no cut-off text or legend, no horizontal scroll, no exceptions. On this machine Playwright's own Chromium is missing; set `CHROME` to Edge (`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`). When Google Fonts is unreachable, the screenshots time out "waiting for fonts"; set `STREAMLIT_THEME_FONT=sans-serif STREAMLIT_THEME_HEADING_FONT=sans-serif`.
+- You have looked at the screenshots from `scripts/screenshot.py` at 1440 and 375 px, light and dark: no cut-off text or legend, no horizontal scroll, no exceptions. Machine-specific settings (browser path, font fallback, the local lake) are in `CLAUDE.local.md`.
 
 ## Hosting
 Streamlit Community Cloud (ADR 8) installs from `uv.lock`, runs from the repo root and exposes root-level secrets as environment variables, so `src/core/storage.py` needs no Streamlit-specific code.

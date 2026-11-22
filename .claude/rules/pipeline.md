@@ -24,6 +24,7 @@ paths:
 - R2 access goes through the plugin `src/etl/dbt_storage.py` → `storage.configure_duckdb`; don't put S3 settings in `profiles.yml`.
 - `external` models are written **before** their own tests run. Put every blocking test on `stg_`/`int_` (table) models, so a failure skips the mart and R2 keeps the last good one.
 - `psa_snapshot_files(kind=…)` picks the newest snapshots per table with one `glob()` (1 list); staging reads only those files. `farmgate`, `wholesale` and `cpi` mean listed in `seeds/psa_<kind>_tables.csv`, and every other table is `retail`, so a new PSA retail table still trips the retail tests. The calling model needs `-- depends_on:` on all three seeds (copy the line from a staging model).
+- dbt's profile is `:memory:`, so intermediate models can't be queried after a build; run the compiled SQL from `dbt/target/compiled/` in DuckDB instead.
 - `var('verdict_margin')` (0.05, chosen with the owner 2026-11-08): a staple is suspicious when its middle's cut grew more than 5 points faster than CPI.
 - `var('move_threshold')` (0.15): a month counts toward the pass-through when its farm price, in 2018 pesos, moved more than 15% from a year earlier (ADR 15).
 - Retail geo codes come from `seeds/geolocations.csv` (PSGC, from table metadata on 2026-11-02, identical in all 11 retail tables). PSA's label case differs across tables (`Philippines` vs `PHILIPPINES`): join on `lower()`.
@@ -40,5 +41,8 @@ paths:
 - `lake_root` var overrides `s3://$S3_BUCKET_NAME` for a local build; DuckDB won't create the local `mart/` folder.
 
 ## Known limits
+- A failed `dbt build` isn't retried: the next day's ingest finds nothing new, so it skips dbt. Rerun the "Daily PSA Prices" workflow by hand with **build** ticked.
+- GitHub turns off a scheduled workflow after 60 days with no commits to the repo.
+- GitHub starts scheduled runs late, by up to 8 hours in November 2026 (a 10:00 PHT cron ran at 17:00–18:30 PHT), and it can drop them at peak load. The cron (01:37 PHT) sits off the hour to dodge the busiest slot.
 - Staging reads 2 snapshots × 29 tables (11 retail, about 12 MB a snapshot set; 9 farmgate, about 16 MB with fish; 9 wholesale, about 7.5 MB with fish) from R2 on each build, about 71 MB. Wholesale adds about 66 MB of raw storage a year. Retail alone took about 20 s; the farmgate share is not yet timed on R2.
 - DuckDB over s3fs reads Parquet in many small range requests (57 for the 3 MB mart). Code that reads the whole mart should `cat_file` it once, as `src/dashboard/data.py` does.

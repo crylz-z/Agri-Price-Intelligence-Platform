@@ -2,7 +2,7 @@ name: Daily PSA Prices
 
 on:
   schedule:
-    - cron: '0 2 * * *'    # 10:00 PHT
+    - cron: '37 17 * * *'  # 01:37 PHT; off the hour, as GitHub delays on-the-hour runs most
   workflow_dispatch:
     inputs:
       build:
