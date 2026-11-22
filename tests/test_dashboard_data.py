@@ -458,3 +458,73 @@ def test_short_version_numbers_match_the_story_and_who_got_caught():
         "outran": 19,
         "foods": 25,
     }
+
+
+def baseline_frame(swing: float = 0.36, level: float | None = 100.0) -> pd.DataFrame:
+    # Tomato's 12 months: cheapest in April (0.75), dearest in November (1.25),
+    # the latest month October 2026, recent prices from November 2025.
+    ratios = [1.0, 0.95, 0.85, 0.75, 0.8, 0.9, 1.0, 1.05, 1.1, 1.15, 1.25, 1.2]
+    months = list(range(1, 13))
+    recent = [pd.Timestamp(2026 if m <= 10 else 2025, m, 1) for m in months]
+    lvl = float("nan") if level is None else level
+    return pd.DataFrame(
+        {
+            "staple": "Tomato",
+            "calendar_month": months,
+            "ratio_low": [r - 0.1 for r in ratios],
+            "ratio_median": ratios,
+            "ratio_high": [r + 0.1 for r in ratios],
+            "swing": swing,
+            "price_level": lvl,
+            "usual_low": [(r - 0.1) * lvl for r in ratios],
+            "usual_median": [r * lvl for r in ratios],
+            "usual_high": [(r + 0.1) * lvl for r in ratios],
+            "latest_month": pd.Timestamp("2026-10-01"),
+            "recent_month": recent,
+            "recent_price": [r * 100 for r in ratios],
+            "unit": "kg",
+        }
+    )
+
+
+def test_usual_year_runs_from_the_month_after_a_year_ago_to_the_latest():
+    rows = data.usual_year(baseline_frame(), "Tomato")
+    assert list(rows["label"]) == [
+        "Nov", "Dec", "Jan", "Feb", "Mar", "Apr",
+        "May", "Jun", "Jul", "Aug", "Sep", "Oct",
+    ]  # fmt: skip
+    assert rows["usual_low"].iloc[0] == pytest.approx(115.0)
+    assert data.usual_year(baseline_frame(), "Rice").empty
+
+
+def test_usual_year_is_empty_without_a_price_level():
+    assert data.usual_year(baseline_frame(level=None), "Tomato").empty
+
+
+@pytest.mark.parametrize(
+    ("price", "verdict"), [(100.0, "usual"), (121.0, "higher"), (79.0, "lower")]
+)
+def test_season_verdict(price, verdict):
+    assert data.season_verdict(price, low=80.0, high=120.0) == verdict
+
+
+def test_season_sentence_names_the_months_and_the_latest_verdict():
+    rows = baseline_frame()
+    assert data.season_sentence(rows, "Tomato") == (
+        "Tomato is usually cheapest in April and dearest in November. "
+        "October 2026: ₱115, usual for October (₱105–₱125)."
+    )
+    rows.loc[rows["calendar_month"] == 10, "recent_price"] = 140.0
+    assert data.season_sentence(rows, "Tomato").endswith(
+        "₱140, higher than usual for October (₱105–₱125)."
+    )
+
+
+def test_season_sentence_barely_seasonal_and_missing():
+    assert data.season_sentence(baseline_frame(swing=0.02), "Tomato") == (
+        "Its price barely changes with the season."
+    )
+    assert data.season_sentence(baseline_frame(), "Rice") is None
+    assert data.season_sentence(baseline_frame(level=None), "Tomato") == (
+        "Tomato is usually cheapest in April and dearest in November."
+    )
